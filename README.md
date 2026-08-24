@@ -131,14 +131,15 @@ Backed entirely by the existing `POST /ai-chat` and `GET /user/chat-history` bac
 
 ## 15. Live Validation
 
-Live, on-device validation status is reported honestly and is **not** uniformly "fully validated":
+**Summary: partially validated through previous genuine evidence.** Live, on-device validation status is reported honestly and is **not** uniformly "fully validated" — in particular, the current restyled UI (Settings, Vulnerability Details, bottom navigation, and the restyled pre-existing screens) has **not** been live-validated on a device; that claim is explicitly not made anywhere in this document.
 
 - **Phase 14B**: core flows (login, registration, session restore, logout, dashboard, known-app search, application details, security assessment, compatible-device compatibility, alternatives, cross-user history isolation, chatbot mechanism) — **PASS**, real device, real backend.
 - **Phase 21**: the full chatbot experience (all required questions, suggestion chips, multi-turn conversation, chat-history persistence, unknown-question fallback, empty-input handling, a genuine network-outage-and-recovery cycle, long-response scrolling) plus the Home → Security Chat FAB — **PASS**, real device, 48 genuine screenshots.
 - **Phase 22**: four remaining cases (Search — unknown application; Search — network error; Compatibility — INCOMPATIBLE; Compatibility — NOT_AVAILABLE) — **NOT VALIDATED**. The emulator entered a persistent System UI ANR before the app could launch; RAM was confirmed healthy (~4GB free) at the time, ruling out a memory cause. This is an unresolved host/environment issue, not an application defect.
-- **Most recent UI-restyle phase**: an emulator boot was attempted again (same AVD, same config that succeeded in Phase 21) specifically to visually validate the restyled UI — the identical ANR reproduced immediately and did not clear after the standard bounded recheck, so the attempt was stopped. **No screen from the most recent restyle has on-device visual confirmation**; every claim about it rests on source review and the automated widget-test suite only.
+- **UI-restyle phase (first attempt)**: an emulator boot was attempted again (same AVD, same config that succeeded in Phase 21) specifically to visually validate the restyled UI — the identical ANR reproduced immediately and did not clear after the standard bounded recheck, so the attempt was stopped. No screen from the restyle received on-device confirmation this attempt.
+- **Phase 27 (second, dedicated attempt)**: a fresh attempt specifically targeting the final 59-test build. The stale APK was detected and rebuilt first. The emulator booted quickly (10s) to a genuinely responsive System UI — an improvement over prior attempts — but a `com.android.systemui` ANR appeared with a delayed onset (+15s) and did not clear across a further 20-second bounded recheck. RAM was again confirmed healthy throughout. **The APK was never installed; none of the 12 target screens (Splash, Login, Registration, Dashboard, Search, Application Details, Vulnerability Details, Security Chat, Chat History, Settings, Bottom Navigation, Not Available state) received live confirmation.** Every claim about the restyled UI rests on source review and the automated widget-test suite (59 passed / 0 failed) only — **it has not been live-validated.**
 
-No screenshot in this project is fabricated. See `backend/research_eval_artifacts/final_documentation/` for the full phase-by-phase validation reports.
+No screenshot in this project is fabricated. See `backend/research_eval_artifacts/final_documentation/` for the full phase-by-phase validation reports, including `phase27_final_live_ui_validation.md`.
 
 ## 16. Project Structure
 
@@ -225,6 +226,7 @@ Defined in `backend/.env` (never committed — see `backend/.env.example` for th
 - All five-model and per-CWE metrics were measured on a single frozen 168-sample test split; no statistical significance test is reported, so close rankings between models should be read as directional, not certain.
 - The Decision Engine's higher-coverage (88.7%) candidate operating point has inconclusive cross-split robustness and is not deployed.
 - Four live-validation cases (Phase 22) remain unvalidated on-device due to an unresolved, intermittent host emulator instability (not RAM-related).
+- The entire current UI (restyled screens plus the new Settings, Vulnerability Details, and bottom-navigation screens — 12 screens in total) has **no on-device visual confirmation**: two dedicated live-validation attempts (the UI-restyle phase itself, and Phase 27) were both blocked by the same emulator instability before the app could even be installed. This UI is verified only by `flutter analyze` (clean) and the automated widget-test suite (59 passed / 0 failed).
 - The IntelliJ plugin has automated headless-platform validation only — no human-observed, visible-GUI validation exists.
 - No user study, survey, or third-party human evaluation exists anywhere in this project; all claims are grounded in automated tests, research-evaluation artifacts, and the researcher's own live-validation sessions.
 - "Installed Apps" and "Upload APK" are shown in the mobile UI as honest placeholders — no on-device app enumeration or APK-upload capability exists yet.
@@ -232,7 +234,7 @@ Defined in `backend/.env` (never committed — see `backend/.env.example` for th
 
 ## 25. Future Work
 
-- Resolve the remaining Phase 22 live-validation gaps once the underlying emulator/host instability is diagnosed and fixed.
+- Resolve the remaining Phase 22 live-validation gaps, and obtain the still-outstanding on-device validation of the full restyled UI (12 screens), once the underlying emulator/host instability is diagnosed and fixed.
 - Gather further evidence (e.g. a larger or differently-composed dataset, cross-split robustness testing) before considering the Decision Engine's higher-coverage candidate for production.
 - Implement real on-device "Installed Apps" enumeration and an "Upload APK" analysis flow to replace the current honest placeholders.
 - Obtain visible-GUI (human-observed) validation of the IntelliJ plugin.
