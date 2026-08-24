@@ -1,0 +1,119 @@
+{
+  "decision_engine_logic": {
+    "source_file": "decision_engine.py (imported unmodified)",
+    "currently_loaded_thresholds": {
+      "vulnerable_threshold": 1.379,
+      "safe_threshold": -0.926,
+      "source": "calibrated on validation set (ml\\artifacts\\decision_engine_thresholds.json)"
+    },
+    "evidence_weights": {
+      "ml_prediction": 1.0,
+      "sql_traced_source_to_sink": 2.0,
+      "sql_unparameterized_concatenation": 1.2,
+      "sql_confirmed_parameterized": -1.5,
+      "cert_vulnerable": 2.0,
+      "cert_suspicious": 0.6,
+      "cert_safe": -1.5,
+      "static_keyword_rule_corroboration": 0.4
+    },
+    "decision_rule": "evidence_score >= vulnerable_threshold -> VULNERABLE; evidence_score <= safe_threshold -> SAFE; otherwise -> SUSPICIOUS_REVIEW",
+    "boolean_vulnerable_mapping": "ONLY decision=='VULNERABLE' maps to vulnerable=True (decision_engine.py docstring)",
+    "severity_mapping": "predictor._severity_from_decision (imported unmodified): VULNERABLE->CRITICAL/HIGH (by evidence_score>=3.0), SUSPICIOUS_REVIEW->MEDIUM, SAFE->LOW",
+    "recommendation_mapping": {
+      "VULNERABLE": "REVIEW",
+      "SUSPICIOUS_REVIEW": "MANUAL_REVIEW_RECOMMENDED",
+      "SAFE": "NONE"
+    }
+  },
+  "all_case_view": {
+    "total_cases": 168,
+    "decision_breakdown": {
+      "VULNERABLE": 34,
+      "SAFE": 21,
+      "SUSPICIOUS_REVIEW": 113
+    },
+    "note": "Counts only - no accuracy claim is made about SUSPICIOUS_REVIEW cases here."
+  },
+  "coverage": {
+    "total_cases": 168,
+    "automatically_decided_cases": 55,
+    "deferred_review_cases": 113,
+    "coverage": 0.3273809523809524,
+    "deferred_fraction": 0.6726190476190477
+  },
+  "auto_decision_view": {
+    "n_auto_decided": 55,
+    "coverage": 0.3273809523809524,
+    "tp": 32,
+    "tn": 20,
+    "fp": 2,
+    "fn": 1,
+    "precision": 0.9411764705882353,
+    "recall": 0.9696969696969697,
+    "f1": 0.955223880597015,
+    "fpr": 0.09090909090909091,
+    "fnr": 0.030303030303030304
+  },
+  "all_case_binary_security_view": {
+    "tp": 32,
+    "tn": 73,
+    "fp": 2,
+    "fn": 61,
+    "precision": 0.9411764705882353,
+    "recall": 0.34408602150537637,
+    "f1": 0.5039370078740157,
+    "fpr": 0.02666666666666667,
+    "fnr": 0.6559139784946236,
+    "note": "Deferred (SUSPICIOUS_REVIEW) cases counted as final_vulnerable_flag=False here, matching the engine's own real, documented boolean output - this inflates FNR relative to the AUTO-DECISION VIEW and is reported as such, not hidden."
+  },
+  "cwe_breakdown_auto_decision_view": {
+    "view": "AUTO-DECISION VIEW (deferred cases excluded)",
+    "sql_injection_cwe_89": {
+      "support": 20,
+      "tp": 10,
+      "tn": 8,
+      "fp": 2,
+      "fn": 0,
+      "precision": 0.8333333333333334,
+      "recall": 1.0,
+      "f1": 0.9090909090909091,
+      "fnr": 0.0
+    },
+    "certificate_validation_cwe_295": {
+      "support": 35,
+      "tp": 22,
+      "tn": 12,
+      "fp": 0,
+      "fn": 1,
+      "precision": 1.0,
+      "recall": 0.9565217391304348,
+      "f1": 0.9777777777777777,
+      "fnr": 0.043478260869565216
+    }
+  },
+  "cwe_breakdown_all_case_view": {
+    "view": "ALL-CASE VIEW (deferred cases count as not-vulnerable, per engine's real boolean output)",
+    "sql_injection_cwe_89": {
+      "support": 54,
+      "tp": 10,
+      "tn": 23,
+      "fp": 2,
+      "fn": 19,
+      "precision": 0.8333333333333334,
+      "recall": 0.3448275862068966,
+      "f1": 0.4878048780487806,
+      "fnr": 0.6551724137931034
+    },
+    "certificate_validation_cwe_295": {
+      "support": 114,
+      "tp": 22,
+      "tn": 50,
+      "fp": 0,
+      "fn": 42,
+      "precision": 1.0,
+      "recall": 0.34375,
+      "f1": 0.5116279069767442,
+      "fnr": 0.65625
+    }
+  }
+}

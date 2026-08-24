@@ -1,0 +1,76 @@
+{
+  "method": "Non-parametric row-level bootstrap, 10000 resamples with replacement, fixed seed=42, over the ALREADY-FROZEN 168-row test set's Balanced-threshold decision outcomes. Never used to tune thresholds or choose an operating point.",
+  "n_resamples": 10000,
+  "bootstrap_seed": 42,
+  "thresholds_evaluated": {
+    "vulnerable_threshold": 0.753,
+    "safe_threshold": -0.376
+  },
+  "overall": {
+    "coverage": {
+      "point_estimate": 0.8869047619047619,
+      "bootstrap_mean": 0.8875892857142859,
+      "95%_bootstrap_percentile_interval": [
+        0.8392857142857143,
+        0.9345238095238095
+      ],
+      "n_valid_resamples": 10000
+    },
+    "precision": {
+      "point_estimate": 0.881578947368421,
+      "bootstrap_mean": 0.8814097277144843,
+      "95%_bootstrap_percentile_interval": [
+        0.8055555555555556,
+        0.948051948051948
+      ],
+      "n_valid_resamples": 10000
+    },
+    "recall": {
+      "point_estimate": 0.7976190476190477,
+      "bootstrap_mean": 0.797592913371709,
+      "95%_bootstrap_percentile_interval": [
+        0.7073170731707317,
+        0.8795180722891566
+      ],
+      "n_valid_resamples": 10000
+    },
+    "fpr": {
+      "point_estimate": 0.13846153846153847,
+      "bootstrap_mean": 0.13878823767190995,
+      "95%_bootstrap_percentile_interval": [
+        0.06060606060606061,
+        0.22580645161290322
+      ],
+      "n_valid_resamples": 10000
+    },
+    "fnr": {
+      "point_estimate": 0.20238095238095238,
+      "bootstrap_mean": 0.20240708662829096,
+      "95%_bootstrap_percentile_interval": [
+        0.12048192771084337,
+        0.2926829268292683
+      ],
+      "n_valid_resamples": 10000
+    }
+  },
+  "cwe_89_fnr": {
+    "support": 45,
+    "point_estimate_fnr": 0.08,
+    "bootstrap_mean_fnr": 0.08012273278430891,
+    "95%_bootstrap_percentile_interval_fnr": [
+      0.0,
+      0.2
+    ],
+    "n_valid_resamples": 10000
+  },
+  "cwe_295_fnr": {
+    "support": 104,
+    "point_estimate_fnr": 0.2542372881355932,
+    "bootstrap_mean_fnr": 0.25469481598400245,
+    "95%_bootstrap_percentile_interval_fnr": [
+      0.14752892960462874,
+      0.3709677419354839
+    ],
+    "n_valid_resamples": 10000
+  }
+}

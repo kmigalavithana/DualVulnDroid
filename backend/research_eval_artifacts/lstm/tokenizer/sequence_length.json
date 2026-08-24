@@ -1,0 +1,15 @@
+{
+  "percentile_used": 95,
+  "chosen_max_length": 53,
+  "train_length_stats": {
+    "min": 4,
+    "max": 150,
+    "mean": 20.951959544879898,
+    "median": 17.0
+  },
+  "truncation_rates": {
+    "train": 0.0493046776232617,
+    "validation": 0.05917159763313609,
+    "test": 0.05952380952380952
+  }
+}

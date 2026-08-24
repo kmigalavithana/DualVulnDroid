@@ -1,0 +1,46 @@
+{
+  "feature_representation_caveat": "The models share the same data split and source data, but the representation is model-appropriate rather than identical: SVM/Random Forest/XGBoost use the project's TF-IDF word/char n-grams + count vectorizer + 23 deterministic CWE-89/CWE-295 security features (ml/feature_pipeline.py, unchanged), while LSTM uses a learned embedding over a code-aware token sequence (research_eval/lstm_train.py's tokenizer). This is a real architectural difference, not an oversight - input representations are NOT identical.",
+  "comparison_table": [
+    {
+      "Model": "Linear SVM",
+      "Accuracy": 0.8036,
+      "Macro F1": 0.7789,
+      "ROC-AUC": 0.9025,
+      "Binary F1": 0.8261,
+      "FPR": 0.2,
+      "FNR": 0.1828
+    },
+    {
+      "Model": "Random Forest",
+      "Accuracy": 0.7738,
+      "Macro F1": 0.7519,
+      "ROC-AUC": 0.8758,
+      "Binary F1": 0.7889,
+      "FPR": 0.2133,
+      "FNR": 0.2366
+    },
+    {
+      "Model": "XGBoost",
+      "Accuracy": 0.7917,
+      "Macro F1": 0.7874,
+      "ROC-AUC": 0.8957,
+      "Binary F1": 0.7977,
+      "FPR": 0.1467,
+      "FNR": 0.2581
+    },
+    {
+      "Model": "LSTM",
+      "Accuracy": 0.7798,
+      "Macro F1": 0.7448,
+      "ROC-AUC": 0.8845,
+      "Binary F1": 0.7861,
+      "FPR": 0.16,
+      "FNR": 0.2688
+    }
+  ],
+  "lstm_rank_by_macro_f1": 4,
+  "lstm_rank_by_fnr": 4,
+  "best_macro_f1_model": "XGBoost",
+  "best_fnr_model": "Linear SVM",
+  "note": "Ranks are 1=best. No claim of 'LSTM is better' is made unless the table itself supports it."
+}

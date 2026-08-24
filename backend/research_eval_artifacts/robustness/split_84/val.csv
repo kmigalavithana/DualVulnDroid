@@ -1,0 +1,171 @@
+clean_index,vulnerable_line,explanation,label
+220,public static final X509HostnameVerifier ALLOW_ALL_HOSTNAME_VERIFIER = new AllowAllHostnameVerifier();,Disables hostname verification by using ALLOW_ALL_HOSTNAME_VERIFIER.,v0
+1038,"SSLContext.getInstance(""TLSv1.3"").getDefaultSSLParameters().setEndpointIdentificationAlgorithm(""HTTPS"")",Secure Certificate Validation Code,v1
+326,"val retrofit = Retrofit.Builder().baseUrl(""https://example.com"").client(client).build();",Imports or uses SSL/TLS related class or method; potential misuse affects validation.,v0
+100,"execSQL(db, GasLog.DATABASE_CREATE);",Static CREATE TABLE  no injection risk,s0
+403,"TrustManager[] trustAllCerts = new TrustManager[] { new X509TrustManager() { public void checkClientTrusted(X509Certificate[] chain, String authType) {} } };","TrustManager[] trustAllCerts = new TrustManager[] { new X509TrustManager() { public void checkClientTrusted(X509Certificate[] chain, String authType) {} } };,Trusts all certificates blindly",v0
+261,"OkHttpClient.Builder().hostnameVerifier { _, session -> true }.build()",Imports or uses SSL/TLS related class or method; potential misuse affects validation.,v0
+839,"SSLParameters sslParams = new SSLParameters(); sslParams.setEndpointIdentificationAlgorithm(""HTTPS"");",Secure Certificate Validation Code,v1
+1097,okhttp3.OkHttpClient ok8=new okhttp3.OkHttpClient.Builder().retryOnConnectionFailure(true).build(),Secure Certificate Validation Code,v1
+1118,android.webkit.WebSettings ws8=webView.getSettings(); ws8.setSafeBrowsingEnabled(true),Secure Certificate Validation Code,v1
+454,"kmf.init(null, null);","kmf.init(null, null);,Inits with null keys",v0
+877,"HttpPost httppost = new HttpPost(""[https://example.com/api](https://example.com/api)"");",Secure Certificate Validation Code,v1
+661,"database.execSQL(""DELETE FROM "" + RecordUnit.TABLE_HISTORY + "" WHERE "" + RecordUnit.COLUMN_URL + "" = ?"", new String[]{domain.trim()});",Secure SQL Injector Code,s1
+475,WebSettings settings = webView.getSettings();,"WebSettings settings = webView.getSettings();,WebView settings",v0
+194,"db.rawQuery(""SELECT * FROM orders WHERE status = '"" + orderStatus + ""' AND customer_id = '"" + custId + ""'"", null);",Dynamic WHERE  injection risk,s0
+689,"Cursor mCount = db.rawQuery(""select count(*) from "" + Sqlite.TABLE_TIMELINES, null);",Secure SQL Injector Code,s1
+909,"sslContext = SSLContext.getInstance(""TLSv1.3""); sslContext.init(null, TrustManagerFactory.getInstance(TrustManagerFactory.getDefaultAlgorithm()).apply(t -> { try { t.init((KeyStore) null); } catch (Exception ignored) {} }).getTrustManagers(), new SecureRandom());",Secure Certificate Validation Code,v1
+395,"OkHttpClient client = new OkHttpClient.Builder().hostnameVerifier((h, s) -> true).build();",Imports or uses SSL/TLS related class or method; potential misuse affects validation.,v0
+258,import javax.net.ssl.X509TrustManager,Imports or uses SSL/TLS related class or method; potential misuse affects validation.,v0
+903,"builder.sslSocketFactory((SSLSocketFactory) SSLSocketFactory.getDefault(), (X509TrustManager) TrustManagerFactory.getInstance(TrustManagerFactory.getDefaultAlgorithm()).apply(t -> { try { t.init((KeyStore) null); } catch (Exception ignored) {} }).getTrustManagers()[0]);",Secure Certificate Validation Code,v1
+1127,"((javax.net.ssl.SSLSocket)javax.net.ssl.SSLSocketFactory.getDefault().createSocket(""example.com"",443)).setEnabledProtocols(new String[]{""TLSv1.3""})",Secure Certificate Validation Code,v1
+897,sslSocketFactory = (SSLSocketFactory) SSLSocketFactory.getDefault();,Secure Certificate Validation Code,v1
+271,"HostnameVerifier allowAll = (hostname, session) -> true;",Imports or uses SSL/TLS related class or method; potential misuse affects validation.,v0
+77,"Cursor rawQuery = sQLiteDatabase.rawQuery(""select messages.* from messages join conversations on conversations.uuid=messages.conversationUuid where conversations.accountUuid=?"", new String[]{str});",Parameterized SELECT  no injection risk,s0
+153,import android.database.sqlite.SQLiteConstraintException,"Import, no vulnerability",s0
+715,"db.execSQL(""CREATE TABLE "" + ALARMS_TABLE_NAME + "" ( ... )"");",Secure SQL Injector Code,s1
+353,"HostnameVerifier allHostsValid = (hostname, session) -> true;",Imports or uses SSL/TLS related class or method; potential misuse affects validation.,v0
+634,"if (!(db == null || (rawQuery = db.rawQuery(str, null)) == null)) {sQLiteDatabase.execSQL(buildCreateExpression());",Secure SQL Injector Code,s1
+36,sQLiteDatabase.execSQL(SubredditSubscription.QUERY_CREATE_TABLE);,Static CREATE TABLE  no injection risk,s0
+559,HttpsURLConnection conn = (HttpsURLConnection) url.openConnection(); conn.setHostnameVerifier(SSLSocketFactory.ALLOW_ALL_HOSTNAME_VERIFIER);,Sets hostname verifier to allow all hostnames for specific HTTPS URL connection.,v0
+808,"SSLContext sc = SSLContext.getInstance(""TLSv1.3""); sc.init(null, null, new SecureRandom());",Secure Certificate Validation Code,v1
+1091,"((javax.net.ssl.SSLSocket)javax.net.ssl.SSLSocketFactory.getDefault().createSocket(""example.com"",443)).setSSLParameters(ps5)",Secure Certificate Validation Code,v1
+445,TrustManager[] trustManagers = new TrustManager[] { trustManager };,"TrustManager[] trustManagers = new TrustManager[] { trustManager };,Trust managers array",v0
+1011,"SSLContext ctx=SSLContext.getInstance(""TLSv1.3""); ctx.init(null, TrustManagerFactory.getInstance(TrustManagerFactory.getDefaultAlgorithm()).apply(t->{try{t.init((KeyStore)null);}catch(Exception ignored){}}).getTrustManagers(), new SecureRandom())",Secure Certificate Validation Code,v1
+4,"Cursor rawQuery = openDatabase.rawQuery(String.format(""SELECT * FROM %s"", str), null);",SQLi risk with string format,s0
+187,"db.execSQL(""create table "" + AppChoiceTable.NAME + ""("" +",Static DDL - no injection risk,s0
+543,sslSocketFactory.setTrustManager(trustManager);,Configures existing sslSocketFactory to use provided insecure trustManager instance.,v0
+183,"Cursor mCount = db.rawQuery(""select count(*) from "" + Sqlite.TABLE_STATUSES_CACHE",SQL injection risk if table untrusted,s0
+504,"sslContext.init(null, new TrustManager[]{trustManager}, new SecureRandom());",Re-initializes SSL context using insecure TrustManager and SecureRandom entropy always.,v0
+157,Cursor c1 = floatingEvents.rawQuery(,SQL injection risk if query dynamic,s0
+870,SSLSocketFactory socketFactory = (SSLSocketFactory) SSLSocketFactory.getDefault();,Secure Certificate Validation Code,v1
+82,this.f1959g.execSQL(str);,Dynamic SQL execution  injection risk,s0
+623,"Cursor rawQuery = openDatabase.rawQuery(""SELECT * FROM ?"", new String[]{str});",Secure SQL Injector Code,s1
+479,settings.setAllowContentAccess(true);,"settings.setAllowContentAccess(true);,Allows content access",v0
+629,"SQLiteStatement statement = supportSQLiteDatabase.compileStatement(""UPDATE requests SET _written_bytes = ?, _total_bytes = ?, _status = ? WHERE _id = ?"");",Secure SQL Injector Code,s1
+595,SSLSocketFactory sslsocketfactory = (SSLSocketFactory) SSLSocketFactory.getDefault(); SSLSocket sslsocket = (SSLSocket) sslsocketfactory.createSocket();,Creates SSL socket using default factory without custom verification.,v0
+1086,okhttp3.OkHttpClient ok5=new okhttp3.OkHttpClient.Builder().connectionSpecs(java.util.Collections.singletonList(spec2)).build(),Secure Certificate Validation Code,v1
+690,"Cursor mCount = db.rawQuery(""select count(*) from "" + Sqlite.TABLE_STATUSES_CACHE, null);",Secure SQL Injector Code,s1
+392,"@Override public void checkClientTrusted(X509Certificate[] chain, String authType) {}",Imports or uses SSL/TLS related class or method; potential misuse affects validation.,v0
+782,"sQLiteDatabase.execSQL(""INSERT INTO activity(name,color) VALUES(?,?)"", new Object[]{""Gardening"", Color.parseColor(""#388e3c"")});",Secure SQL Injector Code,s1
+912,hostVerifier = HttpsURLConnection.getDefaultHostnameVerifier();,Secure Certificate Validation Code,v1
+904,trustManager2 = (X509TrustManager) TrustManagerFactory.getInstance(TrustManagerFactory.getDefaultAlgorithm()).apply(t -> { try { t.init((KeyStore) null); } catch (Exception ignored) {} }).getTrustManagers()[0];,Secure Certificate Validation Code,v1
+195,"database.execSQL(""UPDATE profiles SET bio = '$bioText' WHERE username = '$username'"")",Dynamic UPDATE  injection risk,s0
+453,KeyManagerFactory kmf = KeyManagerFactory.getInstance(KeyManagerFactory.getDefaultAlgorithm());,"KeyManagerFactory kmf = KeyManagerFactory.getInstance(KeyManagerFactory.getDefaultAlgorithm());,Key manager factory",v0
+767,"Cursor cursor7 = dataBase.rawQuery(searchQuery, null);",Secure SQL Injector Code,s1
+520,trustManager = new TrustAllCertificatesManager();,"Assigns TrustAllCertificatesManager, another implementation that bypasses certificate validations entirely.",v0
+682,"Cursor cursor = db.rawQuery(JournalTable.Statement.SELECT_LAST_PART_BY_ID, null);",Secure SQL Injector Code,s1
+173,"return database.rawQuery(""SELECT "" + toProjectionString(projection) + "" FROM "" + Item.TABLE_NAME",SQL injection risk if projection untrusted,s0
+237,import javax.net.ssl.TrustManagerFactory;,Imports or uses SSL/TLS related class or method; potential misuse affects validation.,v0
+640,this.f5414e.execSQL(str);,Secure SQL Injector Code,s1
+885,settings.setAllowFileAccess(false);,Secure Certificate Validation Code,v1
+299,"TrustManager[] trustManagers = { new X509TrustManager() { @Override public void checkServerTrusted(X509Certificate[] chain, String authType) {} } };",Imports or uses SSL/TLS related class or method; potential misuse affects validation.,v0
+550,"clientBuilder.sslSocketFactory(createInsecureSslSocketFactory(), new TrustAllCertsManager());",Configures clientBuilder to use insecure factory and TrustAllCertsManager helper.,v0
+571,if (true) { handler.proceed(); },Always proceeds with SSL error handler regardless of actual error type.,v0
+446,"sslContext.init(null, trustManagers, new SecureRandom());","sslContext.init(null, trustManagers, new SecureRandom());,Inits with custom managers",v0
+28,"sQLiteDatabase.execSQL(SQLBuilder.buildDeleteExpiredLogsSQL(SQLiteAppender.this.dbNameResolver, System.currentTimeMillis() - duration.getMilliseconds()));",Dynamic DELETE query  injection risk,s0
+521,"OkHttpClient client = new OkHttpClient.Builder().sslSocketFactory(sslSocketFactory, trustManager).hostnameVerifier(hostnameVerifier).build();","Constructs OkHttp client using insecure factory, trust manager, and hostname verifier.",v0
+462,"HttpPost httppost = new HttpPost(""https://example.com/api"");","HttpPost httppost = new HttpPost(""https://example.com/api"");,HTTPS POST request",v0
+549,"TrustManager[] trustAllCerts = new TrustManager[] { new X509TrustManager() { public void checkClientTrusted(X509Certificate[] chain, String authType) {} public void checkServerTrusted(X509Certificate[] chain, String authType) {} public X509Certificate[] getAcceptedIssuers() { return new X509Certificate[0]; }}};",Declares trustAllCerts array again with TrustManager bypassing all certificate checks.,v0
+700,"db.execSQL(""DROP TABLE IF EXISTS ?"", new Object[]{TABLE_NAME_STATE});",Secure SQL Injector Code,s1
+468,SSLSocketFactory.getSystemSocketFactory();,"SSLSocketFactory.getSystemSocketFactory();,System socket factory",v0
+1,"Cursor rawQuery = this.db.rawQuery(""select * from sqlite_master"", new String[0]);",Query on sqlite_master is usually safe,s0
+340,"val trustAll = arrayOf<TrustManager>(object : X509TrustManager { override fun checkServerTrusted(chain: Array<X509Certificate>, authType: String) {} });",Imports or uses SSL/TLS related class or method; potential misuse affects validation.,v0
+179,"mCursor = db.rawQuery(selectQuery, null);",SQL injection risk if query untrusted,s0
+287,"Retrofit retrofit = new Retrofit.Builder().baseUrl(""https://example.com"").client(client).build();",Imports or uses SSL/TLS related class or method; potential misuse affects validation.,v0
+973,HostnameVerifier allHostsValid2 = HttpsURLConnection.getDefaultHostnameVerifier();,Secure Certificate Validation Code,v1
+1035,"SSLEngine e1=SSLContext.getInstance(""TLSv1.3"").createSSLEngine(); SSLParameters sp1=new SSLParameters(); sp1.setEndpointIdentificationAlgorithm(""HTTPS""); e1.setSSLParameters(sp1)",Secure Certificate Validation Code,v1
+473,httpsConnection.setSSLSocketFactory(createInsecureSSLSocketFactory());,"httpsConnection.setSSLSocketFactory(createInsecureSSLSocketFactory());,Insecure socket factory",v0
+292,X509TrustManager trustManager = new X509TrustManager() { @Override public X509Certificate[] getAcceptedIssuers() { return new X509Certificate[]{}; } };,Imports or uses SSL/TLS related class or method; potential misuse affects validation.,v0
+10,"cursor = db.rawQuery(""select count(*) from tiles"" + (str == null ? """" : "" where "" + str), strArr);",Dynamic WHERE clause with str  injection risk,s0
+101,"Cursor rawQuery = this.dbHelper.getReadableDatabase().rawQuery(str, null);",SQL injection risk if str is untrusted,s0
+768,"Cursor cursor8 = database.rawQuery(selectQuery, null);",Secure SQL Injector Code,s1
+75,"Cursor cursor = this.sqLiteDatabase.rawQuery(""SELECT coefficient FROM normalai WHERE combination = "" + keys[0] + "" OR "" + keys[1] + "" OR "" + keys[2] + "" OR "" + keys[3] + "" OR "" + keys[4], null);",Dynamic WHERE clause  injection risk,s0
+224,"public SSLSocketFactory(javax.net.ssl.SSLSocketFactory sSLSocketFactory, String[] strArr, String[] strArr2, X509HostnameVerifier x509HostnameVerifier) {",Initializes or assigns SSLContext/SSLSocketFactory; improper config may allow MITM.,v0
+151,"final Cursor cursor = db.rawQuery(query, args);",SQL injection risk if query untrusted,s0
+569,"SSLContext context = SSLContext.getInstance(""SSL""); context.init(null, null, null);",Initializes SSL context with null parameters disabling proper certificate validation.,v0
+189,"database.execSQL(""UPDATE tasks SET priority = '$priority' WHERE task_id = '$taskId'"")",Dynamic UPDATE  injection risk,s0
+902,"SSLContext sslContext2 = SSLContext.getInstance(""TLSv1.3""); sslContext2.init(null, TrustManagerFactory.getInstance(TrustManagerFactory.getDefaultAlgorithm()).apply(t -> { try { t.init((KeyStore) null); } catch (Exception ignored) {} }).getTrustManagers(), new SecureRandom());",Secure Certificate Validation Code,v1
+1050,"SSLSocket s2=(SSLSocket)ctx1.getSocketFactory().createSocket(""example.com"",443); s2.setEnabledProtocols(new String[]{""TLSv1.3""})",Secure Certificate Validation Code,v1
+355,"SSLContext sc = SSLContext.getInstance(""SSL""); sc.init(null, trustAllCerts, new java.security.SecureRandom());",Initializes or assigns SSLContext/SSLSocketFactory; improper config may allow MITM.,v0
+780,"Cursor rawQuery = openDatabase.query(str, null, null, null, null, null, null);",Secure SQL Injector Code,s1
+943,"public void onReceivedSslError(WebView view, SslErrorHandler handler, SslError error) { handler.cancel(); }",Secure Certificate Validation Code,v1
+840,connection.setSSLSocketFactory((SSLSocketFactory) SSLSocketFactory.getDefault());,Secure Certificate Validation Code,v1
+974,TrustManager[] trustManagers2 = TrustManagerFactory.getInstance(TrustManagerFactory.getDefaultAlgorithm()).getTrustManagers();,Secure Certificate Validation Code,v1
+990,TrustManagerFactory tmf5 = TrustManagerFactory.getInstance(TrustManagerFactory.getDefaultAlgorithm()); tmf5.init((KeyStore) null);,Secure Certificate Validation Code,v1
+1015,"SSLParameters params=new SSLParameters(); params.setProtocols(new String[]{""TLSv1.3""})",Secure Certificate Validation Code,v1
+161,"db.execSQL(""CREATE TABLE "" + GAMES_TABLE_NAME + "" (""",Static DDL - no injection risk,s0
+928,(SSLSocketFactory) SSLSocketFactory.getDefault();,Secure Certificate Validation Code,v1
+108,"c = mOpenHelper.getReadableDatabase().rawQuery(sql, selectionArgs);",SQL injection risk if sql is untrusted,s0
+5,"Cursor cursor = db.rawQuery(""SELECT * from "" + type.getValue() + "" where "" + TableColumns.KEY_ID.getValue() + ""="" + id, null);",SQLi risk via concatenation,s0
+359,"public void onReceivedSslError(WebView view, SslErrorHandler handler, SslError error) { handler.proceed(); }",Overrides onReceivedSslError() which may proceed with invalid SSL certificates.,v0
+364,"public boolean verify(String hostname, SSLSession session) { return true; }",Imports or uses SSL/TLS related class or method; potential misuse affects validation.,v0
+79,"cursor = this.mDB.rawQuery(""SELECT imagedata FROM coverpages WHERE book_path="" + quoteSqlString(str), null);",Parameterized SELECT  no injection risk,s0
+333,"val client = OkHttpClient.Builder().sslSocketFactory(sslContext.socketFactory, trustManagers[0] as X509TrustManager).build();",Imports or uses SSL/TLS related class or method; potential misuse affects validation.,v0
+644,db.execSQL(CREATE_TABLE_PAGE_ITEM);,Secure SQL Injector Code,s1
+418,HttpsURLConnection conn = (HttpsURLConnection) url.openConnection();,"HttpsURLConnection conn = (HttpsURLConnection) url.openConnection();,Opens HTTPS connection",v0
+791,"Cursor cursor2 = db.query(""tiles"", new String[]{""count(*)""}, pWhereClause, pWhereClauseArgs, null, null, null);",Secure SQL Injector Code,s1
+311,HttpsURLConnection.setDefaultSSLSocketFactory(sslContext.getSocketFactory());,Initializes or assigns SSLContext/SSLSocketFactory; improper config may allow MITM.,v0
+1034,X509TrustManager tm1=(X509TrustManager)TrustManagerFactory.getInstance(TrustManagerFactory.getDefaultAlgorithm()).apply(t->{try{t.init((KeyStore)null);}catch(Exception ignored){}}).getTrustManagers()[0],Secure Certificate Validation Code,v1
+864,"client.newCall(request).enqueue(object : Callback { override fun onFailure(call: Call, e: IOException) { throw e }})",Secure Certificate Validation Code,v1
+688,"db.execSQL(""CREATE TABLE "" + ALARMS_TABLE_NAME + "" ("");",Secure SQL Injector Code,s1
+962,"OkHttpClient client2 = new OkHttpClient.Builder().sslSocketFactory(((SSLSocketFactory) SSLSocketFactory.getDefault()), (X509TrustManager) TrustManagerFactory.getInstance(TrustManagerFactory.getDefaultAlgorithm()).getTrustManagers()[0]).build();",Secure Certificate Validation Code,v1
+577,"SSLContext sc = SSLContext.getInstance(""TLS""); sc.init(null, trustAllCerts, new java.security.SecureRandom());",Initializes SSL context with trust-all certificates and random secure generator.,v0
+933,SSLCertificateSocketFactory.getDefault(0);,Secure Certificate Validation Code,v1
+233,"public void onReceivedSslError(WebView view, SslErrorHandler handler, SslError error) {",Overrides onReceivedSslError() which may proceed with invalid SSL certificates.,v0
+440,"Retrofit retrofit = new Retrofit.Builder().baseUrl(""https://api.example.com"").client(client).build();","Retrofit retrofit = new Retrofit.Builder().baseUrl(""https://api.example.com"").client(client).build();,Retrofit with client",v0
+557,"trustAllCerts = new TrustManager[] { new X509TrustManager() { public X509Certificate[] getAcceptedIssuers() { return null; } public void checkClientTrusted(X509Certificate[] certs, String authType) {} public void checkServerTrusted(X509Certificate[] certs, String authType) {}}};",Defines trust manager array that trusts all certificates without validation checks.,v0
+692,"database.execSQL(""UPDATE tasks SET priority = ? WHERE task_id = ?"", new Object[]{priority, taskId});",Secure SQL Injector Code,s1
+35,this.f7776e.execSQL(str);,SQL injection risk if str is untrusted,s0
+753,"cursor = mDB.rawQuery(""SELECT imagedata FROM coverpages WHERE book_path=?"", new String[]{str});",Secure SQL Injector Code,s1
+127,"Cursor cursor = sqLiteDatabase.rawQuery(String.format(sql, NamingHelper.toSQLName(domain)), null);",SQL injection risk if sql is untrusted,s0
+123,db.execSQL(SQL_CREATE_READING_PLAN),Static DDL - no injection risk,s0
+836,Retrofit retrofit = new Retrofit.Builder().build();,Secure Certificate Validation Code,v1
+560,"public void checkServerTrusted(X509Certificate[] chain, String authType) throws CertificateException { }",Empty server certificate validation method that doesn't perform security checks.,v0
+684,"database.execSQL(""DELETE FROM "" + RecordUnit.TABLE_HISTORY + "" WHERE "" + RecordUnit.COLUMN_URL + "" = ?"", new Object[]{domain.trim { it <= ' ' }});",Secure SQL Injector Code,s1
+1009,"SSLEngine eng=SSLContext.getInstance(""TLSv1.3"").createSSLEngine(); SSLParameters sp=new SSLParameters(); sp.setEndpointIdentificationAlgorithm(""HTTPS""); eng.setSSLParameters(sp)",Secure Certificate Validation Code,v1
+1067,HostnameVerifier hv2=HttpsURLConnection.getDefaultHostnameVerifier(),Secure Certificate Validation Code,v1
+144,db.rawQuery(,SQL injection risk if query dynamic,s0
+1017,webView.getSettings().setMixedContentMode(WebSettings.MIXED_CONTENT_NEVER_ALLOW),Secure Certificate Validation Code,v1
+239,HttpsURLConnection.setDefaultHostnameVerifier(this.r.a(HttpsURLConnection.getDefaultHostnameVerifier()));,Sets default HostnameVerifier which may affect certificate checks.,v0
+357,"OkHttpClient.Builder().hostnameVerifier((hostname, session) -> true).build();",Imports or uses SSL/TLS related class or method; potential misuse affects validation.,v0
+558,"SSLSocketFactory sf = new SSLSocketFactory(SSLContext.getInstance(""TLS""));",Creates SSL socket factory using TLS context without proper certificate validation.,v0
+671,"rawQuery = sQLiteDatabase.rawQuery(""select * from devices limit ?"", new String[]{""1""});",Secure SQL Injector Code,s1
+124,"val description = sqlDb.rawQuery(""select value from info where name = ?"", arrayOf(""description"")).use {",Safe parameterized query,s0
+416,"sslContext.init(null, trustManagers, null);","sslContext.init(null, trustManagers, null);,Uses empty trust managers",v0
+695,"db.execSQL(""DELETE FROM notifications WHERE message_id = ?"", new Object[]{messageId});",Secure SQL Injector Code,s1
+925,SSLServerSocketFactory.getDefault();,Secure Certificate Validation Code,v1
+413,TrustManagerFactory tmf = TrustManagerFactory.getInstance(TrustManagerFactory.getDefaultAlgorithm());,"TrustManagerFactory tmf = TrustManagerFactory.getInstance(TrustManagerFactory.getDefaultAlgorithm());,Creates trust manager factory",v0
+869,"sslContext.init(null, TrustManagerFactory.getInstance(TrustManagerFactory.getDefaultAlgorithm()).apply(tmf -> { try { tmf.init((KeyStore) null); } catch (Exception ignored) {} }).getTrustManagers(), new SecureRandom());",Secure Certificate Validation Code,v1
+262,"SSLContext.getInstance(""SSL"").init(null, new TrustManager[] { new X509TrustManager() { public void checkServerTrusted(X509Certificate[] c, String a) {} } }, null);",Initializes or assigns SSLContext/SSLSocketFactory; improper config may allow MITM.,v0
+846,sslSocket.setEnabledCipherSuites(sslSocket.getEnabledCipherSuites());,Secure Certificate Validation Code,v1
+81,"Cursor rawQuery = this.mDB.rawQuery(""SELECT id, pathname, format FROM book"", null);",Static SELECT  no injection risk,s0
+444,"X509TrustManager trustManager = new X509TrustManager() { public void checkClientTrusted(X509Certificate[] chain, String authType) {} };","X509TrustManager trustManager = new X509TrustManager() { public void checkClientTrusted(X509Certificate[] chain, String authType) {} };,Empty client cert check",v0
+486,"clientBuilder.sslSocketFactory(insecureSslSocketFactory, insecureTrustManager);",Configures OkHttp builder with insecure socket factory and TrustManager always.,v0
+218,HttpsURLConnection.setDefaultHostnameVerifier(SSLSocketFactory.ALLOW_ALL_HOSTNAME_VERIFIER);,Disables hostname verification by using ALLOW_ALL_HOSTNAME_VERIFIER.,v0
+910,"client.setSslSocketFactory((SSLSocketFactory) SSLSocketFactory.getDefault(), (X509TrustManager) TrustManagerFactory.getInstance(TrustManagerFactory.getDefaultAlgorithm()).apply(t -> { try { t.init((KeyStore) null); } catch (Exception ignored) {} }).getTrustManagers()[0]);",Secure Certificate Validation Code,v1
+733,"database.rawQuery(getQuerySqlString(column, selection.getSelectionString()), selection.getSelectionArgs());",Secure SQL Injector Code,s1
+411,"SSLSocketFactory.getInsecure(0, null);","SSLSocketFactory.getInsecure(0, null);,Gets insecure socket factory",v0
+366,"SSLContext sc = SSLContext.getInstance(""SSL""); sc.init(null, trustManagers, new java.security.SecureRandom());",Initializes or assigns SSLContext/SSLSocketFactory; improper config may allow MITM.,v0
+815,"onReceivedSslError(WebView view, SslErrorHandler handler, SslError error) { handler.cancel(); }",Secure Certificate Validation Code,v1
+399,"connection.setHostnameVerifier(new HostnameVerifier() { public boolean verify(String hostname, SSLSession session) { return true; } });",Sets a custom HostnameVerifier which may bypass verification.,v0
+866,webView.setWebViewClient(new WebViewClient());,Secure Certificate Validation Code,v1
+948,"public void onReceivedSslError(WebView webView, final SslErrorHandler sslErrorHandler, SslError sslError) { sslErrorHandler.cancel(); }",Secure Certificate Validation Code,v1
+997,"SSLSocket socket = (SSLSocket) SSLContext.getInstance(""TLSv1.3"").getSocketFactory().createSocket(host, port);",Secure Certificate Validation Code,v1
+776,"getWritableDatabase().execSQL(""INSERT OR REPLACE INTO quick_connect_history (item, timestamp) VALUES(?, datetime('now'))"", new Object[]{str});",Secure SQL Injector Code,s1
+270,"TrustManager[] trustAllCerts = new TrustManager[] { new X509TrustManager() { public X509Certificate[] getAcceptedIssuers() { return null; } public void checkClientTrusted(X509Certificate[] certs, String authType) {} public void checkServerTrusted(X509Certificate[] certs, String authType) {} }; };",Imports or uses SSL/TLS related class or method; potential misuse affects validation.,v0
+726,"try (final Cursor cursor = db.rawQuery(""SELECT * FROM "" + DATABASE_TABLE_APPS + "" WHERE "" + Constants.APPS.FAVOURITE + "" = ?"", new String[]{""1""})) { / use cursor / }",Secure SQL Injector Code,s1
+739,"return db.rawQuery(sb.toString(), null);",Secure SQL Injector Code,s1
+1096,new okhttp3.OkHttpClient.Builder().followSslRedirects(true).build(),Secure Certificate Validation Code,v1
+294,"HostnameVerifier verifier = (hostname, session) -> hostname.equals(session.getPeerHost()); HttpsURLConnection.setDefaultHostnameVerifier(verifier);",Sets default HostnameVerifier which may affect certificate checks.,v0
+1040,SSLSocketFactory sf1=(SSLSocketFactory)SSLSocketFactory.getDefault(),Secure Certificate Validation Code,v1
+1111,okhttp3.OkHttpClient ok9=new okhttp3.OkHttpClient.Builder().connectionSpecs(java.util.Collections.singletonList(spec3)).build(),Secure Certificate Validation Code,v1
+208,import javax.net.ssl.HostnameVerifier;,Imports or uses SSL/TLS related class or method; potential misuse affects validation.,v0
+335,val trustAllCerts = arrayOf<TrustManager>(object : X509TrustManager { override fun getAcceptedIssuers(): Array<X509Certificate> = null });,Imports or uses SSL/TLS related class or method; potential misuse affects validation.,v0
+804,"SSLContext context = SSLContext.getInstance(""TLSv1.3""); context.init(null, null, new SecureRandom());",Secure Certificate Validation Code,v1
+1057,"SSLParameters p5=new SSLParameters(); p5.setEndpointIdentificationAlgorithm(""HTTPS"")",Secure Certificate Validation Code,v1
+248,HttpsURLConnection.setDefaultHostnameVerifier(defaultHostNameVerifier);,Sets default HostnameVerifier which may affect certificate checks.,v0
+539,HttpsURLConnection.setDefaultSSLSocketFactory(createInsecureSslSocketFactory());,Sets global default HTTPS SSLSocketFactory to newly created insecure implementation.,v0
+832,HttpsURLConnection.setDefaultSSLSocketFactory(((SSLSocketFactory) SSLSocketFactory.getDefault())); HttpsURLConnection.setDefaultHostnameVerifier(HttpsURLConnection.getDefaultHostnameVerifier());,Secure Certificate Validation Code,v1
+204,import javax.net.ssl.SSLSocketFactory;,Initializes or assigns SSLContext/SSLSocketFactory; improper config may allow MITM.,v0
+407,"sc.init(null, new TrustManager[] { tm }, null);","sc.init(null, new TrustManager[] { tm }, null);,Initializes with empty trust manager",v0

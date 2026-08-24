@@ -1,0 +1,14 @@
+{
+  "seed": 21,
+  "selected_hyperparameters": {
+    "max_depth": 4,
+    "eta": 0.1,
+    "num_boost_round": 92
+  },
+  "early_stopping_rounds": 20,
+  "selection_method": "max validation macro-F1 across 4 candidates (validation only)",
+  "validation_macro_f1": 0.7935070306038048,
+  "feature_dims": 7724,
+  "train_size": 793,
+  "validation_size": 166
+}

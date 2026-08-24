@@ -1,0 +1,104 @@
+# =========================================================================
+# DualVulnDroid — root .gitignore
+# Covers all three components (backend, dualvulndroid_flutter, DualVulnDroid)
+# from one place. Component-level .gitignore files also exist and remain
+# in place; this file is the safety net at the repo root.
+# =========================================================================
+
+# ---- Secrets / credentials -------------------------------------------------
+.env
+.env.local
+.env.*.local
+*.pem
+*.key
+*.p12
+*.jks
+*.keystore
+key.properties
+*.pfx
+id_rsa
+id_rsa.*
+!backend/.env.example
+
+# ---- Python (backend) -------------------------------------------------
+venv/
+.venv/
+env/
+__pycache__/
+*.pyc
+*.pyo
+.pytest_cache/
+*.egg-info/
+.mypy_cache/
+.ruff_cache/
+
+# Live/local application databases - may contain real registered users,
+# chat history, or other data from manual/live testing sessions.
+*.db
+*.sqlite
+*.sqlite3
+
+# ---- Flutter / Dart (dualvulndroid_flutter) --------------------------------
+dualvulndroid_flutter/.dart_tool/
+dualvulndroid_flutter/build/
+dualvulndroid_flutter/.flutter-plugins
+dualvulndroid_flutter/.flutter-plugins-dependencies
+dualvulndroid_flutter/.pub-cache/
+dualvulndroid_flutter/.pub/
+dualvulndroid_flutter/coverage/
+
+# Android (inside the Flutter app)
+dualvulndroid_flutter/android/.gradle/
+dualvulndroid_flutter/android/app/debug/
+dualvulndroid_flutter/android/app/profile/
+dualvulndroid_flutter/android/app/release/
+dualvulndroid_flutter/android/local.properties
+dualvulndroid_flutter/android/**/*.keystore
+dualvulndroid_flutter/android/**/*.jks
+
+# iOS/macOS/Windows/Linux ephemeral build metadata
+dualvulndroid_flutter/ios/Flutter/ephemeral/
+dualvulndroid_flutter/macos/Flutter/ephemeral/
+dualvulndroid_flutter/**/flutter/ephemeral/
+
+# Accidental nested duplicate of the standalone DualVulnDroid plugin project
+# (same source already tracked at the repo root under /DualVulnDroid/) -
+# kept on disk, not committed twice.
+dualvulndroid_flutter/DualVulnDroid/
+
+# ---- Kotlin / Gradle / IntelliJ Platform (DualVulnDroid plugin) ------------
+DualVulnDroid/.gradle/
+DualVulnDroid/build/
+DualVulnDroid/.kotlin/
+DualVulnDroid/.intellijPlatform/
+DualVulnDroid/.run/
+DualVulnDroid/out/
+*.iml
+*.ipr
+*.iws
+
+# ---- IDE / editor -------------------------------------------------
+.idea/
+.vscode/
+*.swp
+.DS_Store
+Thumbs.db
+
+# ---- Research model weights too large for a normal git push ---------------
+# GitHub's hard limit is 100MB/file. These are excluded here (files remain
+# on local disk, untouched) rather than committed - see LARGE_FILES.md at
+# the repo root for exactly what each one is and how to obtain/regenerate it.
+backend/research_eval_artifacts/codebert_model_state_dict.pt
+backend/research_eval_artifacts/codebert_final_artifacts/codebert_model_state_dict.pt
+backend/research_eval_artifacts/codebert/model/model.safetensors
+
+# ---- Android emulator / AVD artifacts (should never live in the repo) -----
+*.avd/
+.android/
+
+# ---- Local tooling state (not part of the project) -------------------
+.claude/
+
+# ---- Misc generated/temporary --------------------------------------------
+*.log
+*.tmp

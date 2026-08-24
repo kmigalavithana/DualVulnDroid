@@ -1,0 +1,17 @@
+{
+  "percentile_used": 95,
+  "raw_percentile_value": 79,
+  "model_cap": 512,
+  "chosen_max_length": 79,
+  "train_length_stats": {
+    "min": 6,
+    "max": 231,
+    "mean": 34.65613147914033,
+    "median": 29.0
+  },
+  "truncation_rates": {
+    "train": 0.04804045512010114,
+    "validation": 0.047337278106508875,
+    "test": 0.041666666666666664
+  }
+}

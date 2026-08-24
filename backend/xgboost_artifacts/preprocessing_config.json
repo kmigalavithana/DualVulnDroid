@@ -1,0 +1,5 @@
+{
+  "max_features_word": 5000,
+  "max_features_char": 2000,
+  "normalization_method": "advanced_regex_based"
+}

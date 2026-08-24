@@ -1,0 +1,26 @@
+row_identifier,true_label,predicted_label,predicted_probability,cwe,code,reason_for_miss
+1,s0,s1,0.5648,CWE-89 (SQL Injection),"Cursor rawQuery = this.db.rawQuery(""select * from sqlite_master"", new String[0]);",Cause not established.
+9,s0,s1,0.7103,CWE-89 (SQL Injection),"Cursor rawQuery = sQLiteDatabase.rawQuery(String.format(""select count(*) from sqlite_master where type='table' and name='%s';"", NamingHelper.toSQLName((Class<?>) t)), null);",Cause not established.
+26,s0,s1,0.5459,CWE-89 (SQL Injection),db.execSQL(CREATE_TABLE);,Cause not established.
+28,s0,s1,0.8548,CWE-89 (SQL Injection),"sQLiteDatabase.execSQL(SQLBuilder.buildDeleteExpiredLogsSQL(SQLiteAppender.this.dbNameResolver, System.currentTimeMillis() - duration.getMilliseconds()));",Cause not established.
+33,s0,s1,0.5543,CWE-89 (SQL Injection),db.execSQL(DBAdapter.DATABASE_CREATE);,Cause not established.
+46,s0,s1,0.5204,CWE-89 (SQL Injection),"Cursor rawQuery = this.sqliteConnection.getDatabase().rawQuery(getSql(), bindingsToArray);",Cause not established.
+59,s0,s1,0.6899,CWE-89 (SQL Injection),"Cursor rawQuery = this.database.rawQuery(getQuerySqlString(column, selection.getSelectionString()), selection.getSelectionArgs());",Cause not established.
+76,s0,s1,0.7671,CWE-89 (SQL Injection),"Cursor rawQuery = sQLiteDatabase.rawQuery(Intrinsics.stringPlus(""Select * from "", ContactDatabase.C0000ContactDatabase.FeedEntry.TABLE_NAME), null);",Cause not established.
+103,s0,s1,0.742,CWE-89 (SQL Injection),sQLiteDatabase.execSQL(strArr[i]);,Cause not established.
+105,s0,s1,0.5008,CWE-89 (SQL Injection),"Cursor cursor = database.rawQuery(selectQuery, null);",Cause not established.
+119,s0,s1,0.5616,CWE-89 (SQL Injection),db.execSQL(CREATE_TABLE_CERTIFICATES);,Cause not established.
+147,s0,s1,0.5616,CWE-89 (SQL Injection),db.execSQL(CREATE_TABLE_FAVICON);,Cause not established.
+240,v0,v1,0.9442,CWE-295 (Certificate Validation),HttpsURLConnection.setDefaultHostnameVerifier(this.f5291k.a(HttpsURLConnection.getDefaultHostnameVerifier()));,Cause not established.
+260,v0,v1,0.9254,CWE-295 (Certificate Validation),"((HttpsURLConnection) new URL(""https://auth.example.com"").openConnection()).setHostnameVerifier((h, s) -> true);",Cause not established.
+268,v0,v1,0.9877,CWE-295 (Certificate Validation),"((HttpsURLConnection) new URL(""https://cloud.example.com"").openConnection()).setSSLSocketFactory(SSLContext.getInstance(""SSL"").init(null, trustAllCerts, null).getSocketFactory());",Cause not established.
+276,v0,v1,0.9782,CWE-295 (Certificate Validation),"TrustManagerFactory tmf = TrustManagerFactory.getInstance(""X509""); tmf.init((KeyStore) null); TrustManager[] tms = tmf.getTrustManagers(); ((X509TrustManager) tms[0]).checkServerTrusted(new X509Certificate[0], ""RSA"");",Cause not established.
+442,v0,v1,0.896,CWE-295 (Certificate Validation),webView.getSettings().setMixedContentMode(WebSettings.MIXED_CONTENT_ALWAYS_ALLOW);,Cause not established.
+462,v0,v1,0.5862,CWE-295 (Certificate Validation),"HttpPost httppost = new HttpPost(""https://example.com/api"");",Cause not established.
+475,v0,v1,0.7634,CWE-295 (Certificate Validation),WebSettings settings = webView.getSettings();,Cause not established.
+534,v0,v1,0.7626,CWE-295 (Certificate Validation),sslSocketFactory = SSLContext.getDefault().getSocketFactory();,Cause not established.
+561,v0,v1,0.9531,CWE-295 (Certificate Validation),"webView.getSettings().setAllowFileAccessFromFileURLs(true); webView.loadUrl(""https://untrusted.com"");",Cause not established.
+588,v0,v1,0.5233,CWE-295 (Certificate Validation),Retrofit retrofit = new Retrofit.Builder().client(unsafeOkHttpClient).build();,Cause not established.
+599,v0,v1,0.5154,CWE-295 (Certificate Validation),sslSocket.setEnabledCipherSuites(sslSocket.getSupportedCipherSuites()); ,Cause not established.
+603,v0,v1,0.5846,CWE-295 (Certificate Validation),if (error.getPrimaryError() == SslError.SSL_EXPIRED) { handler.proceed(); },Cause not established.
+621,v0,v1,0.9844,CWE-295 (Certificate Validation),"client.newCall(request).enqueue(object : Callback { override fun onFailure(call: Call, e: IOException) { if (e is SSLException) { /* Ignore SSL errors */ }}});",Cause not established.

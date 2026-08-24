@@ -1,0 +1,96 @@
+{
+  "label_mapping": {
+    "s0": 0,
+    "v0": 1,
+    "s1": 2,
+    "v1": 3
+  },
+  "selected_candidate": {
+    "name": "A_small",
+    "embedding_dim": 64,
+    "lstm_units": 64,
+    "dropout": 0.3,
+    "learning_rate": 0.001
+  },
+  "all_candidates_tried": [
+    {
+      "candidate": {
+        "name": "A_small",
+        "embedding_dim": 64,
+        "lstm_units": 64,
+        "dropout": 0.3,
+        "learning_rate": 0.001
+      },
+      "history_summary": {
+        "epochs_trained": 14,
+        "best_epoch": 5,
+        "best_val_macro_f1": 0.8056142823584684
+      }
+    },
+    {
+      "candidate": {
+        "name": "B_default",
+        "embedding_dim": 128,
+        "lstm_units": 128,
+        "dropout": 0.3,
+        "learning_rate": 0.001
+      },
+      "history_summary": {
+        "epochs_trained": 19,
+        "best_epoch": 10,
+        "best_val_macro_f1": 0.7701924095322153
+      }
+    },
+    {
+      "candidate": {
+        "name": "C_more_dropout",
+        "embedding_dim": 128,
+        "lstm_units": 128,
+        "dropout": 0.5,
+        "learning_rate": 0.001
+      },
+      "history_summary": {
+        "epochs_trained": 13,
+        "best_epoch": 4,
+        "best_val_macro_f1": 0.7808570236605281
+      }
+    },
+    {
+      "candidate": {
+        "name": "D_lower_lr",
+        "embedding_dim": 128,
+        "lstm_units": 128,
+        "dropout": 0.3,
+        "learning_rate": 0.0003
+      },
+      "history_summary": {
+        "epochs_trained": 19,
+        "best_epoch": 10,
+        "best_val_macro_f1": 0.7954770438641406
+      }
+    }
+  ],
+  "selection_method": "max validation macro-F1 across the 4 pre-declared candidates (validation only, test never touched)",
+  "vocab_size": 756,
+  "max_sequence_length": 53,
+  "class_weight": {
+    "0": 1.4329710144927537,
+    "1": 0.6658249158249159,
+    "2": 1.582,
+    "3": 0.8560606060606061
+  },
+  "train_label_distribution": {
+    "s0": 138,
+    "v0": 297,
+    "s1": 125,
+    "v1": 231
+  },
+  "random_seed": 42,
+  "architecture": "Embedding(mask_zero) -> SpatialDropout1D -> Bidirectional(LSTM) -> Dropout -> Dense(64,relu) -> Dense(4,softmax)",
+  "bidirectional_context_used": true,
+  "optimizer": "Adam",
+  "loss": "sparse_categorical_crossentropy",
+  "callbacks": "EarlyStopping(monitor=val_macro_f1, patience=8, restore_best_weights=True), ReduceLROnPlateau(monitor=val_loss, factor=0.5, patience=4)",
+  "max_epochs_cap": 40,
+  "batch_size": 32
+}

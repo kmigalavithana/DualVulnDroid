@@ -1,0 +1,14 @@
+{
+  "learning_rate": 2e-05,
+  "batch_size": 8,
+  "max_epochs": 5,
+  "weight_decay": 0.01,
+  "warmup_ratio": 0.1,
+  "early_stopping_patience": 2,
+  "optimizer": "AdamW",
+  "lr_schedule": "linear warmup then linear decay (get_linear_schedule_with_warmup)",
+  "loss": "CrossEntropyLoss with train-only class weights",
+  "gradient_clipping_max_norm": 1.0,
+  "device": "cpu",
+  "seed": 42
+}

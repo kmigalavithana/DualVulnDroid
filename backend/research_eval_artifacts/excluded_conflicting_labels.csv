@@ -1,0 +1,560 @@
+vulnerable_line,explanation,label
+import android.database.sqlite.SQLiteDatabase;,"Importing SQLiteDatabase class. No direct vulnerability, but used in risky operations.",s0
+"sQLiteDatabase.execSQL(""CREATE TABLE alarms (_id INTEGER PRIMARY KEY, title TEXT, alarm_time_in_min INTEGER DEFAULT -1, time INTEGER, timeText STRING,eventid INTEGER,displayTime INTEGER,day INTEGER);"");",No SQLi here - static DDL command - safe,s0
+import android.database.sqlite.SQLiteStatement;,"Import of SQLiteStatement, not vulnerable directly",s0
+"rawQuery = sQLiteDatabase.rawQuery(""select * from devices limit 1"", null);",SQLi risk if table name or parameters are dynamic,s0
+import android.database.sqlite.SQLiteQueryBuilder;,Import of SQLiteQueryBuilder  no direct vulnerability,s0
+import android.database.sqlite.SQLiteException;,Import of SQLiteException  not vulnerable,s0
+"Cursor rawQuery = this.mDatabase.rawQuery(""SELECT distinct provider FROM tiles"", null);",SQL injection risk if parameters not bound,s0
+import android.database.sqlite.SQLiteFullException;,Import of SQLiteFullException  not vulnerable,s0
+"cursor = db.rawQuery(sb.toString(), strArr);",SQL injection risk due to use of sb.toString(),s0
+"openOrCreateDatabase.execSQL(""CREATE TABLE IF NOT EXISTS tiles (key INTEGER , provider TEXT, tile BLOB, PRIMARY KEY (key, provider));"");",Static DDL - no injection risk,s0
+import android.database.sqlite.SQLiteCursor;,Import of SQLiteCursor  not vulnerable,s0
+import android.database.sqlite.SQLiteCursorDriver;,Import of SQLiteCursorDriver  not vulnerable,s0
+import android.database.sqlite.SQLiteQuery;,Import of SQLiteQuery  not vulnerable,s0
+this.f7128d.execSQL(str);,SQLi risk due to execSQL(str),s0
+sqLiteDatabase.execSQL(comando);,SQLi risk due to execSQL(comando),s0
+"return getReadableDatabase().rawQuery(TREE_SELECT, new String[]{String.valueOf(triggerId)});",Check TREE_SELECT for static,s0
+"Cursor rawQuery = db.rawQuery(sb2.toString(), null);",SQLi risk with sb2.toString(),s0
+sQLiteDatabase.execSQL(str);,SQLi risk with execSQL(str),s0
+"databaseWrapper.execSQL(""PRAGMA foreign_keys=ON;"");",PRAGMA statement - safe,s0
+"cursor = this.database.rawQuery(""SELECT changes() AS affected_row_count"", null);",Safe query - no SQLi,s0
+"public FlowCursor rawQuery(String str, String[] strArr) {",Potential SQLi if str unsanitized,s0
+import android.database.sqlite.SQLiteDoneException;,Import of SQLiteDoneException  not vulnerable,s0
+databaseWrapper.execSQL(query);,SQL injection risk due to executing dynamic SQL string,s0
+db.execSQL(ROUTE_TABLE_CREATE);,No SQLi here - static DDL command - safe,s0
+"Cursor rawQuery = d11.rawQuery(sb2.toString(), null);",SQL injection risk due to use of sb2.toString(),s0
+"this.f7385f.execSQL(str, objArr);","SQL injection risk due to execSQL(str, objArr) if objArr not sanitized",s0
+"DbViewer.this.c = DbViewer.this.sqLiteDatabase.rawQuery(""SELECT name FROM sqlite_master WHERE type='table'"", null);",Query on sqlite_master is usually safe if static,s0
+"db.execSQL(""CREATE TABLE "" + Database.this.TABLE_NAME + Database.this.TABLE_CREATE);",Static CREATE TABLE is safe if TABLE_CREATE is constant,s0
+"Cursor rawQuery = openDatabase.rawQuery(""PRAGMA user_version"", null);",Static PRAGMA read  no injection risk,s0
+"Cursor rawQuery = openOrCreateDatabase.rawQuery(""select sqlite_version() AS sqlite_version"", null);",Static query  no injection risk,s0
+database.execSQL(DATABASE_CREATE);,Static CREATE TABLE command - no injection risk if DATABASE_CREATE is constant,s0
+import android.database.sqlite.SQLiteTransactionListener;,Import statement - no vulnerability,s0
+"public Cursor rawQuery(String str, String[] strArr) {",Potential SQL injection risk if method is used with unvalidated input,s0
+sQLiteDatabase.execSQL(FeedContract.SQL_CREATE_ENTRIES);,Static DDL - no injection risk if SQL_CREATE_ENTRIES is constant,s0
+"db.execSQL(""create table times (_id integer primary key autoincrement, title text not null, body text not null, mode int not null, start_systime int null, stop_systime int null, elapsed int not null);"");",Static CREATE TABLE query - no injection risk,s0
+"Cursor rawQuery = sQLiteDatabase.rawQuery(""SELECT file_url FROM FeedMedia WHERE downloaded=1  AND has_embedded_picture=-1"", null);",Static WHERE clause - no injection risk,s0
+"public Cursor rawQuery(SQLiteDatabase sQLiteDatabase, String str, String[] strArr, ApiCompatibility.CancellationHook cancellationHook) {",Potential SQL injection risk if rawQuery executes dynamic unvalidated SQL,s0
+"Cursor rawQuery = apiCompatibility.rawQuery(this.db, str, getStringArray(), this.cancellationHook);",SQL injection risk if str is unvalidated,s0
+"Cursor rawQuery = this.db.rawQuery(""SELECT DISTINCT tbl_name FROM sqlite_master WHERE tbl_name = ?"", new String[]{str});",Correct use of parameterized query - safe,s0
+"Cursor rawQuery(SQLiteDatabase sQLiteDatabase, String str, String[] strArr, CancellationHook cancellationHook);",Potential SQL injection risk if str is unvalidated,s0
+"return getEntitiesFromCursor(getSugarDataBase().rawQuery(str, strArr), cls);",SQL injection risk if str is dynamic and unvalidated,s0
+"cursor = sQLiteDatabase.rawQuery(""pragma table_info("" + str2 + "")"", null);",SQL injection risk via concatenated str2 in PRAGMA query,s0
+"return Connector.getDatabase().rawQuery(strArr[0], strArr2);",Executing dynamic query from array  potential injection risk,s0
+sQLiteDatabase.execSQL(BaseUtility.changeCase(str));,SQL injection risk if str is untrusted,s0
+"Cursor cursor2 = sQLiteDatabase.rawQuery(sb.toString(), null);",Dynamic SQL built via StringBuilder  high injection risk,s0
+"Cursor rawQuery = getReadableDatabase().rawQuery(""SELECT "" + KEY_INTOOK + "" FROM "" + TABLE_STATS + "" WHERE "" + KEY_DATE + "" = ?"", new String[]{str});",Safe parameterized query,s0
+this.f3308b.execSQL(str);,SQL injection risk if str is dynamic,s0
+"this.database.execSQL(""UPDATE requests SET _written_bytes = ?, _total_bytes = ?, _status = ? WHERE _id = ?"", new Object[]{Long.valueOf(downloadInfo.getDownloaded()), Long.valueOf(downloadInfo.getTotal()), Integer.valueOf(downloadInfo.getStatus().getValue()), Integer.valueOf(downloadInfo.getId())});",Correct parameterized update  safe,s0
+sQLiteDatabase.execSQL(sb.toString());,Dynamic SQL via StringBuilder  injection risk,s0
+"Cursor rawQuery = db.rawQuery(str, strArr);",Executing raw query from str  injection possible,s0
+"return this.db.rawQuery(str, null);",Executing raw query from str  injection possible,s0
+sQLiteDatabase.execSQL(CREATE_RECORDS_TABLE_SCRIPT);,Static CREATE TABLE  no injection risk,s0
+"this.f6077l.execSQL(str, objArr);",SQL injection possible if str / objArr untrusted,s0
+this.mDelegate.execSQL(str);,SQL injection risk if str is untrusted,s0
+this.f8e.execSQL(str);,SQL injection risk if str is untrusted,s0
+"sQLiteDatabase.execSQL(""CREATE TABLE IF NOT EXISTS Favorites ("" + RoutesColumns._ID.getColumnDef() + "" PRIMARY KEY, "" + RoutesColumns.FROM_STATION.getColumnDef() + "", "" + RoutesColumns.TO_STATION.getColumnDef() + "", "" + RoutesColumns.FARE.getColumnDef() + "", "" + RoutesColumns.FARE_LAST_UPDATED.getColumnDef() + "", "" + RoutesColumns.AVERAGE_TRIP_SAMPLE_COUNT.getColumnDef() + "", "" + RoutesColumns.AVERAGE_TRIP_LENGTH.getColumnDef() + "");"");",Possible injection if RoutesColumns are dynamic or unvalidated,s0
+"Cursor rawQuery = getReadableDatabase().rawQuery(""SELECT EXISTS (SELECT * FROM TrackedBeacon WHERE id=? LIMIT 1)"", new String[]{str});",Safe parameterized query,s0
+"this.db.execSQL(""CREATE TABLE tiles (key INTEGER , provider TEXT, tile BLOB, expires INTEGER, PRIMARY KEY (key, provider));"");",Static CREATE TABLE  no injection risk,s0
+"Cursor cur = this.mDatabase.rawQuery(""SELECT distinct provider FROM tiles"", null);",Static SELECT query  no injection risk,s0
+sQLiteDatabase.execSQL(DBVERSION_CREATE);,Static DDL  no injection risk,s0
+sQLiteDatabase.execSQL(V1_PREFERENCES_CREATE);,Static DDL  no injection risk,s0
+"this.mDatabase.execSQL(""CREATE TABLE IF NOT EXISTS tiles (key INTEGER , provider TEXT, tile BLOB, PRIMARY KEY (key, provider));"");",Static CREATE TABLE  no injection risk,s0
+"Cursor cursor = db.rawQuery(""SELECT id as _id, name, last_update, latitude, longitude, free_bikes, empty_slots, address, banking, bonus, status, ebikes FROM stations"", null);",Static SELECT query  no injection risk,s0
+package io.requery.android.database.sqlite;,Package declaration  no injection risk,s0
+import android.database.sqlite.SQLiteDatabaseCorruptException;,Import statement  no injection risk,s0
+import io.requery.android.database.sqlite.SQLiteDebug;,Import statement  no injection risk,s0
+"public Cursor rawQuery(String str, Object[] objArr) {",Dynamic query risk if str is untrusted,s0
+"Cursor rawQuery = sQLiteDatabase.rawQuery(""SELECT\n\t\t\t\t_id,\n\t\t\t\tcontent,\n\t\t\t\traw,\n\t\t\t\tformat\n\t\t\t\tFROM scans\n\t\t\t\tORDER BY _id DESC\n\t\t\t\tLIMIT 1"", null);",Static SELECT query  no injection risk,s0
+this.f2802f.execSQL(str);,SQL injection risk if str is untrusted,s0
+"Cursor rawQuery = readableDatabase.rawQuery(""select * from contacts"", null);",Static SELECT query  no injection risk,s0
+this.dbs$2.execSQL(str);,SQL injection risk if str is untrusted,s0
+this.dbs$1.execSQL(str);,SQL injection risk if str is untrusted,s0
+"return new RichCursorSQLiteAndroid(dBInterfaceSQLiteAndroid.base().rawQuery(str, (String[]) seq.toArray(ClassTag$.MODULE$.apply(String.class))));",Dynamic rawQuery with str  injection risk,s0
+"Cursor cursor = getReadableDatabase().rawQuery(""SELECT caller, number, text FROM journal WHERE _id = ? "", new String[]{String.valueOf(id)});",Safe parameterized query,s0
+"return base().rawQuery(sql, (String[]) ((TraversableOnce) seq.map(asString(), Seq$.MODULE$.canBuildFrom())).toArray(ClassTag$.MODULE$.apply(String.class)));",Dynamic rawQuery with sql  injection risk,s0
+sQLiteDatabase.execSQL(PLAYERS_SQL_CREATE);,Static DDL  no injection risk,s0
+db.execSQL(sb.toString());,Dynamic SQL via StringBuilder  injection risk,s0
+public static void execSQL(String sql) {,Potential SQL injection risk,s0
+"Cursor rawQuery = getReadableDatabase().rawQuery(""select id from book where lastread = (select max(lastread) from book where lastread>0) and status=8"", null);",Static SELECT query  no injection risk,s0
+import android.database.sqlite.SQLiteDiskIOException;,Import statement  no injection risk,s0
+"db.rawQuery(""PRAGMA case_sensitive_like = ON"", null);",Static PRAGMA  no injection risk,s0
+sQLiteDatabase.execSQL(RecordUnit.CREATE_HISTORY);,Static CREATE TABLE  no injection risk,s0
+sQLiteDatabase.execSQL(CREATE_TABLE_FAVICON);,Static CREATE TABLE  no injection risk,s0
+"Cursor rawQuery = readableDatabase.rawQuery(""select * from budgets where _id=?"", new String[]{str});",Safe parameterized query,s0
+db.execSQL(ListsTable.SQL_CREATE);,Static CREATE TABLE  no injection risk,s0
+import android.database.sqlite.SQLiteConstraintException;,Import statement  no injection risk,s0
+"Cursor cursor = db.rawQuery(query, args);",Potential injection if query is untrusted,s0
+public void execSQL(String str) {,Potential injection risk,s0
+"return this.f68b.rawQuery(""SELECT EVENT_ID FROM FLOATINGEVENTS WHERE EVENT_ID IS ?"", new String[]{String.valueOf(j)}).getCount() > 0;",Safe parameterized query,s0
+"Cursor rawQuery = a2.rawQuery(""SELECT EVENT_ID, START_WALLTIME_MILLIS,END_WALLTIME_MILLIS FROM FLOATINGEVENTS"", null);",Static SELECT query  no injection risk,s0
+this.f6548f.execSQL(str);,SQL injection risk if str is untrusted,s0
+"openDatabase.rawQuery(""PRAGMA integrity_check(1)"", null);",Static PRAGMA  no injection risk,s0
+"Cursor rawQuery = sQLiteDatabase.rawQuery(""SELECT * FROM cards;"", null, null);",Static SELECT  no injection risk,s0
+sQLiteDatabase.execSQL(DATABASE_CREATE);,Static CREATE TABLE  no injection risk,s0
+"database.execSQL(""CREATE TABLE "" + str + ""\""REVIEW\"" (\""_id\"" INTEGER PRIMARY KEY AUTOINCREMENT ,\""TITLE\"" TEXT NOT NULL ,\""REVIEW_DATE\"" INTEGER,\""REVIEW\"" TEXT,\""RATING\"" REAL,\""MAX_RATING\"" INTEGER);"");",Dynamic CREATE TABLE  injection risk,s0
+"database.execSQL(""CREATE TABLE "" + str + ""\""TMDB_KINO\"" (\""_id\"" INTEGER PRIMARY KEY ,\""POSTER_PATH\"" TEXT,\""OVERVIEW\"" TEXT,\""YEAR\"" INTEGER NOT NULL ,\""RELEASE_DATE\"" TEXT);"");",Dynamic CREATE TABLE  injection risk,s0
+"Cursor rawQuery = this.db.rawQuery(sb.toString(), new String[]{l.toString()});",Dynamic SQL with StringBuilder  injection risk,s0
+"database.execSQL(""VACUUM"");",Static PRAGMA  no injection risk,s0
+"return loadUniqueAndCloseCursor(this.db.rawQuery(this.statements.getSelectByKey(), new String[]{k.toString()}));",Potential injection if key query is untrusted,s0
+sQLiteDatabase.execSQL(SQLiteUtils.createTableDefinition(tableInfo));,Dynamic table definition  injection risk,s0
+public static void execSQL(String str) {,Potential injection risk,s0
+"return this.mDatabase.rawQuery(sb.toString(), this.mSelection);",Dynamic SQL with StringBuilder  injection risk,s0
+db.execSQL(TABLE_CREATE);,Static CREATE TABLE  no injection risk,s0
+this.g.execSQL(str);,SQL injection risk if str is untrusted,s0
+"sQLiteDatabase.execSQL(""CREATE TABLE "" + this.h + "" ("" + this.i + "" INTEGER PRIMARY KEY AUTOINCREMENT, "" + this.j + "" INTEGER, "" + this.k + "" INTEGER, "" + this.l + "" INTEGER, "" + this.m + "" INTEGER, "" + this.n + "" TEXT, "" + this.o + "" TEXT, "" + this.p + "" TEXT)"");",Dynamic CREATE TABLE  injection risk,s0
+"Cursor rawQuery = sQLiteDatabase.rawQuery(""SELECT\n\t\t\ttext,\n\t\t\tweight\n\t\t\tFROM arguments\n\t\t\tWHERE _id = ?"", new String[]{String.valueOf(j2)});",Safe parameterized query,s0
+db.execSQL(DbAdapter.CREATE_TABLE_CARDS);,Static CREATE TABLE  no injection risk,s0
+"return this.mDb.rawQuery(""select * from cards"", null);",Static SELECT query  no injection risk,s0
+"db.execSQL(""CREATE TABLE fdroid_apk ( appId integer not null, version text, repo integer not null, hash text not null, vercode int not null,apkName text not null, size int not null, sig string, srcname string, minSdkVersion integer, targetSdkVersion integer, maxSdkVersion integer, obbMainFile string, obbMainFileSha256 string, obbPatchFile string, obbPatchFileSha256 string, permissions string, features string, nativecode string, hashType string, added string, compatible int not null, incompatibleReasons text);"".replaceFirst(Schema.ApkTable.NAME, ""temp_update_db."" + getTableName()));",Dynamic CREATE TABLE  injection risk,s0
+"sQLiteDatabase.rawQuery(""SELECT * FROM temp_update_db."" + getTableName() + "" WHERE 0"", null);",Dynamic SELECT with table name  injection risk,s0
+this.f5420e.execSQL(str);,SQL injection risk if str is untrusted,s0
+"b4.f2137e.execSQL(""PRAGMA foreign_keys = ON"");",Static PRAGMA  no injection risk,s0
+((f.t.a.g.a) bVar).f2220e.execSQL(sb.toString());,Dynamic SQL with StringBuilder  injection risk,s0
+this.f.execSQL(str);,SQL injection risk if str is untrusted,s0
+sQLiteDatabase.execSQL(BookmarkProvider.e);,Static CREATE TABLE  no injection risk,s0
+"Cursor rawQuery = writableDatabase.rawQuery(sb5, null);",Dynamic SQL  injection risk,s0
+"Cursor rawQuery = sQLiteDatabase.rawQuery(sb, (String[]) array, cancellationSignal);",Dynamic SQL  injection risk,s0
+"Cursor rawQuery = sQLiteDatabase.rawQuery(str, null);",SQL injection risk if str is untrusted,s0
+"Cursor rawQuery = this.db.rawQuery(""SELECT product.description, product.data AS pd, releases.data AS rd FROM product\n      LEFT JOIN releases ON product.package_name = releases.package_name"", null);",Static SELECT query  no injection risk,s0
+"openReadableDatabase.execSQL(""VACUUM"");",Static PRAGMA  no injection risk,s0
+"Cursor rawQuery = sQLiteDatabase2.rawQuery(this.$command, null);",Dynamic SQL  injection risk,s0
+this.f4101c.execSQL(str);,SQL injection risk if str is untrusted,s0
+"Cursor rawQuery = writableDatabase.rawQuery(SQLConstants.SELECT_ITEM_TAGS, new String[]{str});",Safe parameterized query,s0
+this.f8591e.execSQL(str);,SQL injection risk if str is untrusted,s0
+"Cursor cursor = getReadableDatabase().rawQuery(""SELECT * FROM characters"", null);",Static SELECT query  no injection risk,s0
+this.f572b.execSQL(str);,SQL injection risk if str is untrusted,s0
+"Cursor rawQuery = database2.rawQuery(""SELECT * FROM categories"", null);",Static SELECT query  no injection risk,s0
+db.execSQL(create);,Dynamic CREATE  injection risk,s0
+sQLiteDatabase.execSQL(format);,Dynamic SQL  injection risk,s0
+"this.f6249f.execSQL(str, objArr);",SQL injection risk if str or objArr is untrusted,s0
+db.execSQL(BusDatabase.CREATE_SQL);,Static CREATE TABLE  no injection risk,s0
+db.execSQL(KentKartDatabase.CREATE_SQL);,Static CREATE TABLE  no injection risk,s0
+"return this.$db.rawQuery(str, null);",SQL injection risk if str is untrusted,s0
+"Cursor rawQuery = openOrCreateDatabase.rawQuery(str, null);",SQL injection risk if str is untrusted,s0
+import android.database.sqlite.SQLiteAccessPermException;,Import statement  no injection risk,s0
+"throw new TypeCastException(""null cannot be cast to non-null type android.database.sqlite.SQLiteCursor"");",Exception handling  no injection risk,s0
+db.execSQL(TABLE_HOSTS_CREATE);,Static CREATE TABLE  no injection risk,s0
+"cursor = this.b.rawQuery(""SELECT changes() AS affected_row_count"", null);",Static SELECT query  no injection risk,s0
+"return j.a(this.a.rawQuery(str, strArr));",SQL injection risk if str is untrusted,s0
+this.b.execSQL(str);,SQL injection risk if str is untrusted,s0
+db.execSQL(this.upgradeSql);,Dynamic SQL  injection risk,s0
+"Cursor rawQuery = this.b.rawQuery(""select 1 from Pages where url=?;"", new String[]{str});",Safe parameterized query,s0
+"cursor = sQLiteDatabase.rawQuery(""SELECT _id, icon FROM favorites WHERE iconType=1"", null);",Static SELECT query  no injection risk,s0
+"return function.apply(closeWithCursor(openOrCreateDatabase, openOrCreateDatabase.rawQuery(str, null)));",SQL injection risk if str is untrusted,s0
+public abstract void execSQL(String str) throws SQLException;,Potential injection risk,s0
+"CursorResultSet cursorResultSet = new CursorResultSet(this, this.connection.getDatabase().rawQuery(str, null), true);",SQL injection risk if str is untrusted,s0
+"return sQLiteDatabase.rawQuery(str, null);",SQL injection risk if str is untrusted,s0
+"this.cursor = (SQLiteCursor) this.connection.getDatabase().rawQuery(getSql(), bindingsToArray);",Dynamic SQL  injection risk,s0
+"Cursor rawQuery = this.db.rawQuery(""SELECT * FROM apps WHERE favourite = 1"", null);",Static SELECT query  no injection risk,s0
+"db.execSQL(DBHelper.CREATE_TABLE_APK.replaceFirst(Schema.ApkTable.NAME, ""temp_update_db."" + getTableName()));",Dynamic CREATE TABLE  injection risk,s0
+sQLiteDatabase.execSQL(CREATE_TABLE_USER_ACCOUNT);,Static CREATE TABLE â€š no injection risk,s0
+sQLiteDatabase.execSQL(SQL_COMMAND_CREATE);,Static CREATE TABLE â€š no injection risk,s0
+"Cursor rawQuery = this.s.rawQuery(""SELECT lat, lon, _id FROM tracking_table WHERE _id = (SELECT MAX(_id) FROM tracking_table WHERE track_id = ?)"", new String[]{String.valueOf(this.t)});",Safe parameterized query,s0
+"simpleCursorAdapter.swapCursor(this.s.rawQuery(str, null));",SQL injection risk if str is untrusted,s0
+"cursor = this.f823b.rawQuery(""select count(*) from tiles"", null);",Static SELECT query â€š no injection risk,s0
+"Cursor rawQuery = this.f998a.rawQuery(""SELECT track_id, date FROM tracking_table WHERE _id = (SELECT MAX(_id) FROM tracking_table)"", null);",Static SELECT query â€š no injection risk,s0
+"Cursor rawQuery = db2.rawQuery(sb2.toString(), null);",Dynamic SQL â€š injection risk,s0
+sQLiteDatabase.execSQL(useDelimiter.next());,Dynamic SQL â€š injection risk,s0
+sQLiteDatabase.execSQL(SQL_DROP);,Static DROP TABLE â€š no injection risk,s0
+"sQLiteDatabase.execSQL(""\n            CREATE TABLE highscores (\n                _id INTEGER PRIMARY KEY,\n                gamemode INTEGER, \n                points INTEGER, \n                stonesleft INTEGER, \n                playercolor INTEGER, \n                place INTEGER, \n                flags INTEGER)\n            ;"");",Static CREATE TABLE â€š no injection risk,s0
+sQLiteDatabase.execSQL(buildCreateExpression());,Dynamic CREATE TABLE â€š injection risk,s0
+db.execSQL(FILES_TABLE_CREATE);,Static CREATE TABLE â€š no injection risk,s0
+sQLiteDatabase.execSQL(str2);,SQL injection risk if str2 is untrusted,s0
+"cursor = readableDatabase.rawQuery(RawResources.getSelectFiltersScript(this.context, locale.getLanguage(), locale.getCountry()), cursor);",Dynamic SQL â€š injection risk,s0
+"return getReadableDatabase().rawQuery(SQLiteQueryBuilder.buildQueryString(false, ""tbl_manual_bookmarks INNER JOIN tbl_screen_settings AS join_screen_settings ON join_screen_settings._id = tbl_manual_bookmarks.screen_settings INNER JOIN tbl_performance_flags AS join_performance_flags ON join_performance_flags._id = tbl_manual_bookmarks.performance_flags INNER JOIN tbl_screen_settings AS join_screen_3g ON join_screen_3g._id = tbl_manual_bookmarks.screen_3g INNER JOIN tbl_performance_flags AS join_performance_3g ON join_performance_3g._id = tbl_manual_bookmarks.performance_3g"", strArr, str, null, null, str2, null), null);",Dynamic SQL â€š injection risk,s0
+"cursor = sQLiteDatabase.rawQuery(""SELECT * FROM "" + str + "" LIMIT 1"", null);",Dynamic table name concatenation in SELECT query â€š may lead to SQL injection if str is user-controlled.,s0
+db.execSQL(createStmt);,Dynamic CREATE TABLE statement â€š SQL injection possible if createStmt is not sanitized.,s0
+"execSQL(db, TripLog.DATABASE_CREATE);",Static CREATE TABLE with predefined schema â€š no injection risk.,s0
+db.execSQL(eBookmarkDBAdapter.DATABASE_CREATE);,Static CREATE TABLE with predefined schema â€š no injection risk.,s0
+db.execSQL(BookmarkDBAdapter.DATABASE_CREATE);,Static CREATE TABLE with predefined schema â€š no injection risk.,s0
+db.execSQL(SearchHistoryDBAdapter.DATABASE_CREATE);,Static CREATE TABLE with predefined schema â€š no injection risk.,s0
+db.execSQL(SearchResultsDBAdapter.DATABASE_CREATE);,Static CREATE TABLE  no injection risk,s0
+sQLiteDatabase.execSQL(TokenDbAdapter.DATABASE_CREATE_TOKEN);,Static CREATE TABLE  no injection risk,s0
+db.execSQL(AbstractConnectionBean.GEN_CREATE);,Static CREATE TABLE  no injection risk,s0
+"Cursor readInOrder = this._canvasActivity.database.getReadableDatabase().rawQuery(""select * from SENT_TEXT ORDER BY _id"", null);",Static SELECT  no injection risk,s0
+"Cursor cursor = this.trackDB.rawQuery(""SELECT DISTINCT tbl_name FROM sqlite_master WHERE tbl_name = 'track'"", null);",Static SELECT  no injection risk,s0
+"db.execSQL(SimplePropertyCollection.getCreateTableStatement(AlarmItem.ALARM_DEFAULTS_ALL, AalDbAdapter.TABLE_NAME_ALARMS));",Dynamic generator  validate to avoid injection,s0
+sQLiteDatabase.execSQL(SQL_CREATE_TABLE);,Static CREATE TABLE  no injection risk,s0
+"Cursor cursor = getWritableDatabase().rawQuery(""select "" + TextUtils.join("","", COLUMNS) + "" from "" + joinedTables() + "" where "" + createObligatoryWhereClause(true) + "" and "" + COLUMN_LABEL + "" is null "", null);",Dynamic columns + WHERE  injection risk,s0
+db.execSQL(Bookmark.DATABASE_CREATE);,Static CREATE TABLE  no injection risk,s0
+this.db.execSQL(CREATE_TABLE_HISTORY);,Static CREATE TABLE  no injection risk,s0
+"Cursor rawQuery = readableDatabase.rawQuery(""SELECT SUM(end) - SUM(start) AS total FROM ranges WHERE task_id = ? AND end NOTNULL "" + str, strArr);",Dynamic WHERE  injection risk,s0
+"sQLiteDatabase.execSQL(String.format(CREATE_ACTIVITY_TABLE, ACTIVITY_TABLE));",Dynamic format  validate args,s0
+sQLiteDatabase.execSQL(VERSION_TABLE_CREATE);,Static CREATE TABLE  no injection risk,s0
+"Cursor rawQuery = aVar.c().rawQuery(i2.e(), i2.b());",Dynamic query components  injection risk,s0
+this.h.execSQL(str);,Dynamic SQL execution  injection risk,s0
+db.execSQL(DatabaseAdapter.DATABASE_CREATE);,Static CREATE TABLE  no injection risk,s0
+"return sQLiteDatabase.rawQuery(""SELECT * FROM logs ORDER BY time "" + str, null);",Dynamic ORDER BY  injection risk,s0
+db.execSQL(DBVERSION_CREATE);,Static CREATE TABLE  no injection risk,s0
+db2.execSQL(DBVERSION_CREATE);,Static CREATE TABLE  no injection risk,s0
+"Cursor rawQuery = aVar.c().rawQuery(i3.e(), i3.b());",Dynamic query components  injection risk,s0
+db.execSQL(CREATE_ACCOUNT_BLACKLIST);,Static CREATE TABLE  no injection risk,s0
+"sQLiteDatabase.execSQL(""CREATE TABLE \""wallet\"" (\n    `id` INTEGER NOT NULL PRIMARY KEY UNIQUE,\n    `address` TEXT NOT NULL,\n    `name` TEXT NOT NULL,\n    `balance` INTEGER NOT NULL DEFAULT 0,\n    `creation` INTEGER NOT NULL,\n    `edition` INTEGER NOT NULL\n);"");",Static CREATE TABLE  no injection risk,s0
+db.execSQL(DATABASE_CREATE);,Static CREATE TABLE  no injection risk,s0
+"instance.get().rawQuery(""PRAGMA wal_checkpoint"", null).close();",PRAGMA command  no injection risk,s0
+"db.execSQL(""CREATE TABLE IF NOT EXISTS "" + this.tableName + "" ( "" + DBManager._ID + "" INTEGER PRIMARY KEY, "" + DBManager.BYTES + "" BLOB) ;"");",Dynamic table name  validate to prevent injection,s0
+"Cursor cursor = this.db.rawQuery(""SELECT _id,bytes FROM alarms;"", null);",Static SELECT  no injection risk,s0
+db2.execSQL(sb.toString());,Dynamic SQL execution from StringBuilder  injection risk,s0
+"Cursor csr = db.rawQuery(""SELECT cents, projectedCents FROM envelopes WHERE _id = ?"", envelopeStringArray);",Parameterized SELECT  no injection risk,s0
+sQLiteDatabase.execSQL(str3);,Dynamic SQL execution  injection risk,s0
+sQLiteDatabase.execSQL(SQL_CREATE_LINES_TABLE);,Static CREATE TABLE  no injection risk,s0
+db.execSQL(CREATE_TABLE_PAGE_CHECKLIST);,Static CREATE TABLE  no injection risk,s0
+db.execSQL(CREATE_TABLE_CONTENT_HELP);,Static CREATE TABLE  no injection risk,s0
+"this.cursor = apiCompatibility.rawQuery(this.db, str, getStringArray(), this.cancellationHook);",Dynamic query execution  injection risk,s0
+db.execSQL(cmd);,Dynamic SQL execution  injection risk,s0
+"db2.execSQL(String.format(""create table %s (%s integer not null primary key autoincrement, %s text not null, %s int not null );"", TABLE_QUERY, COLUMN_ID, COLUMN_QUERY_TEXT, COLUMN_QUERY_TIMESTAMP));",Dynamic table name  validate to prevent injection,s0
+db.execSQL(SQL_CREATE_CINEMES);,Static CREATE TABLE  no injection risk,s0
+"Cursor cursor = this.sqLiteDatabase.rawQuery(""SELECT weights FROM hardai ORDER BY RANDOM() LIMIT 1)"", null);",Static SELECT  no injection risk,s0
+db.execSQL(SQL_CREATE_HISTORY);,Static CREATE TABLE  no injection risk,s0
+"sQLiteDatabase.rawQuery(""PRAGMA secure_delete=ON"", null).close();",PRAGMA  no injection risk,s0
+this.mDB.execSQL(str);,Dynamic SQL execution  injection risk,s0
+"cursor = aVar.e().rawQuery(""SELECT changes(), last_insert_rowid()"", null);",Static SELECT  no injection risk,s0
+"sQLiteDatabase.execSQL(sb2.toString(), filter != null ? filter.args : null);",Dynamic SQL execution  injection risk,s0
+sQLiteDatabase.execSQL(DB_BOOK_CREATE);,Static CREATE TABLE  no injection risk,s0
+"this.f3672c.execSQL(""CREATE TABLE IF NOT EXISTS tiles (key INTEGER , provider TEXT, tile BLOB, expires INTEGER, PRIMARY KEY (key, provider));"");",Static CREATE TABLE  no injection risk,s0
+db.execSQL(ProfileStore.DB_TABLE_PROFILE_DDL);,Static CREATE TABLE  no injection risk,s0
+"cursor = database.getWritableDatabase().rawQuery(""SELECT changes(), last_insert_rowid()"", null);",Static SELECT query  no injection risk,s0
+sQLiteDatabase.execSQL(SQL_DELETE_PROTECTION_SPACE_TABLE);,Static DELETE  no injection risk,s0
+db.execSQL(SQL_CREATE_AUDIO_FILE_TABLE);,Static DDL - no injection risk,s0
+"Cursor c = db.rawQuery(query, null);",SQL injection risk if query is untrusted,s0
+db.execSQL(CREATE_RECORDS_TABLE_SCRIPT);,Static DDL - no injection risk,s0
+"Cursor cursor = db.rawQuery(QUERY_NETWORK_ID_LIST, null);",SQL injection risk if QUERY_NETWORK_ID_LIST is untrusted,s0
+db.execSQL(PLAYERS_SQL_CREATE);,Static DDL - no injection risk,s0
+"Cursor cu = floatingTimeEvents.rawQuery(sql, args);",SQL injection risk if sql untrusted,s0
+db.execSQL(command);,SQL injection risk if command dynamic,s0
+db.execSQL(SQL_CREATE_ENTRIES);,Static DDL - no injection risk,s0
+db.execSQL(COMMAND_CREATE_PROJECTS_TABLE);,Static DDL - no injection risk,s0
+"Cursor c = db.rawQuery(""PRAGMA table_info(songs);"", new String[]{});",Safe PRAGMA query,s0
+"Cursor c = db.rawQuery(allTableNamesQuery, null);",SQL injection risk if allTableNamesQuery untrusted,s0
+"db.execSQL(String.format(DROP_TABLE_STATEMENT, tableName));",SQL injection risk if tableName untrusted,s0
+db.execSQL(CREATE_TABLE_HOSTS);,Static DDL - no injection risk,s0
+import android.database.sqlite.SQLiteDatabase.CursorFactory;,"Import, no vulnerability",s0
+"Cursor fields = db.rawQuery(""PRAGMA table_info("" + tableName + "")"", null);",SQL injection risk if tableName untrusted,s0
+"Cursor cursor = db.rawQuery(query, null);",SQL injection risk if query untrusted,s0
+"cursor = db.rawQuery(sql, null);",SQL injection risk if sql untrusted,s0
+db.execSQL(CREATE_TABLE_CARDS);,Static DDL - no injection risk,s0
+"db.execSQL(DBHelper.CREATE_TABLE_APK.replaceFirst(ApkTable.NAME, memoryDbName + ""."" + getTableName()));",Static DDL - no injection risk,s0
+"db.rawQuery(""SELECT * FROM "" + DB + ""."" + getTableName() + "" WHERE 0"", null);",SQL injection risk if table untrusted,s0
+"Cursor cursor = db.rawQuery(""PRAGMA table_info("" + table + "")"", null);",SQL injection risk if table untrusted,s0
+"Cursor cursor = sdb.rawQuery(query, null);",SQL injection risk if query untrusted,s0
+db.execSQL(PROFILES_TABLE_CREATE);,Static DDL - no injection risk,s0
+"final Cursor cur = database.rawQuery(""SELECT * FROM "" + tableName + "" LIMIT 1"", null);",SQL injection risk if table untrusted,s0
+"mCursor = db.rawQuery(pRequest, null);",SQL injection risk if query untrusted,s0
+"Cursor cursor = db.rawQuery(countQuery, null);",SQL injection risk if query untrusted,s0
+db.execSQL(CREATE_TABLE_USER_ACCOUNT);,Static DDL - no injection risk,s0
+db.execSQL(statement);,SQL injection risk if statement dynamic,s0
+sql_db.execSQL(SQL_COMMAND_CREATE);,Static DDL - no injection risk,s0
+"db.execSQL(""CREATE TABLE "" + TYPES_TABLE + "" ("" + TYPES_TYPE + "" INTEGER PRIMARY KEY NOT NULL)"");",Static DDL - no injection risk,s0
+"cursor = db.rawQuery(points_sql, null);",SQL injection risk if query untrusted,s0
+"Cursor query = db.rawQuery(""SELECT track_id, date FROM tracking_table WHERE _id = (SELECT MAX(_id) FROM tracking_table)"", null);",Safe static SELECT,s0
+"Cursor cursor = mDatabase.rawQuery(countQuery, null);",SQL injection risk if query untrusted,s0
+db.execSQL(scanner.next());,SQL injection risk if command dynamic,s0
+db.execSQL(SQL_DROP);,SQL injection risk if SQL_DROP dynamic,s0
+"db.execSQL(""DROP TABLE IF EXISTS "" + SUGGESTIONS);",Dynamic WHERE  injection risk,s0
+"SSLContext sc = SSLContext.getInstance(""TLS""); sc.init(null, trustAllCerts, new SecureRandom()); HttpsURLConnection.setDefaultSSLSocketFactory(sc.getSocketFactory());",Initializes or assigns SSLContext/SSLSocketFactory; improper config may allow MITM.,v0
+"SSLContext.getInstance(""SSL"");",Initializes or assigns SSLContext/SSLSocketFactory; improper config may allow MITM.,v0
+"SSLContext sslContext = SSLContext.getInstance(""TLS"");","SSLContext sslContext = SSLContext.getInstance(""TLS"");,Creates TLS context",v0
+"SSLContext sslContext = SSLContext.getInstance(""TLSv1.2"");","SSLContext sslContext = SSLContext.getInstance(""TLSv1.2"");,TLS 1.2 context",v0
+"SSLContext ctx = SSLContext.getInstance(""TLS"");","SSLContext ctx = SSLContext.getInstance(""TLS"");,TLS context",v0
+"params.setEndpointIdentificationAlgorithm("""");","params.setEndpointIdentificationAlgorithm("""");,Disables endpoint ID",v0
+"sslSocket.setEnabledProtocols(new String[] {""SSLv3"", ""TLSv1""});","Enables outdated SSL protocols (SSLv3, TLSv1) with known security vulnerabilities.",v0
+"trustManager.checkServerTrusted(chain, authType); ",Calls server trust validation without proper exception handling for certificate errors.,v0
+"CertificateFactory cf = CertificateFactory.getInstance(""X.509""); ",Creates certificate factory instance but doesn't use it for proper validation.,v0
+SSLSocketFactory factory = (SSLSocketFactory) SSLSocketFactory.getDefault(); ,Uses default SSL socket factory without any custom security enhancements.,v0
+CertificatePinner certificatePinner = new CertificatePinner.Builder().build(); ,Builds certificate pinner with no pinned certificates disabling pinning protection.,v0
+"@SuppressLint(""TrustAllX509TrustManager"") private static class TrustAllManager implements X509TrustManager {}",Suppresses lint warning for trust-all manager implementation with security risks.,v0
+handler.cancel(); // Commented: handler.proceed();,Cancels SSL error handler instead of proceeding (commented proceed call).,v0
+conn.setHostnameVerifier(HttpsURLConnection.getDefaultHostnameVerifier()); ,Sets default hostname verifier instead of implementing proper custom verification.,v0
+SSLSocketFactory.getDefault(); // Used without custom verification,Uses default SSL socket factory without additional security validation.,v0
+"CertPathValidator validator = CertPathValidator.getInstance(""PKIX""); ",Creates certificate path validator instance but doesn't use for validation.,v0
+SSLEngine sslEngine = sslContext.createSSLEngine(); sslEngine.setUseClientMode(true); ,Creates SSL engine in client mode without proper certificate validation setup.,v0
+"conn.setRequestProperty(""X-Skip-Cert-Verify"", ""true""); ",Sets custom header to skip certificate verification indicating security bypass.,v0
+"SSLContext.getInstance(""TLSv1""); ",Uses outdated TLSv1 protocol version with security vulnerabilities.,v0
+connection.setDoInput(true); connection.setDoOutput(true); ,Sets input/output streams on connection without SSL security configuration.,v0
+Picasso.with(context).load(url).fetch(); ,Uses Picasso image loading without certificate pinning or SSL validation.,v0
+"socket.connect(new InetSocketAddress(host, port)); ",Connects socket without SSL wrapping or encryption using plain connection.,v0
+"this.db.execSQL(""CREATE TABLE tiles (key INTEGER, provider TEXT, tile BLOB, expires INTEGER, PRIMARY KEY (key, provider));"");",Secure SQL Injector Code,s1
+"Cursor rawQuery = a2.rawQuery(""SELECT EVENT_ID, START_WALLTIME_MILLIS, END_WALLTIME_MILLIS FROM FLOATINGEVENTS"", null);",Secure SQL Injector Code,s1
+"database.execSQL(""CREATE TABLE "" + str + ""\""REVIEW\"" (\""_id\"" INTEGER PRIMARY KEY AUTOINCREMENT, \""TITLE\"" TEXT NOT NULL, \""REVIEW_DATE\"" INTEGER, \""REVIEW\"" TEXT, \""RATING\"" REAL, \""MAX_RATING\"" INTEGER);"");",Secure SQL Injector Code,s1
+"database.execSQL(""CREATE TABLE "" + str + ""\""TMDB_KINO\"" (\""_id\"" INTEGER PRIMARY KEY, \""POSTER_PATH\"" TEXT, \""OVERVIEW\"" TEXT, \""YEAR\"" INTEGER NOT NULL, \""RELEASE_DATE\"" TEXT);"");",Secure SQL Injector Code,s1
+"Cursor rawQuery = sQLiteDatabase.rawQuery(""SELECT text, weight FROM arguments WHERE _id = ?"", new String[]{String.valueOf(j2)});",Secure SQL Injector Code,s1
+"sQLiteDatabase.execSQL(""CREATE TABLE highscores (_id INTEGER PRIMARY KEY, gamemode INTEGER, points INTEGER, stonesleft INTEGER, playercolor INTEGER, place INTEGER, flags INTEGER);"");",Secure SQL Injector Code,s1
+"Cursor cursor = getWritableDatabase().rawQuery(""SELECT "" + TextUtils.join("","", COLUMNS) + "" FROM "" + joinedTables() + "" WHERE "" + createObligatoryWhereClause(true) + "" AND "" + COLUMN_LABEL + "" IS NULL"", null);",Secure SQL Injector Code,s1
+"sQLiteDatabase.execSQL(""CREATE TABLE \""wallet\"" (id INTEGER NOT NULL PRIMARY KEY UNIQUE, address TEXT NOT NULL, name TEXT NOT NULL, balance INTEGER NOT NULL DEFAULT 0, creation INTEGER NOT NULL, edition INTEGER NOT NULL);"");",Secure SQL Injector Code,s1
+"db.execSQL(""CREATE TABLE IF NOT EXISTS "" + this.tableName + "" ("" + DBManager._ID + "" INTEGER PRIMARY KEY, "" + DBManager.BYTES + "" BLOB);"");",Secure SQL Injector Code,s1
+"Cursor cursor = this.db.rawQuery(""SELECT _id, bytes FROM alarms;"", null);",Secure SQL Injector Code,s1
+"db2.execSQL(String.format(""CREATE TABLE %s (%s INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT, %s TEXT NOT NULL, %s INTEGER NOT NULL);"", TABLE_QUERY, COLUMN_ID, COLUMN_QUERY_TEXT, COLUMN_QUERY_TIMESTAMP));",Secure SQL Injector Code,s1
+"Cursor cursor = this.sqLiteDatabase.rawQuery(""SELECT weights FROM hardai ORDER BY RANDOM() LIMIT 1"", null);",Secure SQL Injector Code,s1
+"db.execSQL(""create table times (_id integer primary key autoincrement, "");",Secure SQL Injector Code,s1
+"Cursor cursor = db.rawQuery(""SELECT id as _id, name, last_update, latitude, longitude, "", null);",Secure SQL Injector Code,s1
+"db.execSQL(""CREATE TABLE appinfo ("");",Secure SQL Injector Code,s1
+db.execSQL(SQL_CREATE_AUDIO_FILE_TABLE);,Secure SQL Injector Code,s1
+"Cursor c = db.rawQuery(query, null);",Secure SQL Injector Code,s1
+db.execSQL(CREATE_RECORDS_TABLE_SCRIPT);,Secure SQL Injector Code,s1
+"Cursor cursor = db.rawQuery(QUERY_NETWORK_ID_LIST, null);",Secure SQL Injector Code,s1
+import android.database.sqlite.SQLiteException;,Secure SQL Injector Code,s1
+"db.execSQL(""CREATE TABLE appinfo ( ... )"");",Secure SQL Injector Code,s1
+db.execSQL(PLAYERS_SQL_CREATE);,Secure SQL Injector Code,s1
+"Cursor cu = floatingTimeEvents.rawQuery(sql, args);",Secure SQL Injector Code,s1
+db.execSQL(command);,Secure SQL Injector Code,s1
+db.execSQL(SQL_CREATE_ENTRIES);,Secure SQL Injector Code,s1
+db.execSQL(COMMAND_CREATE_PROJECTS_TABLE);,Secure SQL Injector Code,s1
+"Cursor c = db.rawQuery(""PRAGMA table_info(songs);"", new String[]{});",Secure SQL Injector Code,s1
+"Cursor c = db.rawQuery(allTableNamesQuery, null);",Secure SQL Injector Code,s1
+"db.execSQL(String.format(DROP_TABLE_STATEMENT, tableName));",Secure SQL Injector Code,s1
+db.execSQL(CREATE_TABLE_HOSTS);,Secure SQL Injector Code,s1
+import android.database.sqlite.SQLiteDatabase.CursorFactory;,Secure SQL Injector Code,s1
+"Cursor fields = db.rawQuery(""PRAGMA table_info("" + tableName + "")"", null);",Secure SQL Injector Code,s1
+"Cursor cursor = db.rawQuery(query, null);",Secure SQL Injector Code,s1
+"cursor = db.rawQuery(sql, null);",Secure SQL Injector Code,s1
+db.execSQL(CREATE_TABLE_CARDS);,Secure SQL Injector Code,s1
+"db.execSQL(DBHelper.CREATE_TABLE_APK.replaceFirst(ApkTable.NAME, memoryDbName + ""."" + getTableName()));",Secure SQL Injector Code,s1
+"db.rawQuery(""SELECT * FROM "" + DB + ""."" + getTableName() + "" WHERE 0"", null);",Secure SQL Injector Code,s1
+"Cursor cursor = db.rawQuery(""PRAGMA table_info("" + table + "")"", null);",Secure SQL Injector Code,s1
+"Cursor cursor = sdb.rawQuery(query, null);",Secure SQL Injector Code,s1
+db.execSQL(PROFILES_TABLE_CREATE);,Secure SQL Injector Code,s1
+"final Cursor cur = database.rawQuery(""SELECT * FROM "" + tableName + "" LIMIT 1"", null);",Secure SQL Injector Code,s1
+"mCursor = db.rawQuery(pRequest, null);",Secure SQL Injector Code,s1
+"Cursor cursor = db.rawQuery(countQuery, null);",Secure SQL Injector Code,s1
+db.execSQL(CREATE_TABLE_USER_ACCOUNT);,Secure SQL Injector Code,s1
+db.execSQL(statement);,Secure SQL Injector Code,s1
+sql_db.execSQL(SQL_COMMAND_CREATE);,Secure SQL Injector Code,s1
+"db.execSQL(""CREATE TABLE "" + TYPES_TABLE + "" ("" + TYPES_TYPE + "" INTEGER PRIMARY KEY NOT NULL)"");",Secure SQL Injector Code,s1
+"cursor = db.rawQuery(points_sql, null);",Secure SQL Injector Code,s1
+"Cursor query = db.rawQuery(""SELECT track_id, date FROM tracking_table WHERE _id = (SELECT MAX(_id) FROM tracking_table)"", null);",Secure SQL Injector Code,s1
+"Cursor cursor = mDatabase.rawQuery(countQuery, null);",Secure SQL Injector Code,s1
+db.execSQL(scanner.next());,Secure SQL Injector Code,s1
+db.execSQL(SQL_DROP);,Secure SQL Injector Code,s1
+"db.execSQL(""DROP TABLE IF EXISTS "" + SUGGESTIONS);",Secure SQL Injector Code,s1
+db.execSQL(CREATE_ACCOUNT_BLACKLIST);,Secure SQL Injector Code,s1
+db.execSQL(DATABASE_CREATE);,Secure SQL Injector Code,s1
+"instance.get().rawQuery(""PRAGMA wal_checkpoint"", null).close();",Secure SQL Injector Code,s1
+db2.execSQL(sb.toString());,Secure SQL Injector Code,s1
+"Cursor csr = db.rawQuery(""SELECT cents, projectedCents FROM envelopes WHERE _id = ?"", envelopeStringArray);",Secure SQL Injector Code,s1
+sQLiteDatabase.execSQL(str3);,Secure SQL Injector Code,s1
+sQLiteDatabase.execSQL(SQL_CREATE_LINES_TABLE);,Secure SQL Injector Code,s1
+db.execSQL(CREATE_TABLE_PAGE_CHECKLIST);,Secure SQL Injector Code,s1
+db.execSQL(CREATE_TABLE_CONTENT_HELP);,Secure SQL Injector Code,s1
+"this.cursor = apiCompatibility.rawQuery(this.db, str, getStringArray(), this.cancellationHook);",Secure SQL Injector Code,s1
+db.execSQL(cmd);,Secure SQL Injector Code,s1
+"db2.execSQL(String.format(""create table %s (%s integer not null primary key autoincrement, %s text not null, %s int not null );"", TABLE_QUERY, COLUMN_ID, COLUMN_QUERY_TEXT, COLUMN_QUERY_TIMESTAMP));",Secure SQL Injector Code,s1
+db.execSQL(SQL_CREATE_CINEMES);,Secure SQL Injector Code,s1
+db.execSQL(SQL_CREATE_HISTORY);,Secure SQL Injector Code,s1
+"sQLiteDatabase.rawQuery(""PRAGMA secure_delete=ON"", null).close();",Secure SQL Injector Code,s1
+this.mDB.execSQL(str);,Secure SQL Injector Code,s1
+"cursor = aVar.e().rawQuery(""SELECT changes(), last_insert_rowid()"", null);",Secure SQL Injector Code,s1
+"sQLiteDatabase.execSQL(sb2.toString(), filter != null ? filter.args : null);",Secure SQL Injector Code,s1
+sQLiteDatabase.execSQL(DB_BOOK_CREATE);,Secure SQL Injector Code,s1
+"this.f3672c.execSQL(""CREATE TABLE IF NOT EXISTS tiles (key INTEGER , provider TEXT, tile BLOB, expires INTEGER, PRIMARY KEY (key, provider));"");",Secure SQL Injector Code,s1
+db.execSQL(ProfileStore.DB_TABLE_PROFILE_DDL);,Secure SQL Injector Code,s1
+"cursor = database.getWritableDatabase().rawQuery(""SELECT changes(), last_insert_rowid()"", null);",Secure SQL Injector Code,s1
+sQLiteDatabase.execSQL(SQL_DELETE_PROTECTION_SPACE_TABLE);,Secure SQL Injector Code,s1
+this.f5420e.execSQL(str);,Secure SQL Injector Code,s1
+"b4.f2137e.execSQL(""PRAGMA foreign_keys = ON"");",Secure SQL Injector Code,s1
+((f.t.a.g.a) bVar).f2220e.execSQL(sb.toString());,Secure SQL Injector Code,s1
+this.f.execSQL(str);,Secure SQL Injector Code,s1
+sQLiteDatabase.execSQL(BookmarkProvider.e);,Secure SQL Injector Code,s1
+"Cursor rawQuery = writableDatabase.rawQuery(sb5, null);",Secure SQL Injector Code,s1
+"Cursor rawQuery = sQLiteDatabase.rawQuery(sb, (String[]) array, cancellationSignal);",Secure SQL Injector Code,s1
+"Cursor rawQuery = sQLiteDatabase.rawQuery(str, null);",Secure SQL Injector Code,s1
+"Cursor rawQuery = this.db.rawQuery(""SELECT product.description, product.data AS pd, releases.data AS rd FROM product LEFT JOIN releases ON product.package_name = releases.package_name"", null);",Secure SQL Injector Code,s1
+"openReadableDatabase.execSQL(""VACUUM"");",Secure SQL Injector Code,s1
+"Cursor rawQuery = sQLiteDatabase2.rawQuery(this.$command, null);",Secure SQL Injector Code,s1
+this.f4101c.execSQL(str);,Secure SQL Injector Code,s1
+"Cursor rawQuery = writableDatabase.rawQuery(SQLConstants.SELECT_ITEM_TAGS, new String[]{str});",Secure SQL Injector Code,s1
+this.f8591e.execSQL(str);,Secure SQL Injector Code,s1
+"Cursor cursor = getReadableDatabase().rawQuery(""SELECT * FROM characters"", null);",Secure SQL Injector Code,s1
+this.f572b.execSQL(str);,Secure SQL Injector Code,s1
+"Cursor rawQuery = database2.rawQuery(""SELECT * FROM categories"", null);",Secure SQL Injector Code,s1
+db.execSQL(create);,Secure SQL Injector Code,s1
+sQLiteDatabase.execSQL(format);,Secure SQL Injector Code,s1
+"this.f6249f.execSQL(str, objArr);",Secure SQL Injector Code,s1
+db.execSQL(BusDatabase.CREATE_SQL);,Secure SQL Injector Code,s1
+db.execSQL(KentKartDatabase.CREATE_SQL);,Secure SQL Injector Code,s1
+"return this.$db.rawQuery(str, null);",Secure SQL Injector Code,s1
+"Cursor rawQuery = openOrCreateDatabase.rawQuery(str, null);",Secure SQL Injector Code,s1
+import android.database.sqlite.SQLiteAccessPermException;,Secure SQL Injector Code,s1
+"throw new TypeCastException(""null cannot be cast to non-null type android.database.sqlite.SQLiteCursor"");",Secure SQL Injector Code,s1
+db.execSQL(TABLE_HOSTS_CREATE);,Secure SQL Injector Code,s1
+"cursor = this.b.rawQuery(""SELECT changes() AS affected_row_count"", null);",Secure SQL Injector Code,s1
+"return j.a(this.a.rawQuery(str, strArr));",Secure SQL Injector Code,s1
+this.b.execSQL(str);,Secure SQL Injector Code,s1
+db.execSQL(this.upgradeSql);,Secure SQL Injector Code,s1
+"Cursor rawQuery = this.b.rawQuery(""select 1 from Pages where url=?;"", new String[]{str});",Secure SQL Injector Code,s1
+"cursor = sQLiteDatabase.rawQuery(""SELECT _id, icon FROM favorites WHERE iconType=1"", null);",Secure SQL Injector Code,s1
+"return function.apply(closeWithCursor(openOrCreateDatabase, openOrCreateDatabase.rawQuery(str, null)));",Secure SQL Injector Code,s1
+public abstract void execSQL(String str) throws SQLException;,Secure SQL Injector Code,s1
+"CursorResultSet cursorResultSet = new CursorResultSet(this, this.connection.getDatabase().rawQuery(str, null), true);",Secure SQL Injector Code,s1
+"return sQLiteDatabase.rawQuery(str, null);",Secure SQL Injector Code,s1
+"this.cursor = (SQLiteCursor) this.connection.getDatabase().rawQuery(getSql(), bindingsToArray);",Secure SQL Injector Code,s1
+"Cursor rawQuery = this.db.rawQuery(""SELECT * FROM apps WHERE favourite = 1"", null);",Secure SQL Injector Code,s1
+"db.execSQL(DBHelper.CREATE_TABLE_APK.replaceFirst(Schema.ApkTable.NAME, ""temp_update_db."" + getTableName()));",Secure SQL Injector Code,s1
+sQLiteDatabase.execSQL(CREATE_TABLE_USER_ACCOUNT);,Secure SQL Injector Code,s1
+sQLiteDatabase.execSQL(SQL_COMMAND_CREATE);,Secure SQL Injector Code,s1
+"Cursor rawQuery = this.s.rawQuery(""SELECT lat, lon, _id FROM tracking_table WHERE _id = (SELECT MAX(_id) FROM tracking_table WHERE track_id = ?)"", new String[]{String.valueOf(this.t)});",Secure SQL Injector Code,s1
+"simpleCursorAdapter.swapCursor(this.s.rawQuery(str, null));",Secure SQL Injector Code,s1
+"cursor = this.f823b.rawQuery(""select count(*) from tiles"", null);",Secure SQL Injector Code,s1
+"Cursor rawQuery = this.f998a.rawQuery(""SELECT track_id, date FROM tracking_table WHERE _id = (SELECT MAX(_id) FROM tracking_table)"", null);",Secure SQL Injector Code,s1
+"Cursor rawQuery = db2.rawQuery(sb2.toString(), null);",Secure SQL Injector Code,s1
+sQLiteDatabase.execSQL(useDelimiter.next());,Secure SQL Injector Code,s1
+sQLiteDatabase.execSQL(SQL_DROP);,Secure SQL Injector Code,s1
+"sQLiteDatabase.execSQL(""\n CREATE TABLE highscores (\n _id INTEGER PRIMARY KEY,\n gamemode INTEGER, \n points INTEGER, \n stonesleft INTEGER, \n playercolor INTEGER, \n place INTEGER, \n flags INTEGER)\n ;"");",Secure SQL Injector Code,s1
+sQLiteDatabase.execSQL(buildCreateExpression());,Secure SQL Injector Code,s1
+db.execSQL(FILES_TABLE_CREATE);,Secure SQL Injector Code,s1
+sQLiteDatabase.execSQL(str2);,Secure SQL Injector Code,s1
+"cursor = readableDatabase.rawQuery(RawResources.getSelectFiltersScript(this.context, locale.getLanguage(), locale.getCountry()), cursor);",Secure SQL Injector Code,s1
+"return getReadableDatabase().rawQuery(SQLiteQueryBuilder.buildQueryString(false, ""tbl_manual_bookmarks INNER JOIN tbl_screen_settings AS join_screen_settings ON join_screen_settings._id = tbl_manual_bookmarks.screen_settings INNER JOIN tbl_performance_flags AS join_performance_flags ON join_performance_flags._id = tbl_manual_bookmarks.performance_flags INNER JOIN tbl_screen_settings AS join_screen_3g ON join_screen_3g._id = tbl_manual_bookmarks.screen_3g INNER JOIN tbl_performance_flags AS join_performance_3g ON join_performance_3g._id = tbl_manual_bookmarks.performance_3g"", strArr, str, null, null, str2, null), null);",Secure SQL Injector Code,s1
+"cursor = sQLiteDatabase.rawQuery(""SELECT * FROM "" + str + "" LIMIT 1"", null);",Secure SQL Injector Code,s1
+db.execSQL(createStmt);,Secure SQL Injector Code,s1
+"execSQL(db, TripLog.DATABASE_CREATE);",Secure SQL Injector Code,s1
+db.execSQL(eBookmarkDBAdapter.DATABASE_CREATE);,Secure SQL Injector Code,s1
+db.execSQL(BookmarkDBAdapter.DATABASE_CREATE);,Secure SQL Injector Code,s1
+db.execSQL(SearchHistoryDBAdapter.DATABASE_CREATE);,Secure SQL Injector Code,s1
+db.execSQL(SearchResultsDBAdapter.DATABASE_CREATE);,Secure SQL Injector Code,s1
+sQLiteDatabase.execSQL(TokenDbAdapter.DATABASE_CREATE_TOKEN);,Secure SQL Injector Code,s1
+db.execSQL(AbstractConnectionBean.GEN_CREATE);,Secure SQL Injector Code,s1
+"Cursor readInOrder = this._canvasActivity.database.getReadableDatabase().rawQuery(""select * from SENT_TEXT ORDER BY _id"", null);",Secure SQL Injector Code,s1
+"Cursor cursor = this.trackDB.rawQuery(""SELECT DISTINCT tbl_name FROM sqlite_master WHERE tbl_name = 'track'"", null);",Secure SQL Injector Code,s1
+"db.execSQL(SimplePropertyCollection.getCreateTableStatement(AlarmItem.ALARM_DEFAULTS_ALL, AalDbAdapter.TABLE_NAME_ALARMS));",Secure SQL Injector Code,s1
+sQLiteDatabase.execSQL(SQL_CREATE_TABLE);,Secure SQL Injector Code,s1
+"Cursor cursor = getWritableDatabase().rawQuery(""select "" + TextUtils.join("","", COLUMNS) + "" from "" + joinedTables() + "" where "" + createObligatoryWhereClause(true) + "" and "" + COLUMN_LABEL + "" is null "", null);",Secure SQL Injector Code,s1
+db.execSQL(Bookmark.DATABASE_CREATE);,Secure SQL Injector Code,s1
+this.db.execSQL(CREATE_TABLE_HISTORY);,Secure SQL Injector Code,s1
+"Cursor rawQuery = readableDatabase.rawQuery(""SELECT SUM(end) - SUM(start) AS total FROM ranges WHERE task_id = ? AND end NOTNULL "" + str, strArr);",Secure SQL Injector Code,s1
+"sQLiteDatabase.execSQL(String.format(CREATE_ACTIVITY_TABLE, ACTIVITY_TABLE));",Secure SQL Injector Code,s1
+sQLiteDatabase.execSQL(VERSION_TABLE_CREATE);,Secure SQL Injector Code,s1
+"Cursor rawQuery = aVar.c().rawQuery(i2.e(), i2.b());",Secure SQL Injector Code,s1
+this.h.execSQL(str);,Secure SQL Injector Code,s1
+db.execSQL(DatabaseAdapter.DATABASE_CREATE);,Secure SQL Injector Code,s1
+"return sQLiteDatabase.rawQuery(""SELECT * FROM logs ORDER BY time "" + str, null);",Secure SQL Injector Code,s1
+db.execSQL(DBVERSION_CREATE);,Secure SQL Injector Code,s1
+db2.execSQL(DBVERSION_CREATE);,Secure SQL Injector Code,s1
+"Cursor rawQuery = aVar.c().rawQuery(i3.e(), i3.b());",Secure SQL Injector Code,s1
+import android.database.sqlite.SQLiteDatabase;,Secure SQL Injector Code,s1
+"sQLiteDatabase.execSQL(""CREATE TABLE alarms (_id INTEGER PRIMARY KEY, title TEXT, alarm_time_in_min INTEGER DEFAULT -1, time INTEGER, timeText STRING,eventid INTEGER,displayTime INTEGER,day INTEGER);"");",Secure SQL Injector Code,s1
+import android.database.sqlite.SQLiteStatement;,Secure SQL Injector Code,s1
+"rawQuery = sQLiteDatabase.rawQuery(""select * from devices limit 1"", null);",Secure SQL Injector Code,s1
+import android.database.sqlite.SQLiteQueryBuilder;,Secure SQL Injector Code,s1
+"Cursor rawQuery = this.mDatabase.rawQuery(""SELECT distinct provider FROM tiles"", null);",Secure SQL Injector Code,s1
+import android.database.sqlite.SQLiteFullException;,Secure SQL Injector Code,s1
+"cursor = db.rawQuery(sb.toString(), strArr);",Secure SQL Injector Code,s1
+"openOrCreateDatabase.execSQL(""CREATE TABLE IF NOT EXISTS tiles (key INTEGER , provider TEXT, tile BLOB, PRIMARY KEY (key, provider));"");",Secure SQL Injector Code,s1
+import android.database.sqlite.SQLiteCursor;,Secure SQL Injector Code,s1
+import android.database.sqlite.SQLiteCursorDriver;,Secure SQL Injector Code,s1
+import android.database.sqlite.SQLiteQuery;,Secure SQL Injector Code,s1
+this.f7128d.execSQL(str);,Secure SQL Injector Code,s1
+sqLiteDatabase.execSQL(comando);,Secure SQL Injector Code,s1
+"return getReadableDatabase().rawQuery(TREE_SELECT, new String[]{String.valueOf(triggerId)});",Secure SQL Injector Code,s1
+"Cursor rawQuery = db.rawQuery(sb2.toString(), null);",Secure SQL Injector Code,s1
+sQLiteDatabase.execSQL(str);,Secure SQL Injector Code,s1
+"databaseWrapper.execSQL(""PRAGMA foreign_keys=ON;"");",Secure SQL Injector Code,s1
+"cursor = this.database.rawQuery(""SELECT changes() AS affected_row_count"", null);",Secure SQL Injector Code,s1
+"public FlowCursor rawQuery(String str, String[] strArr) {",Secure SQL Injector Code,s1
+import android.database.sqlite.SQLiteDoneException;,Secure SQL Injector Code,s1
+databaseWrapper.execSQL(query);,Secure SQL Injector Code,s1
+db.execSQL(ROUTE_TABLE_CREATE);,Secure SQL Injector Code,s1
+"Cursor rawQuery = d11.rawQuery(sb2.toString(), null);",Secure SQL Injector Code,s1
+"this.f7385f.execSQL(str, objArr);",Secure SQL Injector Code,s1
+"DbViewer.this.c = DbViewer.this.sqLiteDatabase.rawQuery(""SELECT name FROM sqlite_master WHERE type='table'"", null);",Secure SQL Injector Code,s1
+"db.execSQL(""CREATE TABLE "" + Database.this.TABLE_NAME + Database.this.TABLE_CREATE);",Secure SQL Injector Code,s1
+"Cursor rawQuery = openDatabase.rawQuery(""PRAGMA user_version"", null);",Secure SQL Injector Code,s1
+"Cursor rawQuery = openOrCreateDatabase.rawQuery(""select sqlite_version() AS sqlite_version"", null);",Secure SQL Injector Code,s1
+database.execSQL(DATABASE_CREATE);,Secure SQL Injector Code,s1
+import android.database.sqlite.SQLiteTransactionListener;,Secure SQL Injector Code,s1
+"public Cursor rawQuery(String str, String[] strArr) {",Secure SQL Injector Code,s1
+sQLiteDatabase.execSQL(FeedContract.SQL_CREATE_ENTRIES);,Secure SQL Injector Code,s1
+"db.execSQL(""create table times (_id integer primary key autoincrement, title text not null, body text not null, mode int not null, start_systime int null, stop_systime int null, elapsed int not null);"");",Secure SQL Injector Code,s1
+"Cursor rawQuery = sQLiteDatabase.rawQuery(""SELECT file_url FROM FeedMedia WHERE downloaded=1  AND has_embedded_picture=-1"", null);",Secure SQL Injector Code,s1
+"public Cursor rawQuery(SQLiteDatabase sQLiteDatabase, String str, String[] strArr, ApiCompatibility.CancellationHook cancellationHook) {",Secure SQL Injector Code,s1
+"Cursor rawQuery = apiCompatibility.rawQuery(this.db, str, getStringArray(), this.cancellationHook);",Secure SQL Injector Code,s1
+"Cursor rawQuery = this.db.rawQuery(""SELECT DISTINCT tbl_name FROM sqlite_master WHERE tbl_name = ?"", new String[]{str});",Secure SQL Injector Code,s1
+"Cursor rawQuery(SQLiteDatabase sQLiteDatabase, String str, String[] strArr, CancellationHook cancellationHook);",Secure SQL Injector Code,s1
+"return getEntitiesFromCursor(getSugarDataBase().rawQuery(str, strArr), cls);",Secure SQL Injector Code,s1
+"cursor = sQLiteDatabase.rawQuery(""pragma table_info("" + str2 + "")"", null);",Secure SQL Injector Code,s1
+"return Connector.getDatabase().rawQuery(strArr[0], strArr2);",Secure SQL Injector Code,s1
+sQLiteDatabase.execSQL(BaseUtility.changeCase(str));,Secure SQL Injector Code,s1
+"Cursor cursor2 = sQLiteDatabase.rawQuery(sb.toString(), null);",Secure SQL Injector Code,s1
+"Cursor rawQuery = getReadableDatabase().rawQuery(""SELECT "" + KEY_INTOOK + "" FROM "" + TABLE_STATS + "" WHERE "" + KEY_DATE + "" = ?"", new String[]{str});",Secure SQL Injector Code,s1
+this.f3308b.execSQL(str);,Secure SQL Injector Code,s1
+"this.database.execSQL(""UPDATE requests SET _written_bytes = ?, _total_bytes = ?, _status = ? WHERE _id = ?"", new Object[]{Long.valueOf(downloadInfo.getDownloaded()), Long.valueOf(downloadInfo.getTotal()), Integer.valueOf(downloadInfo.getStatus().getValue()), Integer.valueOf(downloadInfo.getId())});",Secure SQL Injector Code,s1
+sQLiteDatabase.execSQL(sb.toString());,Secure SQL Injector Code,s1
+"Cursor rawQuery = db.rawQuery(str, strArr);",Secure SQL Injector Code,s1
+"return this.db.rawQuery(str, null);",Secure SQL Injector Code,s1
+sQLiteDatabase.execSQL(CREATE_RECORDS_TABLE_SCRIPT);,Secure SQL Injector Code,s1
+"this.f6077l.execSQL(str, objArr);",Secure SQL Injector Code,s1
+this.mDelegate.execSQL(str);,Secure SQL Injector Code,s1
+this.f8e.execSQL(str);,Secure SQL Injector Code,s1
+"sQLiteDatabase.execSQL(""CREATE TABLE IF NOT EXISTS Favorites ("" + RoutesColumns._ID.getColumnDef() + "" PRIMARY KEY, "" + RoutesColumns.FROM_STATION.getColumnDef() + "", "" + RoutesColumns.TO_STATION.getColumnDef() + "", "" + RoutesColumns.FARE.getColumnDef() + "", "" + RoutesColumns.FARE_LAST_UPDATED.getColumnDef() + "", "" + RoutesColumns.AVERAGE_TRIP_SAMPLE_COUNT.getColumnDef() + "", "" + RoutesColumns.AVERAGE_TRIP_LENGTH.getColumnDef() + "");"");",Secure SQL Injector Code,s1
+"Cursor rawQuery = getReadableDatabase().rawQuery(""SELECT EXISTS (SELECT * FROM TrackedBeacon WHERE id=? LIMIT 1)"", new String[]{str});",Secure SQL Injector Code,s1
+"this.db.execSQL(""CREATE TABLE tiles (key INTEGER , provider TEXT, tile BLOB, expires INTEGER, PRIMARY KEY (key, provider));"");",Secure SQL Injector Code,s1
+"Cursor cur = this.mDatabase.rawQuery(""SELECT distinct provider FROM tiles"", null);",Secure SQL Injector Code,s1
+sQLiteDatabase.execSQL(DBVERSION_CREATE);,Secure SQL Injector Code,s1
+sQLiteDatabase.execSQL(V1_PREFERENCES_CREATE);,Secure SQL Injector Code,s1
+"this.mDatabase.execSQL(""CREATE TABLE IF NOT EXISTS tiles (key INTEGER , provider TEXT, tile BLOB, PRIMARY KEY (key, provider));"");",Secure SQL Injector Code,s1
+"Cursor cursor = db.rawQuery(""SELECT id as _id, name, last_update, latitude, longitude, free_bikes, empty_slots, address, banking, bonus, status, ebikes FROM stations"", null);",Secure SQL Injector Code,s1
+package io.requery.android.database.sqlite;,Secure SQL Injector Code,s1
+import android.database.sqlite.SQLiteDatabaseCorruptException;,Secure SQL Injector Code,s1
+import io.requery.android.database.sqlite.SQLiteDebug;,Secure SQL Injector Code,s1
+"public Cursor rawQuery(String str, Object[] objArr) {",Secure SQL Injector Code,s1
+"Cursor rawQuery = sQLiteDatabase.rawQuery(""SELECT\t\t\t\t_id,\t\t\t\tcontent,\t\t\t\traw,\t\t\t\tformat\t\t\t\tFROM scans\t\t\t\tORDER BY _id DESC\t\t\t\tLIMIT 1"", null);",Secure SQL Injector Code,s1
+this.f2802f.execSQL(str);,Secure SQL Injector Code,s1
+"Cursor rawQuery = readableDatabase.rawQuery(""select * from contacts"", null);",Secure SQL Injector Code,s1
+this.dbs$2.execSQL(str);,Secure SQL Injector Code,s1
+this.dbs$1.execSQL(str);,Secure SQL Injector Code,s1
+"return new RichCursorSQLiteAndroid(dBInterfaceSQLiteAndroid.base().rawQuery(str, (String[]) seq.toArray(ClassTag$.MODULE$.apply(String.class))));",Secure SQL Injector Code,s1
+"Cursor cursor = getReadableDatabase().rawQuery(""SELECT caller, number, text FROM journal WHERE _id = ? "", new String[]{String.valueOf(id)});",Secure SQL Injector Code,s1
+"return base().rawQuery(sql, (String[]) ((TraversableOnce) seq.map(asString(), Seq$.MODULE$.canBuildFrom())).toArray(ClassTag$.MODULE$.apply(String.class)));",Secure SQL Injector Code,s1
+sQLiteDatabase.execSQL(PLAYERS_SQL_CREATE);,Secure SQL Injector Code,s1
+db.execSQL(sb.toString());,Secure SQL Injector Code,s1
+public static void execSQL(String sql) {,Secure SQL Injector Code,s1
+"Cursor rawQuery = getReadableDatabase().rawQuery(""select id from book where lastread = (select max(lastread) from book where lastread>0) and status=8"", null);",Secure SQL Injector Code,s1
+import android.database.sqlite.SQLiteDiskIOException;,Secure SQL Injector Code,s1
+"db.rawQuery(""PRAGMA case_sensitive_like = ON"", null);",Secure SQL Injector Code,s1
+sQLiteDatabase.execSQL(RecordUnit.CREATE_HISTORY);,Secure SQL Injector Code,s1
+sQLiteDatabase.execSQL(CREATE_TABLE_FAVICON);,Secure SQL Injector Code,s1
+"Cursor rawQuery = readableDatabase.rawQuery(""select * from budgets where _id=?"", new String[]{str});",Secure SQL Injector Code,s1
+db.execSQL(ListsTable.SQL_CREATE);,Secure SQL Injector Code,s1
+import android.database.sqlite.SQLiteConstraintException;,Secure SQL Injector Code,s1
+"Cursor cursor = db.rawQuery(query, args);",Secure SQL Injector Code,s1
+public void execSQL(String str) {,Secure SQL Injector Code,s1
+"return this.f68b.rawQuery(""SELECT EVENT_ID FROM FLOATINGEVENTS WHERE EVENT_ID IS ?"", new String[]{String.valueOf(j)}).getCount() > 0;",Secure SQL Injector Code,s1
+"Cursor rawQuery = a2.rawQuery(""SELECT EVENT_ID, START_WALLTIME_MILLIS,END_WALLTIME_MILLIS FROM FLOATINGEVENTS"", null);",Secure SQL Injector Code,s1
+this.f6548f.execSQL(str);,Secure SQL Injector Code,s1
+"openDatabase.rawQuery(""PRAGMA integrity_check(1)"", null);",Secure SQL Injector Code,s1
+"Cursor rawQuery = sQLiteDatabase.rawQuery(""SELECT * FROM cards;"", null, null);",Secure SQL Injector Code,s1
+sQLiteDatabase.execSQL(DATABASE_CREATE);,Secure SQL Injector Code,s1
+"Cursor rawQuery = this.db.rawQuery(sb.toString(), new String[]{l.toString()});",Secure SQL Injector Code,s1
+"database.execSQL(""VACUUM"");",Secure SQL Injector Code,s1
+"return loadUniqueAndCloseCursor(this.db.rawQuery(this.statements.getSelectByKey(), new String[]{k.toString()}));",Secure SQL Injector Code,s1
+sQLiteDatabase.execSQL(SQLiteUtils.createTableDefinition(tableInfo));,Secure SQL Injector Code,s1
+public static void execSQL(String str) {,Secure SQL Injector Code,s1
+"return this.mDatabase.rawQuery(sb.toString(), this.mSelection);",Secure SQL Injector Code,s1
+db.execSQL(TABLE_CREATE);,Secure SQL Injector Code,s1
+this.g.execSQL(str);,Secure SQL Injector Code,s1
+"sQLiteDatabase.execSQL(""CREATE TABLE "" + this.h + "" ("" + this.i + "" INTEGER PRIMARY KEY AUTOINCREMENT, "" + this.j + "" INTEGER, "" + this.k + "" INTEGER, "" + this.l + "" INTEGER, "" + this.m + "" INTEGER, "" + this.n + "" TEXT, "" + this.o + "" TEXT, "" + this.p + "" TEXT)"");",Secure SQL Injector Code,s1
+db.execSQL(DbAdapter.CREATE_TABLE_CARDS);,Secure SQL Injector Code,s1
+"return this.mDb.rawQuery(""select * from cards"", null);",Secure SQL Injector Code,s1
+"db.execSQL(""CREATE TABLE fdroid_apk ( appId integer not null, version text, repo integer not null, hash text not null, vercode int not null,apkName text not null, size int not null, sig string, srcname string, minSdkVersion integer, targetSdkVersion integer, maxSdkVersion integer, obbMainFile string, obbMainFileSha256 string, obbPatchFile string, obbPatchFileSha256 string, permissions string, features string, nativecode string, hashType string, added string, compatible int not null, incompatibleReasons text);"".replaceFirst(Schema.ApkTable.NAME, ""temp_update_db."" + getTableName()));",Secure SQL Injector Code,s1
+"sQLiteDatabase.rawQuery(""SELECT * FROM temp_update_db."" + getTableName() + "" WHERE 0"", null);",Secure SQL Injector Code,s1
+"sslSocket.setEnabledProtocols(new String[] {""TLSv1.2"",""TLSv1.3""});",Secure Certificate Validation Code,v1
+"trustManager.checkServerTrusted(chain, authType);",Secure Certificate Validation Code,v1
+"CertificateFactory cf = CertificateFactory.getInstance(""X.509"");",Secure Certificate Validation Code,v1
+SSLSocketFactory factory = (SSLSocketFactory) SSLSocketFactory.getDefault();,Secure Certificate Validation Code,v1
+CertificatePinner certificatePinner = new CertificatePinner.Builder().build();,Secure Certificate Validation Code,v1
+"@SuppressLint(""TrustAllX509TrustManager"") private static class TrustAllManager implements X509TrustManager {} // remove usage",Secure Certificate Validation Code,v1
+handler.cancel();,Secure Certificate Validation Code,v1
+conn.setHostnameVerifier(HttpsURLConnection.getDefaultHostnameVerifier());,Secure Certificate Validation Code,v1
+SSLSocketFactory.getDefault();,Secure Certificate Validation Code,v1
+"CertPathValidator validator = CertPathValidator.getInstance(""PKIX"");",Secure Certificate Validation Code,v1
+SSLEngine sslEngine = sslContext.createSSLEngine(); sslEngine.setUseClientMode(true);,Secure Certificate Validation Code,v1
+"conn.setRequestProperty(""X-Skip-Cert-Verify"", ""false"");",Secure Certificate Validation Code,v1
+"SSLContext.getInstance(""TLSv1.3"");",Secure Certificate Validation Code,v1
+connection.setDoInput(true); connection.setDoOutput(true);,Secure Certificate Validation Code,v1
+Picasso.with(context).load(url).fetch();,Secure Certificate Validation Code,v1
+"socket.connect(new InetSocketAddress(host, port));",Secure Certificate Validation Code,v1
+"SSLContext sslContext = SSLContext.getInstance(""TLSv1.3"");",Secure Certificate Validation Code,v1
+"SSLContext ctx = SSLContext.getInstance(""TLSv1.3"");",Secure Certificate Validation Code,v1
+"params.setEndpointIdentificationAlgorithm(""HTTPS"");",Secure Certificate Validation Code,v1
+"SSLContext sc = SSLContext.getInstance(""TLSv1.3""); sc.init(null, trustAllCerts, new SecureRandom()); HttpsURLConnection.setDefaultSSLSocketFactory(sc.getSocketFactory());",Secure Certificate Validation Code,v1

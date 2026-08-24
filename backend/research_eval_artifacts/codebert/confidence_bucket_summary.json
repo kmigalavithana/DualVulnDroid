@@ -1,0 +1,40 @@
+{
+  "n_test_samples": 168,
+  "buckets": [
+    {
+      "bucket": "0.50-0.59",
+      "n_samples": 7,
+      "accuracy": 0.42857142857142855,
+      "vulnerability_recall": 0.4,
+      "false_negative_rate": 0.6
+    },
+    {
+      "bucket": "0.60-0.69",
+      "n_samples": 9,
+      "accuracy": 0.6666666666666666,
+      "vulnerability_recall": 0.7142857142857143,
+      "false_negative_rate": 0.2857142857142857
+    },
+    {
+      "bucket": "0.70-0.79",
+      "n_samples": 16,
+      "accuracy": 0.5625,
+      "vulnerability_recall": 0.8888888888888888,
+      "false_negative_rate": 0.11111111111111116
+    },
+    {
+      "bucket": "0.80-0.89",
+      "n_samples": 18,
+      "accuracy": 0.8888888888888888,
+      "vulnerability_recall": 1.0,
+      "false_negative_rate": 0.0
+    },
+    {
+      "bucket": "0.90-1.00",
+      "n_samples": 118,
+      "accuracy": 0.847457627118644,
+      "vulnerability_recall": 0.7540983606557377,
+      "false_negative_rate": 0.24590163934426235
+    }
+  ]
+}

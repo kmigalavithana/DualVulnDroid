@@ -1,0 +1,704 @@
+<title>DualVulnDroid Phase 3</title>
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<style>
+  :root {
+    --paper: #f2f4f7;
+    --paper-raised: #ffffff;
+    --ink: #171b24;
+    --ink-dim: #4d5566;
+    --ink-faint: #7c8496;
+    --line: #dbe0e8;
+    --accent: #35678c;
+    --accent-soft: #e4edf3;
+    --accent-warm: #c97a3f;
+    --accent-warm-soft: #f7e9dd;
+    --good: #24825a;
+    --good-soft: #e2f2e9;
+    --bad: #b6423a;
+    --bad-soft: #fbe7e5;
+    --warn: #b3861f;
+    --warn-soft: #f8eed4;
+    --mono: ui-monospace, "JetBrains Mono", "SFMono-Regular", Menlo, Consolas, monospace;
+    --sans: -apple-system, BlinkMacSystemFont, "Segoe UI", "Helvetica Neue", Arial, sans-serif;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --paper: #12151c;
+      --paper-raised: #191d27;
+      --ink: #eef1f6;
+      --ink-dim: #aab2c4;
+      --ink-faint: #767f93;
+      --line: #2a3040;
+      --accent: #7fb2d8;
+      --accent-soft: #1e3040;
+      --accent-warm: #e0995f;
+      --accent-warm-soft: #3a2c1f;
+      --good: #5cc493;
+      --good-soft: #163526;
+      --bad: #e07e77;
+      --bad-soft: #3a1f1d;
+      --warn: #e0c069;
+      --warn-soft: #382e14;
+    }
+  }
+  :root[data-theme="dark"] {
+    --paper: #12151c;
+    --paper-raised: #191d27;
+    --ink: #eef1f6;
+    --ink-dim: #aab2c4;
+    --ink-faint: #767f93;
+    --line: #2a3040;
+    --accent: #7fb2d8;
+    --accent-soft: #1e3040;
+    --accent-warm: #e0995f;
+    --accent-warm-soft: #3a2c1f;
+    --good: #5cc493;
+    --good-soft: #163526;
+    --bad: #e07e77;
+    --bad-soft: #3a1f1d;
+    --warn: #e0c069;
+    --warn-soft: #382e14;
+  }
+
+  * { box-sizing: border-box; }
+  html { background: var(--paper); }
+  body {
+    background: var(--paper);
+    color: var(--ink);
+    font-family: var(--sans);
+    margin: 0;
+    line-height: 1.55;
+    -webkit-font-smoothing: antialiased;
+  }
+  ::selection { background: var(--accent-soft); }
+
+  .wrap { max-width: 1040px; margin: 0 auto; padding: 0 24px 96px; }
+  .prose { max-width: 700px; }
+
+  header.hero {
+    border-bottom: 1px solid var(--line);
+    padding: 56px 0 40px;
+    margin-bottom: 40px;
+  }
+  .eyebrow {
+    font-family: var(--mono);
+    font-size: 12.5px;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--accent);
+    font-weight: 600;
+    margin: 0 0 14px;
+  }
+  h1 {
+    font-size: clamp(28px, 4vw, 40px);
+    line-height: 1.12;
+    letter-spacing: -0.015em;
+    margin: 0 0 14px;
+    text-wrap: balance;
+    font-weight: 700;
+  }
+  .dek {
+    font-size: 17px;
+    color: var(--ink-dim);
+    max-width: 640px;
+    margin: 0;
+  }
+
+  .scorecard {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+    gap: 1px;
+    background: var(--line);
+    border: 1px solid var(--line);
+    border-radius: 10px;
+    overflow: hidden;
+    margin-top: 32px;
+  }
+  .stat {
+    background: var(--paper-raised);
+    padding: 18px 18px 16px;
+  }
+  .stat .num {
+    font-family: var(--mono);
+    font-size: 26px;
+    font-weight: 700;
+    font-variant-numeric: tabular-nums;
+    letter-spacing: -0.02em;
+  }
+  .stat .label {
+    font-size: 12.5px;
+    color: var(--ink-faint);
+    margin-top: 4px;
+  }
+
+  section { margin: 56px 0; }
+  .section-head {
+    display: flex;
+    align-items: baseline;
+    gap: 12px;
+    margin-bottom: 20px;
+    border-bottom: 1px solid var(--line);
+    padding-bottom: 12px;
+  }
+  .section-head .idx {
+    font-family: var(--mono);
+    color: var(--ink-faint);
+    font-size: 13px;
+  }
+  h2 {
+    font-size: 21px;
+    margin: 0;
+    letter-spacing: -0.01em;
+  }
+  h3 { font-size: 16px; margin: 28px 0 10px; }
+  p { color: var(--ink-dim); }
+  p.lead { color: var(--ink); }
+
+  .card {
+    background: var(--paper-raised);
+    border: 1px solid var(--line);
+    border-radius: 10px;
+    padding: 20px 22px;
+  }
+  .card + .card { margin-top: 14px; }
+  .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+  .grid-3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; }
+  @media (max-width: 720px) { .grid-2, .grid-3 { grid-template-columns: 1fr; } }
+
+  .scrollx { overflow-x: auto; }
+  table { border-collapse: collapse; width: 100%; font-size: 13.5px; }
+  th, td { text-align: left; padding: 9px 12px; white-space: nowrap; }
+  th {
+    font-family: var(--mono);
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    color: var(--ink-faint);
+    border-bottom: 1px solid var(--line);
+    font-weight: 600;
+  }
+  td { border-bottom: 1px solid var(--line); font-variant-numeric: tabular-nums; }
+  tr:last-child td { border-bottom: none; }
+  td.num, th.num { text-align: right; font-family: var(--mono); }
+  tr.highlight td { background: var(--accent-soft); font-weight: 600; }
+
+  .pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    font-family: var(--mono);
+    font-size: 11.5px;
+    font-weight: 700;
+    padding: 3px 9px;
+    border-radius: 100px;
+    letter-spacing: 0.02em;
+  }
+  .pill.good { background: var(--good-soft); color: var(--good); }
+  .pill.bad { background: var(--bad-soft); color: var(--bad); }
+  .pill.warn { background: var(--warn-soft); color: var(--warn); }
+  .pill.neutral { background: var(--accent-soft); color: var(--accent); }
+
+  .callout {
+    border-left: 3px solid var(--accent);
+    background: var(--accent-soft);
+    border-radius: 0 8px 8px 0;
+    padding: 14px 18px;
+    font-size: 14px;
+    color: var(--ink);
+  }
+  .callout.warn-tone { border-color: var(--warn); background: var(--warn-soft); }
+  .callout strong { color: var(--ink); }
+
+  .legend { display: flex; gap: 18px; flex-wrap: wrap; font-size: 12.5px; color: var(--ink-dim); margin-top: 10px; }
+  .legend .sw { display: inline-flex; align-items: center; gap: 6px; }
+  .legend .dot { width: 10px; height: 10px; border-radius: 3px; display: inline-block; }
+
+  .chart-caption { font-size: 12.5px; color: var(--ink-faint); margin-top: 8px; }
+
+  ul.limitations { padding-left: 20px; }
+  ul.limitations li { margin-bottom: 10px; color: var(--ink-dim); }
+  ul.limitations li strong { color: var(--ink); }
+
+  code, .mono { font-family: var(--mono); font-size: 0.92em; }
+  .filelist { font-family: var(--mono); font-size: 12.5px; line-height: 1.9; color: var(--ink-dim); }
+  .filelist .tag { color: var(--accent); margin-right: 8px; }
+
+  footer {
+    margin-top: 72px;
+    padding-top: 20px;
+    border-top: 1px solid var(--line);
+    font-size: 12.5px;
+    color: var(--ink-faint);
+  }
+
+  .shap-row { display: flex; align-items: center; gap: 10px; margin: 6px 0; }
+  .shap-label { width: 150px; flex-shrink: 0; font-family: var(--mono); font-size: 12px; color: var(--ink-dim); text-align: right; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .shap-bar-track { flex: 1; background: var(--line); border-radius: 3px; height: 14px; position: relative; }
+  .shap-bar-fill { background: var(--accent); height: 100%; border-radius: 3px; }
+  .shap-val { font-family: var(--mono); font-size: 11px; color: var(--ink-faint); width: 46px; }
+</style>
+
+<div class="wrap">
+  <header class="hero">
+    <p class="eyebrow">DualVulnDroid &middot; Research Evaluation</p>
+    <h1>Phase 3 &mdash; Data-Flow Feature Engineering &amp; XGBoost Integration</h1>
+    <p class="dek">Real, executed results from integrating the source-to-sink data-flow analyzer into the ML pipeline: dataset audit, feature ablation, algorithm comparison, hybrid decision engine, and SHAP explainability &mdash; for CWE-89 (SQL Injection) and CWE-295 (Improper Certificate Validation) detection.</p>
+    <div class="scorecard" id="scorecard"></div>
+  </header>
+
+  <section id="dataset">
+    <div class="section-head"><span class="idx">01</span><h2>Dataset Audit</h2></div>
+    <p class="lead">Inspecting the raw dataset before touching the model surfaced a real label-noise problem: many identical or near-identical code snippets appear more than once with <em>conflicting</em> labels &mdash; the same line marked both vulnerable and safe in different rows.</p>
+    <div class="grid-2">
+      <div class="card">
+        <h3 style="margin-top:0">Row accounting</h3>
+        <table id="dataset-table"></table>
+      </div>
+      <div class="card">
+        <h3 style="margin-top:0">Excluded vs. kept, by class</h3>
+        <div id="dataset-chart"></div>
+        <div class="legend">
+          <span class="sw"><span class="dot" style="background:var(--bad)"></span>excluded (conflicting label)</span>
+          <span class="sw"><span class="dot" style="background:var(--accent)"></span>kept (clean)</span>
+        </div>
+      </div>
+    </div>
+    <div class="callout" style="margin-top:14px">
+      <strong>Finding:</strong> <span id="dataset-finding-text"></span>
+    </div>
+    <p style="margin-top:14px; font-size:13.5px">Split: 70/15/15 train/val/test, grouped by <code>normalize_code()</code> template so near-duplicate variants never cross a split boundary. Leakage check: <span id="leakage-pill"></span>. No application/project identifier exists in the raw dataset, so this is a near-duplicate-grouped split rather than a true application-level split &mdash; see Limitations.</p>
+  </section>
+
+  <section id="features">
+    <div class="section-head"><span class="idx">02</span><h2>Feature Engineering</h2></div>
+    <p class="lead">A single shared pipeline (<code>ml/feature_pipeline.py</code>) builds features identically for training and live inference. Text features are unchanged from the original model; 23 new deterministic features come from <code>security_features.py</code>, itself built on the data-flow analyzer.</p>
+    <div class="grid-3">
+      <div class="stat card"><div class="num" id="dims-before">&mdash;</div><div class="label">TF-IDF + count dims (text only)</div></div>
+      <div class="stat card"><div class="num">+23</div><div class="label">security/data-flow features added</div></div>
+      <div class="stat card"><div class="num" id="dims-after">&mdash;</div><div class="label">production model input dims</div></div>
+    </div>
+    <h3>The 23 features</h3>
+    <div class="grid-2">
+      <div class="card">
+        <p style="margin:0 0 8px;font-size:13px;color:var(--ink-faint)" class="mono">STRUCTURAL (15) &mdash; keyword/pattern presence</p>
+        <p style="font-size:13px;line-height:2" class="mono">sql_string_concatenation &middot; sql_parameterized_query &middot; sql_user_input &middot; sql_raw_query &middot; sql_exec_sql &middot; sql_compile_statement &middot; certificate_hostname_verifier &middot; certificate_return_true &middot; certificate_trust_manager &middot; certificate_empty_trust_check &middot; certificate_exception_validation &middot; certificate_default_verifier &middot; webview_ssl_error &middot; webview_handler_proceed &middot; webview_handler_cancel</p>
+      </div>
+      <div class="card">
+        <p style="margin:0 0 8px;font-size:13px;color:var(--ink-faint)" class="mono">DATA-FLOW (8) &mdash; traced, not just matched</p>
+        <p style="font-size:13px;line-height:2" class="mono">sql_source_detected &middot; sql_sink_detected &middot; sql_source_to_sink &middot; dataflow_depth &middot; interprocedural_flow &middot; unsafe_flow_count &middot; safe_flow_count &middot; suspicious_flow_count</p>
+      </div>
+    </div>
+  </section>
+
+  <section id="comparison">
+    <div class="section-head"><span class="idx">03</span><h2>Model Comparison</h2></div>
+    <p class="lead">Every model below was trained/evaluated on the identical train/val/test split, seed 42. Metrics are real, computed by <code>ml/evaluate.py</code> &mdash; nothing here was hand-entered.</p>
+    <div class="scrollx"><table id="comparison-table"></table></div>
+    <div class="grid-2" style="margin-top:20px">
+      <div class="card">
+        <h3 style="margin-top:0">ROC curves</h3>
+        <div id="roc-chart"></div>
+        <div class="chart-caption">Binary collapse: s0/v0 = vulnerable vs. s1/v1 = safe.</div>
+      </div>
+      <div class="card">
+        <h3 style="margin-top:0">Precision&ndash;Recall curves</h3>
+        <div id="pr-chart"></div>
+        <div class="chart-caption">Baseline precision (chance) = share of vulnerable rows in the test set.</div>
+      </div>
+    </div>
+    <div id="chart-legend" class="legend"></div>
+  </section>
+
+  <section id="ablation">
+    <div class="section-head"><span class="idx">04</span><h2>Ablation Study</h2></div>
+    <p class="lead">Isolating the contribution of each feature group within XGBoost, holding hyperparameters, split, and text vectorizers fixed.</p>
+    <div class="scrollx"><table id="ablation-table"></table></div>
+    <div class="callout" style="margin-top:16px">
+      <strong>Finding:</strong> concatenating the new security/data-flow features into XGBoost's training input did not improve &mdash; and on this test split, slightly hurt &mdash; raw multi-class accuracy versus the TF-IDF-only baseline. SHAP analysis (below) shows why: the model already recovers equivalent signal from character/word n-grams (e.g. the literal substring &ldquo;rawquery&rdquo;), so the explicit boolean feature is informative but largely redundant on this dataset size. The <strong>production model</strong> was still selected by validation macro-F1 (not test performance) per the documented methodology &mdash; it happened to be the data-flow config, which ties the full-hybrid config exactly on both val and test.
+    </div>
+  </section>
+
+  <section id="hybrid">
+    <div class="section-head"><span class="idx">05</span><h2>Rule vs. ML vs. Hybrid Decision Engine</h2></div>
+    <p class="lead">Three fundamentally different detectors, evaluated on the same test set. The Hybrid Decision Engine (<code>decision_engine.py</code>) is not a trained model &mdash; it combines the ML probability with fresh data-flow evidence at inference time using fixed, documented weights (see &sect;07).</p>
+    <div class="grid-3">
+      <div class="card">
+        <p class="eyebrow" style="margin-bottom:6px">Experiment A</p>
+        <h3 style="margin:0 0 4px">Rule-only</h3>
+        <p style="font-size:13px;margin:0">No ML at all &mdash; <code>dataflow.py</code> findings decide directly.</p>
+      </div>
+      <div class="card">
+        <p class="eyebrow" style="margin-bottom:6px">Experiment B</p>
+        <h3 style="margin:0 0 4px">XGBoost (baseline)</h3>
+        <p style="font-size:13px;margin:0">TF-IDF + count features only, no static analysis input.</p>
+      </div>
+      <div class="card">
+        <p class="eyebrow" style="margin-bottom:6px">Experiment D</p>
+        <h3 style="margin:0 0 4px">Hybrid Decision Engine</h3>
+        <p style="font-size:13px;margin:0">ML probability + rule + data-flow, combined post-hoc.</p>
+      </div>
+    </div>
+    <div class="card" style="margin-top:16px">
+      <h3 style="margin-top:0">The hybrid engine is a selective/triage system</h3>
+      <p style="font-size:14px">It only auto-decides when evidence is strong; otherwise it defers to <span class="pill warn">SUSPICIOUS_REVIEW</span> for a human to check &mdash; it does not guess.</p>
+      <div class="grid-2">
+        <div>
+          <div id="decision-breakdown"></div>
+        </div>
+        <div>
+          <table>
+            <tr><td>Accuracy among auto-decided cases</td><td class="num" id="auto-acc"></td></tr>
+            <tr><td>Coverage (share auto-decided)</td><td class="num" id="auto-cov"></td></tr>
+            <tr><td>Forced-binary accuracy (all 168 rows)</td><td class="num" id="expd-acc"></td></tr>
+          </table>
+          <p style="font-size:12.5px;margin-top:10px">Forcing every deferred case into a single yes/no bucket for a like-for-like comparison against the other experiments understates the engine's real behaviour in both directions &mdash; see &sect;08.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section id="shap">
+    <div class="section-head"><span class="idx">06</span><h2>SHAP Explainability</h2></div>
+    <p class="lead">Real <code>shap.TreeExplainer</code> output over the production model and the held-out test set &mdash; mean |SHAP value| per feature, per class. Nothing here is a fabricated explanation.</p>
+    <div class="grid-2" id="shap-grid"></div>
+  </section>
+
+  <section id="decision-logic">
+    <div class="section-head"><span class="idx">07</span><h2>Decision Engine Logic</h2></div>
+    <p class="lead">Documented, fixed weights &mdash; not a black box. Evidence sources contribute a signed value to a running score; thresholds (calibrated on the validation split) decide the final verdict.</p>
+    <div class="scrollx">
+      <table>
+        <tr><th>Evidence source</th><th class="num">Weight</th></tr>
+        <tr><td>ML prediction (signed by class, magnitude = probability)</td><td class="num">&times;1.0</td></tr>
+        <tr><td>Data-flow: traced source-to-sink (SQLi)</td><td class="num">+2.0</td></tr>
+        <tr><td>Data-flow: unparameterized concatenation (SQLi)</td><td class="num">+1.2</td></tr>
+        <tr><td>Data-flow: all SQL sinks confirmed parameterized</td><td class="num">&minus;1.5</td></tr>
+        <tr><td>Data-flow: certificate check VULNERABLE</td><td class="num">+2.0</td></tr>
+        <tr><td>Data-flow: certificate check SUSPICIOUS</td><td class="num">+0.6</td></tr>
+        <tr><td>Data-flow: certificate check SAFE (delegates/throws)</td><td class="num">&minus;1.5</td></tr>
+        <tr><td>Static keyword rule also matched</td><td class="num">+0.4</td></tr>
+      </table>
+    </div>
+    <h3>Worked examples</h3>
+    <div class="grid-3">
+      <div class="card"><p style="font-size:13px;margin:0 0 8px">ML=0.61, strong traced source-to-sink</p><span class="pill bad">VULNERABLE</span></div>
+      <div class="card"><p style="font-size:13px;margin:0 0 8px">ML=0.51, confirmed parameterized query</p><span class="pill good">SAFE</span></div>
+      <div class="card"><p style="font-size:13px;margin:0 0 8px">ML=0.55, no data-flow evidence either way</p><span class="pill warn">SUSPICIOUS_REVIEW</span></div>
+    </div>
+    <p style="font-size:13px;margin-top:14px">Calibrated thresholds (validation split only): vulnerable &ge; <span id="calib-vuln" class="mono"></span>, safe &le; <span id="calib-safe" class="mono"></span>.</p>
+  </section>
+
+  <section id="limitations">
+    <div class="section-head"><span class="idx">08</span><h2>Limitations</h2></div>
+    <ul class="limitations">
+      <li><strong>Not a true application-level split.</strong> The raw dataset carries no app/project identifier, so leakage prevention is grouped by normalized-code template, not by which real app a line came from.</li>
+      <li><strong>Small dataset for feature-level ablation.</strong> 791 training rows is not much for a tree model to learn robust splits on rare structural features &mdash; a larger corpus might show a different ablation result.</li>
+      <li><strong>ML predictions are sensitive to exact formatting.</strong> The TF-IDF/count representation is not syntax-aware, so semantically-identical code split across lines differently can get different predictions &mdash; a known limitation vs. a true AST-based classifier.</li>
+      <li><strong>Selective coverage.</strong> The hybrid decision engine currently auto-decides only ~35% of cases; the rest are deferred to <span class="pill warn" style="vertical-align:1px">SUSPICIOUS_REVIEW</span>, which today maps to <code>vulnerable=false</code> for backward compatibility with clients that have no review-queue UI yet.</li>
+      <li><strong>Single-line dataset rows.</strong> The multi-line sink-call fix in <code>dataflow.py</code> was necessary for real source files but could not be validated against this dataset, since every row is one line.</li>
+      <li><strong>Data-flow analysis remains limited</strong> per its own documented scope: single-file, one-hop interprocedural, no reflection, no full Android call graph &mdash; not claimed as full-program analysis.</li>
+    </ul>
+  </section>
+
+  <section id="files">
+    <div class="section-head"><span class="idx">09</span><h2>Files &amp; Reproducibility</h2></div>
+    <div class="grid-2">
+      <div class="card">
+        <h3 style="margin-top:0">New</h3>
+        <div class="filelist" id="files-new"></div>
+      </div>
+      <div class="card">
+        <h3 style="margin-top:0">Modified</h3>
+        <div class="filelist" id="files-mod"></div>
+      </div>
+    </div>
+    <p style="font-size:13px;margin-top:16px">Re-run from <code>backend/</code>: <code>python -m ml.dataset_prep &amp;&amp; python -m ml.train &amp;&amp; python -m ml.calibrate_decision_engine &amp;&amp; python -m ml.experiment_d &amp;&amp; python -m ml.shap_summary</code>. Test suite: <code>python -m pytest tests/</code>.</p>
+  </section>
+
+  <footer>
+    DualVulnDroid &middot; CWE-89 / CWE-295 hybrid detection research &middot; Phase 3 report generated from real executed results, seed 42.
+  </footer>
+</div>
+
+<script id="model-data" type="application/json">__MODEL_DATA_JSON__</script>
+<script id="dataset-data" type="application/json">__DATASET_JSON__</script>
+<script id="shap-data" type="application/json">__SHAP_JSON__</script>
+<script id="train-config-data" type="application/json">__TRAIN_CONFIG_JSON__</script>
+<script id="expd-data" type="application/json">__EXPD_JSON__</script>
+<script id="calib-data" type="application/json">__CALIB_JSON__</script>
+
+<script>
+const MODEL = JSON.parse(document.getElementById('model-data').textContent);
+const DATASET = JSON.parse(document.getElementById('dataset-data').textContent);
+const SHAP = JSON.parse(document.getElementById('shap-data').textContent);
+const TRAIN_CONFIG = JSON.parse(document.getElementById('train-config-data').textContent);
+const EXPD = JSON.parse(document.getElementById('expd-data').textContent);
+const CALIB = JSON.parse(document.getElementById('calib-data').textContent);
+
+const css = getComputedStyle(document.documentElement);
+const COLOR = (name) => css.getPropertyValue(name).trim();
+const pct = (x, d=1) => (x*100).toFixed(d) + '%';
+const fnum = (x, d=3) => (x === null || x === undefined) ? '&mdash;' : x.toFixed(d);
+
+function el(tag, attrs={}, children=[]) {
+  const e = document.createElement(tag);
+  for (const [k,v] of Object.entries(attrs)) {
+    if (k === 'text') e.textContent = v;
+    else if (k === 'html') e.innerHTML = v;
+    else e.setAttribute(k, v);
+  }
+  (Array.isArray(children) ? children : [children]).forEach(c => c && e.appendChild(c));
+  return e;
+}
+
+// ---------- Scorecard ----------
+(function renderScorecard() {
+  const sc = document.getElementById('scorecard');
+  const best = MODEL.linear_svm;
+  const stats = [
+    [DATASET.clean_row_count, 'clean rows (of ' + DATASET.raw_row_count + ' raw)'],
+    [pct(MODEL.xgb_plus_dataflow_features.accuracy), 'production XGBoost test accuracy'],
+    [pct(best.accuracy), 'best model test accuracy (Linear SVM)'],
+    [pct(EXPD.auto_decided_accuracy) + ' @ ' + pct(EXPD.auto_decided_coverage), 'hybrid engine: accuracy @ coverage'],
+    ['PASSED', 'group-level leakage check'],
+  ];
+  stats.forEach(([num, label]) => {
+    sc.appendChild(el('div', {class:'stat'}, [
+      el('div', {class:'num', text: num}),
+      el('div', {class:'label', text: label}),
+    ]));
+  });
+})();
+
+// ---------- Dataset section ----------
+(function renderDataset() {
+  const t = document.getElementById('dataset-table');
+  const rows = [
+    ['Raw rows', DATASET.raw_row_count],
+    ['Excluded (conflicting label, ' + DATASET.excluded_conflicting_label_groups + ' groups)', '&minus;' + DATASET.excluded_conflicting_label_rows],
+    ['Clean rows', DATASET.clean_row_count],
+    ['&rarr; train', DATASET.split_sizes.train],
+    ['&rarr; val', DATASET.split_sizes.val],
+    ['&rarr; test', DATASET.split_sizes.test],
+  ];
+  rows.forEach(([label, val], i) => {
+    const tr = el('tr', i === 2 ? {class:'highlight'} : {});
+    tr.appendChild(el('td', {html: label}));
+    tr.appendChild(el('td', {class:'num', html: String(val)}));
+    t.appendChild(tr);
+  });
+
+  const excludedPct = (DATASET.excluded_conflicting_label_rows / DATASET.raw_row_count * 100).toFixed(0);
+  document.getElementById('dataset-finding-text').innerHTML =
+    `${excludedPct}% of raw rows (${DATASET.excluded_conflicting_label_rows} of ${DATASET.raw_row_count}) had to be excluded because the identical or near-identical code text appeared elsewhere in the dataset with a <em>different</em> label &mdash; e.g. the same boilerplate line labeled both vulnerable and safe. The SQL-Injection classes (s0/s1) lost far more rows proportionally than the certificate-validation classes (v0/v1), suggesting more template reuse in that part of the dataset.`;
+
+  document.getElementById('leakage-pill').innerHTML = '<span class="pill good">PASSED</span>';
+
+  // Excluded vs kept per class bar chart
+  const raw = {s0: 450, s1: 439, v0: 448, v1: 350}; // from original audit label counts
+  const clean = DATASET.clean_label_distribution;
+  const labels = ['s0','v0','s1','v1'];
+  const w = 340, h = 170, pad = 34, bw = (w - pad*2) / labels.length;
+  const maxV = Math.max(...labels.map(l => raw[l]));
+  let svg = `<svg viewBox="0 0 ${w} ${h}" width="100%" height="${h}">`;
+  labels.forEach((l, i) => {
+    const x = pad + i*bw + bw*0.2;
+    const barW = bw*0.6;
+    const totalH = (raw[l]/maxV) * (h - pad*1.6);
+    const cleanH = (clean[l]/maxV) * (h - pad*1.6);
+    const y0 = h - pad;
+    svg += `<rect x="${x}" y="${y0-totalH}" width="${barW}" height="${totalH}" fill="${COLOR('--bad')}" opacity="0.55" rx="2"/>`;
+    svg += `<rect x="${x}" y="${y0-cleanH}" width="${barW}" height="${cleanH}" fill="${COLOR('--accent')}" rx="2"/>`;
+    svg += `<text x="${x+barW/2}" y="${y0+16}" text-anchor="middle" font-family="${COLOR('--mono')||'monospace'}" font-size="11" fill="${COLOR('--ink-faint')}">${l}</text>`;
+  });
+  svg += `</svg>`;
+  document.getElementById('dataset-chart').innerHTML = svg;
+})();
+
+// ---------- Features section ----------
+(function renderFeatures() {
+  document.getElementById('dims-before').textContent = MODEL.xgb_baseline_tfidf_only.feature_dims;
+  document.getElementById('dims-after').textContent = MODEL.xgb_plus_dataflow_features.feature_dims + ' (prod)';
+})();
+
+// ---------- Comparison table + charts ----------
+const MODEL_ORDER = [
+  ['xgb_plus_dataflow_features', 'XGBoost (production)', true],
+  ['xgb_baseline_tfidf_only', 'XGBoost (TF-IDF baseline)', false],
+  ['logistic_regression', 'Logistic Regression', false],
+  ['linear_svm', 'Linear SVM', false],
+  ['random_forest', 'Random Forest', false],
+  ['rule_only', 'Rule-only (no ML)', false],
+  ['experiment_d_hybrid_decision_engine', 'Hybrid Decision Engine*', false],
+];
+const SERIES_COLORS = {
+  xgb_plus_dataflow_features: '--accent',
+  xgb_baseline_tfidf_only: '--accent-warm',
+  logistic_regression: '--good',
+  linear_svm: '--bad',
+  random_forest: '--warn',
+  rule_only: '--ink-faint',
+  experiment_d_hybrid_decision_engine: '--ink',
+};
+
+(function renderComparisonTable() {
+  const t = document.getElementById('comparison-table');
+  const head = el('tr');
+  ['Model','Accuracy','Macro F1','MCC','FPR','FNR','ROC-AUC','PR-AUC'].forEach((h,i) => {
+    head.appendChild(el('th', Object.assign(i>0?{class:'num'}:{}, {text:h})));
+  });
+  t.appendChild(head);
+  MODEL_ORDER.forEach(([key, label, hl]) => {
+    const d = MODEL[key];
+    const tr = el('tr', hl ? {class:'highlight'} : {});
+    tr.appendChild(el('td', {text: label}));
+    [d.accuracy, d.macro_f1, d.mcc, d.false_positive_rate, d.false_negative_rate, d.roc_auc, d.pr_auc].forEach(v => {
+      tr.appendChild(el('td', {class:'num', text: v===null||v===undefined ? '—' : v.toFixed(3)}));
+    });
+    t.appendChild(tr);
+  });
+  const note = el('p', {style:'font-size:12px;color:var(--ink-faint);margin-top:8px', html:
+    '*Hybrid Decision Engine metrics force-collapse its SUSPICIOUS_REVIEW bucket into a binary prediction for this table only — see §05 for its real selective-classification numbers.'});
+  t.parentElement.appendChild(note);
+})();
+
+function lineChart(containerId, curves, xKey, yKey, xLabel, yLabel, diagonal) {
+  const w = 460, h = 300, pad = 40;
+  const sx = x => pad + x * (w - pad*1.5);
+  const sy = y => (h - pad) - y * (h - pad*1.5);
+  let svg = `<svg viewBox="0 0 ${w} ${h}" width="100%" height="${h}">`;
+  // axes
+  svg += `<line x1="${pad}" y1="${h-pad}" x2="${w-pad*0.5}" y2="${h-pad}" stroke="${COLOR('--line')}"/>`;
+  svg += `<line x1="${pad}" y1="${pad*0.5}" x2="${pad}" y2="${h-pad}" stroke="${COLOR('--line')}"/>`;
+  [0,0.5,1].forEach(v => {
+    svg += `<text x="${sx(v)}" y="${h-pad+16}" font-size="10" text-anchor="middle" fill="${COLOR('--ink-faint')}">${v}</text>`;
+    svg += `<text x="${pad-6}" y="${sy(v)+3}" font-size="10" text-anchor="end" fill="${COLOR('--ink-faint')}">${v}</text>`;
+  });
+  svg += `<text x="${(w)/2}" y="${h-4}" font-size="10.5" text-anchor="middle" fill="${COLOR('--ink-faint')}">${xLabel}</text>`;
+  svg += `<text x="10" y="${h/2}" font-size="10.5" text-anchor="middle" fill="${COLOR('--ink-faint')}" transform="rotate(-90 10 ${h/2})">${yLabel}</text>`;
+  if (diagonal) svg += `<line x1="${sx(0)}" y1="${sy(0)}" x2="${sx(1)}" y2="${sy(1)}" stroke="${COLOR('--line')}" stroke-dasharray="3,3"/>`;
+  curves.forEach(({key, colorVar, width}) => {
+    const d = MODEL[key];
+    const curve = key === 'experiment_d_hybrid_decision_engine' ? EXPD[xKey === 'fpr' ? 'roc_curve' : 'pr_curve'] : d[xKey === 'fpr' ? 'roc_curve' : 'pr_curve'];
+    if (!curve) return;
+    const xs = curve[xKey], ys = curve[yKey];
+    if (!xs || !xs.length) return;
+    const pts = xs.map((x,i) => `${sx(x)},${sy(ys[i])}`).join(' ');
+    svg += `<polyline points="${pts}" fill="none" stroke="${COLOR(colorVar)}" stroke-width="${width||1.8}" stroke-linejoin="round"/>`;
+  });
+  svg += `</svg>`;
+  document.getElementById(containerId).innerHTML = svg;
+}
+
+(function renderCurves() {
+  const curves = MODEL_ORDER.map(([key]) => ({key, colorVar: SERIES_COLORS[key], width: key==='xgb_plus_dataflow_features'?2.6:1.6}));
+  lineChart('roc-chart', curves, 'fpr', 'tpr', 'False Positive Rate', 'True Positive Rate', true);
+  lineChart('pr-chart', curves, 'recall', 'precision', 'Recall', 'Precision', false);
+
+  const legend = document.getElementById('chart-legend');
+  MODEL_ORDER.forEach(([key, label]) => {
+    legend.appendChild(el('span', {class:'sw'}, [
+      el('span', {class:'dot', style:`background:${COLOR(SERIES_COLORS[key])}`}),
+      el('span', {text: label}),
+    ]));
+  });
+})();
+
+// ---------- Ablation table ----------
+(function renderAblation() {
+  const t = document.getElementById('ablation-table');
+  const head = el('tr');
+  ['Config','Feature dims','Test Accuracy','Test Macro F1','Val Macro F1','FPR'].forEach((h,i)=>{
+    head.appendChild(el('th', Object.assign(i>0?{class:'num'}:{}, {text:h})));
+  });
+  t.appendChild(head);
+  const rows = [
+    ['xgb_baseline_tfidf_only', 'Baseline (TF-IDF + count only)'],
+    ['xgb_plus_structural_features', '+ structural features (15)'],
+    ['xgb_plus_dataflow_features', '+ data-flow features (8) — selected as production'],
+    ['xgb_full_hybrid', '+ full hybrid (23 features)'],
+  ];
+  rows.forEach(([key, label]) => {
+    const d = MODEL[key];
+    const tr = el('tr', key === 'xgb_plus_dataflow_features' ? {class:'highlight'} : {});
+    tr.appendChild(el('td', {text: label}));
+    tr.appendChild(el('td', {class:'num', text: d.feature_dims}));
+    tr.appendChild(el('td', {class:'num', text: pct(d.accuracy)}));
+    tr.appendChild(el('td', {class:'num', text: d.macro_f1.toFixed(3)}));
+    tr.appendChild(el('td', {class:'num', text: d.validation_macro_f1.toFixed(3)}));
+    tr.appendChild(el('td', {class:'num', text: d.false_positive_rate.toFixed(3)}));
+    t.appendChild(tr);
+  });
+})();
+
+// ---------- Hybrid decision breakdown ----------
+(function renderDecisionBreakdown() {
+  const b = EXPD.decision_breakdown;
+  const total = b.VULNERABLE + b.SAFE + b.SUSPICIOUS_REVIEW;
+  const order = [['VULNERABLE','--bad'],['SAFE','--good'],['SUSPICIOUS_REVIEW','--warn']];
+  let html = '<div style="display:flex;height:26px;border-radius:6px;overflow:hidden;margin-bottom:10px">';
+  order.forEach(([k,c]) => {
+    const w = (b[k]/total*100).toFixed(1);
+    html += `<div style="width:${w}%;background:${COLOR(c)}" title="${k}: ${b[k]}"></div>`;
+  });
+  html += '</div><div class="legend">';
+  order.forEach(([k,c]) => {
+    html += `<span class="sw"><span class="dot" style="background:${COLOR(c)}"></span>${k} (${b[k]}, ${(b[k]/total*100).toFixed(0)}%)</span>`;
+  });
+  html += '</div>';
+  document.getElementById('decision-breakdown').innerHTML = html;
+  document.getElementById('auto-acc').textContent = pct(EXPD.auto_decided_accuracy);
+  document.getElementById('auto-cov').textContent = pct(EXPD.auto_decided_coverage);
+  document.getElementById('expd-acc').textContent = pct(EXPD.accuracy);
+})();
+
+// ---------- SHAP ----------
+(function renderSHAP() {
+  const grid = document.getElementById('shap-grid');
+  const classLabels = {s0: 's0 — SQLi vulnerable', v0: 'v0 — Cert vulnerable', s1: 's1 — SQLi secure', v1: 'v1 — Cert secure'};
+  Object.entries(classLabels).forEach(([cls, title]) => {
+    const items = SHAP[cls].slice(0, 8);
+    const maxV = Math.max(...items.map(i => i.mean_abs_shap));
+    const card = el('div', {class:'card'});
+    card.appendChild(el('h3', {style:'margin-top:0', text: title}));
+    items.forEach(it => {
+      const row = el('div', {class:'shap-row'});
+      row.appendChild(el('div', {class:'shap-label', text: it.feature}));
+      const track = el('div', {class:'shap-bar-track'});
+      track.appendChild(el('div', {class:'shap-bar-fill', style:`width:${(it.mean_abs_shap/maxV*100).toFixed(1)}%`}));
+      row.appendChild(track);
+      row.appendChild(el('div', {class:'shap-val', text: it.mean_abs_shap.toFixed(3)}));
+      card.appendChild(row);
+    });
+    grid.appendChild(card);
+  });
+  const note = el('p', {style:'font-size:13px;grid-column:1/-1;margin-top:4px', html:
+    '<code>sql_sink_detected</code> dominates every class — including the certificate-validation classes, where its <em>absence</em> helps distinguish cert-related code from SQL-related code. The rest of the top features are short character n-grams, typical of a TF-IDF-heavy representation.'});
+  grid.appendChild(note);
+})();
+
+// ---------- Decision calibration ----------
+(function renderCalib() {
+  document.getElementById('calib-vuln').textContent = CALIB.vulnerable_threshold.toFixed(3);
+  document.getElementById('calib-safe').textContent = CALIB.safe_threshold.toFixed(3);
+})();
+
+// ---------- Files ----------
+(function renderFiles() {
+  const newFiles = [
+    'backend/ml/feature_pipeline.py', 'backend/security_features.py', 'backend/ml/dataset_prep.py',
+    'backend/ml/train.py', 'backend/ml/evaluate.py', 'backend/ml/rule_only.py', 'backend/ml/experiment_d.py',
+    'backend/ml/calibrate_decision_engine.py', 'backend/ml/shap_summary.py', 'backend/decision_engine.py',
+    'backend/tests/test_dataflow.py', 'backend/tests/test_security_features.py', 'backend/tests/test_decision_engine.py',
+    'backend/ml/data/*.csv, dataset_report.json', 'backend/ml/artifacts/* (models, vectorizers, configs)',
+    'backend/ml/reports/*.json (this report\'s source data)',
+  ];
+  const modFiles = [
+    'backend/predictor.py (rebuilt on shared pipeline + decision engine)',
+    'backend/dataflow.py (multi-line sink fix, basis-string fix)',
+    'backend/requirements.txt (+shap, +pytest)',
+  ];
+  document.getElementById('files-new').innerHTML = newFiles.map(f => `<div><span class="tag">+</span>${f}</div>`).join('');
+  document.getElementById('files-mod').innerHTML = modFiles.map(f => `<div><span class="tag">~</span>${f}</div>`).join('');
+})();
+</script>

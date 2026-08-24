@@ -1,0 +1,180 @@
+{
+  "seed": 123,
+  "split_metadata": {
+    "seed": 123,
+    "raw_row_count": 1687,
+    "clean_row_count": 1128,
+    "split_sizes": {
+      "train": 787,
+      "validation": 168,
+      "test": 173
+    },
+    "split_fractions": {
+      "train": 0.6977,
+      "validation": 0.1489,
+      "test": 0.1534
+    },
+    "group_overlap": {
+      "train_val": 0,
+      "train_test": 0,
+      "val_test": 0
+    },
+    "exact_text_overlap": {
+      "train_val": 0,
+      "train_test": 0,
+      "val_test": 0
+    },
+    "leakage_check": "PASSED - zero overlap on both group_key and exact text"
+  },
+  "xgboost_metadata": {
+    "seed": 123,
+    "selected_hyperparameters": {
+      "max_depth": 6,
+      "eta": 0.1,
+      "num_boost_round": 63
+    },
+    "early_stopping_rounds": 20,
+    "selection_method": "max validation macro-F1 across 4 candidates (validation only)",
+    "validation_macro_f1": 0.7973330381656321,
+    "feature_dims": 7672,
+    "train_size": 787,
+    "validation_size": 168
+  },
+  "xgboost_validation_metrics": {
+    "macro_f1": 0.7973330381656321,
+    "fnr": 0.15053763440860216,
+    "fpr": 0.18666666666666668
+  },
+  "fixed_threshold": {
+    "validation": {
+      "vulnerable_threshold": 0.753,
+      "safe_threshold": -0.376,
+      "total_cases": 168,
+      "automatic_decisions": 149,
+      "deferred_count": 19,
+      "coverage": 0.8869047619047619,
+      "tp": 79,
+      "tn": 48,
+      "fp": 12,
+      "fn": 10,
+      "precision": 0.8681318681318682,
+      "recall": 0.8876404494382022,
+      "f1": 0.8777777777777778,
+      "fpr": 0.2,
+      "fnr": 0.11235955056179775,
+      "vulnerability_recall": 0.8876404494382022,
+      "vulnerability_fnr": 0.11235955056179775
+    },
+    "test": {
+      "vulnerable_threshold": 0.753,
+      "safe_threshold": -0.376,
+      "total_cases": 173,
+      "automatic_decisions": 146,
+      "deferred_count": 27,
+      "coverage": 0.8439306358381503,
+      "tp": 71,
+      "tn": 47,
+      "fp": 16,
+      "fn": 12,
+      "precision": 0.8160919540229885,
+      "recall": 0.8554216867469879,
+      "f1": 0.8352941176470587,
+      "fpr": 0.25396825396825395,
+      "fnr": 0.14457831325301204,
+      "vulnerability_recall": 0.8554216867469879,
+      "vulnerability_fnr": 0.14457831325301204
+    },
+    "test_cwe": {
+      "sql_injection_cwe_89": {
+        "support": 59,
+        "auto_decided_support": 47,
+        "tp": 25,
+        "fp": 13,
+        "fn": 2,
+        "precision": 0.6578947368421053,
+        "recall": 0.9259259259259259,
+        "f1": 0.7692307692307692,
+        "fnr": 0.07407407407407407
+      },
+      "certificate_validation_cwe_295": {
+        "support": 114,
+        "auto_decided_support": 99,
+        "tp": 46,
+        "fp": 3,
+        "fn": 10,
+        "precision": 0.9387755102040817,
+        "recall": 0.8214285714285714,
+        "f1": 0.8761904761904763,
+        "fnr": 0.17857142857142858
+      }
+    }
+  },
+  "validation_selected_bounds": {
+    "xgboost_fnr": 0.15053763440860216,
+    "xgboost_fpr": 0.18666666666666668
+  },
+  "validation_selected_operating_point": {
+    "vulnerable_threshold": 0.798,
+    "safe_threshold": 0.677,
+    "total_cases": 168,
+    "automatic_decisions": 165,
+    "deferred_count": 3,
+    "coverage": 0.9821428571428571,
+    "tp": 79,
+    "tn": 60,
+    "fp": 12,
+    "fn": 14,
+    "precision": 0.8681318681318682,
+    "recall": 0.8494623655913979,
+    "f1": 0.858695652173913,
+    "fpr": 0.16666666666666666,
+    "fnr": 0.15053763440860216,
+    "vulnerability_recall": 0.8494623655913979,
+    "vulnerability_fnr": 0.15053763440860216
+  },
+  "validation_selected_threshold_test_result": {
+    "test": {
+      "vulnerable_threshold": 0.798,
+      "safe_threshold": 0.677,
+      "total_cases": 173,
+      "automatic_decisions": 161,
+      "deferred_count": 12,
+      "coverage": 0.930635838150289,
+      "tp": 68,
+      "tn": 59,
+      "fp": 15,
+      "fn": 19,
+      "precision": 0.8192771084337349,
+      "recall": 0.7816091954022989,
+      "f1": 0.8,
+      "fpr": 0.20270270270270271,
+      "fnr": 0.21839080459770116,
+      "vulnerability_recall": 0.7816091954022989,
+      "vulnerability_fnr": 0.21839080459770116
+    },
+    "test_cwe": {
+      "sql_injection_cwe_89": {
+        "support": 59,
+        "auto_decided_support": 56,
+        "tp": 25,
+        "fp": 12,
+        "fn": 6,
+        "precision": 0.6756756756756757,
+        "recall": 0.8064516129032258,
+        "f1": 0.7352941176470588,
+        "fnr": 0.1935483870967742
+      },
+      "certificate_validation_cwe_295": {
+        "support": 114,
+        "auto_decided_support": 105,
+        "tp": 43,
+        "fp": 3,
+        "fn": 13,
+        "precision": 0.9347826086956522,
+        "recall": 0.7678571428571429,
+        "f1": 0.8431372549019608,
+        "fnr": 0.23214285714285715
+      }
+    }
+  }
+}

@@ -1,0 +1,8 @@
+{
+  "safe_threshold": -0.926,
+  "vulnerable_threshold": 1.379,
+  "validation_accuracy_among_auto_decided": 0.9411764705882353,
+  "validation_auto_decided_coverage": 0.40236686390532544,
+  "validation_row_count": 169,
+  "note": "Thresholds chosen on the VALIDATION split by maximizing accuracy among auto-decided (non-SUSPICIOUS_REVIEW) cases, subject to at least 40% coverage. Never touched the test split."
+}

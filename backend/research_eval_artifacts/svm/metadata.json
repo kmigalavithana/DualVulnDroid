@@ -1,0 +1,53 @@
+{
+  "model": "Linear SVM (LinearSVC, CalibratedClassifierCV for probabilities)",
+  "random_seed": 42,
+  "feature_dims": 7610,
+  "hyperparameter_search": {
+    "candidates": [
+      0.01,
+      0.1,
+      1.0,
+      10.0
+    ],
+    "mean_cv_fold_f1_macro_per_candidate": [
+      0.736513637100939,
+      0.7349716099099484,
+      0.7311858190401217,
+      0.7495856936330553
+    ],
+    "std_cv_fold_f1_macro_per_candidate": [
+      0.03912642630880511,
+      0.03263873838357254,
+      0.02554615190074803,
+      0.027122379108087326
+    ],
+    "best_C": 10.0,
+    "best_cv_f1_macro": 0.7495856936330553,
+    "n_splits": 5
+  },
+  "final_hyperparameters": {
+    "C": 10.0,
+    "class_weight": "balanced",
+    "max_iter": 5000,
+    "calibration": "CalibratedClassifierCV(cv=3), fit on train split only"
+  },
+  "train_only_cv_robustness_check": {
+    "performed": true,
+    "n_splits": 5,
+    "scoring": "f1_macro",
+    "fold_scores": [
+      0.7337944997882274,
+      0.7105704255094499,
+      0.7492179805342069,
+      0.7910352175058057,
+      0.7633103448275862
+    ],
+    "mean": 0.7495856936330553,
+    "std": 0.027122379108087326
+  },
+  "split_sizes": {
+    "train": 791,
+    "validation": 169,
+    "test": 168
+  }
+}

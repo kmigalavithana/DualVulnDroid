@@ -1,0 +1,195 @@
+{
+  "selected_operating_points_validation": {
+    "conservative": {
+      "vulnerable_threshold": 1.37,
+      "safe_threshold": -0.885,
+      "total_cases": 169,
+      "automatic_decisions": 71,
+      "deferred_count": 98,
+      "coverage": 0.42011834319526625,
+      "tp": 42,
+      "tn": 25,
+      "fp": 2,
+      "fn": 2,
+      "precision": 0.9545454545454546,
+      "recall": 0.9545454545454546,
+      "f1": 0.9545454545454546,
+      "fpr": 0.07407407407407407,
+      "fnr": 0.045454545454545456,
+      "vulnerability_recall": 0.9545454545454546,
+      "vulnerability_fnr": 0.045454545454545456
+    },
+    "balanced": {
+      "vulnerable_threshold": 0.753,
+      "safe_threshold": -0.376,
+      "total_cases": 169,
+      "automatic_decisions": 155,
+      "deferred_count": 14,
+      "coverage": 0.9171597633136095,
+      "tp": 83,
+      "tn": 58,
+      "fp": 8,
+      "fn": 6,
+      "precision": 0.9120879120879121,
+      "recall": 0.9325842696629213,
+      "f1": 0.9222222222222223,
+      "fpr": 0.12121212121212122,
+      "fnr": 0.06741573033707865,
+      "vulnerability_recall": 0.9325842696629213,
+      "vulnerability_fnr": 0.06741573033707865
+    },
+    "higher_coverage": {
+      "vulnerable_threshold": 1.0,
+      "safe_threshold": 0.994,
+      "total_cases": 169,
+      "automatic_decisions": 169,
+      "deferred_count": 0,
+      "coverage": 1.0,
+      "tp": 68,
+      "tn": 69,
+      "fp": 6,
+      "fn": 26,
+      "precision": 0.918918918918919,
+      "recall": 0.723404255319149,
+      "f1": 0.8095238095238095,
+      "fpr": 0.08,
+      "fnr": 0.2765957446808511,
+      "vulnerability_recall": 0.723404255319149,
+      "vulnerability_fnr": 0.2765957446808511
+    }
+  },
+  "test_results": {
+    "conservative": {
+      "vulnerable_threshold": 1.37,
+      "safe_threshold": -0.885,
+      "total_cases": 168,
+      "automatic_decisions": 65,
+      "deferred_count": 103,
+      "coverage": 0.3869047619047619,
+      "tp": 37,
+      "tn": 24,
+      "fp": 2,
+      "fn": 2,
+      "precision": 0.9487179487179487,
+      "recall": 0.9487179487179487,
+      "f1": 0.9487179487179487,
+      "fpr": 0.07692307692307693,
+      "fnr": 0.05128205128205128,
+      "vulnerability_recall": 0.9487179487179487,
+      "vulnerability_fnr": 0.05128205128205128
+    },
+    "balanced": {
+      "vulnerable_threshold": 0.753,
+      "safe_threshold": -0.376,
+      "total_cases": 168,
+      "automatic_decisions": 149,
+      "deferred_count": 19,
+      "coverage": 0.8869047619047619,
+      "tp": 67,
+      "tn": 56,
+      "fp": 9,
+      "fn": 17,
+      "precision": 0.881578947368421,
+      "recall": 0.7976190476190477,
+      "f1": 0.8375,
+      "fpr": 0.13846153846153847,
+      "fnr": 0.20238095238095238,
+      "vulnerability_recall": 0.7976190476190477,
+      "vulnerability_fnr": 0.20238095238095238
+    },
+    "higher_coverage": {
+      "vulnerable_threshold": 1.0,
+      "safe_threshold": 0.994,
+      "total_cases": 168,
+      "automatic_decisions": 167,
+      "deferred_count": 1,
+      "coverage": 0.9940476190476191,
+      "tp": 55,
+      "tn": 68,
+      "fp": 6,
+      "fn": 38,
+      "precision": 0.9016393442622951,
+      "recall": 0.5913978494623656,
+      "f1": 0.7142857142857142,
+      "fpr": 0.08108108108108109,
+      "fnr": 0.40860215053763443,
+      "vulnerability_recall": 0.5913978494623656,
+      "vulnerability_fnr": 0.40860215053763443
+    }
+  },
+  "test_cwe_metrics": {
+    "conservative": {
+      "sql_injection_cwe_89": {
+        "support": 54,
+        "auto_decided_support": 22,
+        "tp": 10,
+        "fp": 2,
+        "fn": 0,
+        "precision": 0.8333333333333334,
+        "recall": 1.0,
+        "f1": 0.9090909090909091,
+        "fnr": 0.0
+      },
+      "certificate_validation_cwe_295": {
+        "support": 114,
+        "auto_decided_support": 43,
+        "tp": 27,
+        "fp": 0,
+        "fn": 2,
+        "precision": 1.0,
+        "recall": 0.9310344827586207,
+        "f1": 0.9642857142857143,
+        "fnr": 0.06896551724137931
+      }
+    },
+    "balanced": {
+      "sql_injection_cwe_89": {
+        "support": 54,
+        "auto_decided_support": 45,
+        "tp": 23,
+        "fp": 6,
+        "fn": 2,
+        "precision": 0.7931034482758621,
+        "recall": 0.92,
+        "f1": 0.851851851851852,
+        "fnr": 0.08
+      },
+      "certificate_validation_cwe_295": {
+        "support": 114,
+        "auto_decided_support": 104,
+        "tp": 44,
+        "fp": 3,
+        "fn": 15,
+        "precision": 0.9361702127659575,
+        "recall": 0.7457627118644068,
+        "f1": 0.8301886792452831,
+        "fnr": 0.2542372881355932
+      }
+    },
+    "higher_coverage": {
+      "sql_injection_cwe_89": {
+        "support": 54,
+        "auto_decided_support": 53,
+        "tp": 20,
+        "fp": 4,
+        "fn": 9,
+        "precision": 0.8333333333333334,
+        "recall": 0.6896551724137931,
+        "f1": 0.7547169811320755,
+        "fnr": 0.3103448275862069
+      },
+      "certificate_validation_cwe_295": {
+        "support": 114,
+        "auto_decided_support": 114,
+        "tp": 35,
+        "fp": 2,
+        "fn": 29,
+        "precision": 0.9459459459459459,
+        "recall": 0.546875,
+        "f1": 0.6930693069306929,
+        "fnr": 0.453125
+      }
+    }
+  },
+  "note": "Test set touched exactly once per operating point, after selection was already frozen on validation."
+}

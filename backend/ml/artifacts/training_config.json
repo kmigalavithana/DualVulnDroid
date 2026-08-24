@@ -1,0 +1,44 @@
+{
+  "random_seed": 42,
+  "label_order": [
+    "s0",
+    "v0",
+    "s1",
+    "v1"
+  ],
+  "production_config": "xgb_plus_dataflow_features",
+  "production_selection_method": "max validation_macro_f1 across the 4 ablation configs",
+  "production_include_security_features": true,
+  "production_security_feature_subset": [
+    "sql_source_detected",
+    "sql_sink_detected",
+    "sql_source_to_sink",
+    "dataflow_depth",
+    "interprocedural_flow",
+    "unsafe_flow_count",
+    "safe_flow_count",
+    "suspicious_flow_count"
+  ],
+  "xgb_hyperparams": {
+    "objective": "multi:softprob",
+    "num_class": 4,
+    "eval_metric": "mlogloss",
+    "seed": 42,
+    "max_depth": 4,
+    "eta": 0.1
+  },
+  "xgb_selected_rounds_hint": 103,
+  "val_macro_f1_at_selection": 0.8684439424624811,
+  "vectorizer_params": {
+    "word": "max_features=5000, ngram_range=(1,3)",
+    "char": "max_features=2000, ngram_range=(2,5), analyzer=char",
+    "count": "max_features=1000, ngram_range=(1,2)"
+  },
+  "feature_dims": {
+    "xgb_baseline_tfidf_only": 7587,
+    "xgb_plus_structural_features": 7602,
+    "xgb_plus_dataflow_features": 7595,
+    "xgb_full_hybrid": 7610
+  },
+  "class_balancing": "sklearn compute_class_weight('balanced') applied as XGBoost sample weights / sklearn class_weight"
+}

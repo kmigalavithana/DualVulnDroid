@@ -1,0 +1,30 @@
+{
+  "n_false_negatives": {
+    "Linear SVM": 17,
+    "XGBoost": 24,
+    "XGBoost + Decision Engine": 61
+  },
+  "n_false_positives": {
+    "Linear SVM": 15,
+    "XGBoost": 11,
+    "XGBoost + Decision Engine": 2
+  },
+  "fn_vs_fp_comparison": {
+    "Linear SVM": {
+      "fn": 17,
+      "fp": 15,
+      "fn_exceeds_fp_by": 2
+    },
+    "XGBoost": {
+      "fn": 24,
+      "fp": 11,
+      "fn_exceeds_fp_by": 13
+    },
+    "XGBoost + Decision Engine": {
+      "fn": 61,
+      "fp": 2,
+      "fn_exceeds_fp_by": 59
+    }
+  },
+  "note_on_decision_engine_counts": "XGBoost + Decision Engine's FN/FP counts here use the ALL-CASE VIEW (deferred cases counted as not-vulnerable, matching the engine's own real boolean output) - see decision_engine_metrics.json for the separate AUTO-DECISION VIEW (deferred cases excluded)."
+}

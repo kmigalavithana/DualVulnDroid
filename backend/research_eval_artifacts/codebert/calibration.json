@@ -1,0 +1,52 @@
+{
+  "method": "Brier score + 5-bin reliability curve, measured on the frozen TEST set's already-frozen predictions (not fit/refit).",
+  "sample_size_caveat": "n=168 - too small for a precise calibration guarantee, indicative only.",
+  "brier_score": 0.1650363951921463,
+  "reliability_curve": [
+    {
+      "bin": [
+        0.0,
+        0.2
+      ],
+      "n": 75,
+      "mean_predicted": 0.029523830860853195,
+      "observed_frequency": 0.21333333333333335
+    },
+    {
+      "bin": [
+        0.2,
+        0.4
+      ],
+      "n": 5,
+      "mean_predicted": 0.3358605206012726,
+      "observed_frequency": 0.6
+    },
+    {
+      "bin": [
+        0.4,
+        0.6
+      ],
+      "n": 5,
+      "mean_predicted": 0.5010272860527039,
+      "observed_frequency": 0.8
+    },
+    {
+      "bin": [
+        0.6,
+        0.8
+      ],
+      "n": 21,
+      "mean_predicted": 0.715552031993866,
+      "observed_frequency": 0.6190476190476191
+    },
+    {
+      "bin": [
+        0.8,
+        1.0
+      ],
+      "n": 62,
+      "mean_predicted": 0.9561724066734314,
+      "observed_frequency": 0.9193548387096774
+    }
+  ]
+}

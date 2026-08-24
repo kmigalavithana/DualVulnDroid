@@ -1,0 +1,45 @@
+{
+  "python_version": "3.11.0 (main, Oct 24 2022, 18:26:48) [MSC v.1933 64 bit (AMD64)]",
+  "platform": "Windows-10-10.0.26200-SP0",
+  "scikit_learn_version": "1.9.0",
+  "xgboost_version": "3.2.0",
+  "original_split_seed": 42,
+  "alternative_split_seeds": [
+    42,
+    7,
+    21,
+    84,
+    123
+  ],
+  "bootstrap_seed": 42,
+  "bootstrap_n_resamples": 10000,
+  "frozen_model_artifact_path": "research_eval_artifacts/xgboost/model.json",
+  "balanced_candidate_thresholds": {
+    "vulnerable_threshold": 0.753,
+    "safe_threshold": -0.376
+  },
+  "perturbation_grid": {
+    "vulnerable": [
+      0.553,
+      0.603,
+      0.653,
+      0.703,
+      0.753,
+      0.803,
+      0.853,
+      0.903,
+      0.953
+    ],
+    "safe": [
+      -0.576,
+      -0.526,
+      -0.476,
+      -0.426,
+      -0.376,
+      -0.326,
+      -0.276,
+      -0.226,
+      -0.176
+    ]
+  }
+}

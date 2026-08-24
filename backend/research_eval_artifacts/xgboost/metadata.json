@@ -1,0 +1,48 @@
+{
+  "model": "XGBoost (multi:softprob, 4-class)",
+  "random_seed": 42,
+  "feature_dims": 7610,
+  "hyperparameter_candidates_evaluated_on_validation": [
+    {
+      "max_depth": 4,
+      "eta": 0.1,
+      "val_macro_f1": 0.8684439424624811,
+      "best_iteration": 102
+    },
+    {
+      "max_depth": 6,
+      "eta": 0.1,
+      "val_macro_f1": 0.8329889872319419,
+      "best_iteration": 55
+    },
+    {
+      "max_depth": 6,
+      "eta": 0.05,
+      "val_macro_f1": 0.8329889872319419,
+      "best_iteration": 107
+    },
+    {
+      "max_depth": 8,
+      "eta": 0.1,
+      "val_macro_f1": 0.8602951363813442,
+      "best_iteration": 53
+    }
+  ],
+  "selection_method": "max validation macro-F1 across candidates (validation used for early stopping AND model selection, never test)",
+  "final_hyperparameters": {
+    "objective": "multi:softprob",
+    "num_class": 4,
+    "eval_metric": "mlogloss",
+    "seed": 42,
+    "max_depth": 4,
+    "eta": 0.1,
+    "num_boost_round_selected": 103,
+    "early_stopping_rounds": 20
+  },
+  "class_balancing": "sklearn compute_class_weight('balanced') applied as XGBoost sample weights",
+  "split_sizes": {
+    "train": 791,
+    "validation": 169,
+    "test": 168
+  }
+}

@@ -1,0 +1,59 @@
+{
+  "checkpoint": {
+    "model_name": "microsoft/codebert-base",
+    "model_version_note": "as resolved by transformers.AutoModelForSequenceClassification.from_pretrained at run time",
+    "tokenizer_name": "microsoft/codebert-base",
+    "hidden_size": 768,
+    "num_hidden_layers": 12,
+    "num_attention_heads": 12,
+    "max_position_embeddings": 514,
+    "model_type": "roberta"
+  },
+  "python_version": "3.11.0 (main, Oct 24 2022, 18:26:48) [MSC v.1933 64 bit (AMD64)]",
+  "torch_version": "2.13.0+cpu",
+  "transformers_version": "5.13.1",
+  "device": "cpu",
+  "gpu_available": false,
+  "gpu_note": "CPU-only run - no CUDA GPU detected/available in this environment.",
+  "random_seed": 42,
+  "dataset_hash_sha256": "897980de9d857944c42ed1e2bc8e77bb10d873ee2dd194611ef674103a70a0de",
+  "split_hash_sha256": "359fad42d9e116a827b664207c525ba1ff462e8be6cda76dcffae38ea3b892ea",
+  "split_sizes": {
+    "train": 791,
+    "validation": 169,
+    "test": 168
+  },
+  "max_sequence_length": 79,
+  "class_weight": {
+    "0": 1.4329710144927537,
+    "1": 0.6658249158249159,
+    "2": 1.582,
+    "3": 0.8560606060606061
+  },
+  "selected_strategy": "C_full_finetune",
+  "selected_epoch": 2,
+  "selected_validation_macro_f1": 0.8431666353832503,
+  "epochs_trained": 5,
+  "training_hyperparameters": {
+    "learning_rate": 2e-05,
+    "batch_size": 8,
+    "max_epochs": 5,
+    "weight_decay": 0.01,
+    "warmup_ratio": 0.1,
+    "early_stopping_patience": 2,
+    "optimizer": "AdamW",
+    "lr_schedule": "linear warmup then linear decay (get_linear_schedule_with_warmup)",
+    "loss": "CrossEntropyLoss with train-only class weights",
+    "gradient_clipping_max_norm": 1.0,
+    "device": "cpu",
+    "seed": 42
+  },
+  "model_artifact_path": "research_eval_artifacts/codebert/model/",
+  "tokenizer_artifact_path": "research_eval_artifacts/codebert/tokenizer/",
+  "label_mapping": {
+    "s0": 0,
+    "v0": 1,
+    "s1": 2,
+    "v1": 3
+  }
+}

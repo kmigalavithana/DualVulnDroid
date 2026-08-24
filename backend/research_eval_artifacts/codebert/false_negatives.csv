@@ -1,0 +1,22 @@
+row_identifier,true_label,predicted_label,predicted_probability,class_probabilities,cwe,code,reason_for_miss
+26,s0,s1,0.5124,"{""s0"": 0.4758, ""v0"": 0.0079, ""s1"": 0.5124, ""v1"": 0.0039}",CWE-89 (SQL Injection),db.execSQL(CREATE_TABLE);,Cause not established.
+103,s0,s1,0.5141,"{""s0"": 0.4764, ""v0"": 0.0054, ""s1"": 0.5141, ""v1"": 0.0042}",CWE-89 (SQL Injection),sQLiteDatabase.execSQL(strArr[i]);,Cause not established.
+119,s0,s1,0.6226,"{""s0"": 0.3675, ""v0"": 0.0064, ""s1"": 0.6226, ""v1"": 0.0035}",CWE-89 (SQL Injection),db.execSQL(CREATE_TABLE_CERTIFICATES);,Cause not established.
+147,s0,s1,0.5972,"{""s0"": 0.3931, ""v0"": 0.0064, ""s1"": 0.5972, ""v1"": 0.0033}",CWE-89 (SQL Injection),db.execSQL(CREATE_TABLE_FAVICON);,Cause not established.
+240,v0,v1,0.9846,"{""s0"": 0.004, ""v0"": 0.0073, ""s1"": 0.004, ""v1"": 0.9846}",CWE-295 (Certificate Validation),HttpsURLConnection.setDefaultHostnameVerifier(this.f5291k.a(HttpsURLConnection.getDefaultHostnameVerifier()));,Cause not established.
+268,v0,v1,0.96,"{""s0"": 0.0024, ""v0"": 0.0349, ""s1"": 0.0027, ""v1"": 0.96}",CWE-295 (Certificate Validation),"((HttpsURLConnection) new URL(""https://cloud.example.com"").openConnection()).setSSLSocketFactory(SSLContext.getInstance(""SSL"").init(null, trustAllCerts, null).getSocketFactory());",Cause not established.
+276,v0,v1,0.9821,"{""s0"": 0.0032, ""v0"": 0.0115, ""s1"": 0.0032, ""v1"": 0.9821}",CWE-295 (Certificate Validation),"TrustManagerFactory tmf = TrustManagerFactory.getInstance(""X509""); tmf.init((KeyStore) null); TrustManager[] tms = tmf.getTrustManagers(); ((X509TrustManager) tms[0]).checkServerTrusted(new X509Certificate[0], ""RSA"");",Cause not established.
+401,v0,v1,0.9493,"{""s0"": 0.0042, ""v0"": 0.043, ""s1"": 0.0036, ""v1"": 0.9493}",CWE-295 (Certificate Validation),httpClient = new DefaultHttpClient();,Cause not established.
+415,v0,v1,0.9725,"{""s0"": 0.0029, ""v0"": 0.0218, ""s1"": 0.0029, ""v1"": 0.9725}",CWE-295 (Certificate Validation),TrustManager[] trustManagers = tmf.getTrustManagers();,Cause not established.
+421,v0,v1,0.9824,"{""s0"": 0.0051, ""v0"": 0.0077, ""s1"": 0.0049, ""v1"": 0.9824}",CWE-295 (Certificate Validation),"httpClient.getParams().setParameter(CoreProtocolPNames.PROTOCOL_VERSION, HttpVersion.HTTP_1_1);",Cause not established.
+432,v0,v1,0.9635,"{""s0"": 0.0039, ""v0"": 0.0292, ""s1"": 0.0034, ""v1"": 0.9635}",CWE-295 (Certificate Validation),HttpClient client = new DefaultHttpClient();,Cause not established.
+439,v0,v1,0.9768,"{""s0"": 0.0045, ""v0"": 0.0142, ""s1"": 0.0045, ""v1"": 0.9768}",CWE-295 (Certificate Validation),OkHttpClient.Builder builder = new OkHttpClient.Builder();,Cause not established.
+442,v0,v1,0.9817,"{""s0"": 0.0055, ""v0"": 0.0077, ""s1"": 0.0051, ""v1"": 0.9817}",CWE-295 (Certificate Validation),webView.getSettings().setMixedContentMode(WebSettings.MIXED_CONTENT_ALWAYS_ALLOW);,Cause not established.
+462,v0,v1,0.6469,"{""s0"": 0.0041, ""v0"": 0.3443, ""s1"": 0.0047, ""v1"": 0.6469}",CWE-295 (Certificate Validation),"HttpPost httppost = new HttpPost(""https://example.com/api"");",Cause not established.
+468,v0,v1,0.9798,"{""s0"": 0.0036, ""v0"": 0.0135, ""s1"": 0.0031, ""v1"": 0.9798}",CWE-295 (Certificate Validation),SSLSocketFactory.getSystemSocketFactory();,Cause not established.
+475,v0,v1,0.9754,"{""s0"": 0.0036, ""v0"": 0.0178, ""s1"": 0.0031, ""v1"": 0.9754}",CWE-295 (Certificate Validation),WebSettings settings = webView.getSettings();,Cause not established.
+480,v0,v1,0.969,"{""s0"": 0.0036, ""v0"": 0.0243, ""s1"": 0.0031, ""v1"": 0.969}",CWE-295 (Certificate Validation),settings.setAllowUniversalAccessFromFileURLs(true);,Cause not established.
+534,v0,v1,0.9837,"{""s0"": 0.0044, ""v0"": 0.0076, ""s1"": 0.0043, ""v1"": 0.9837}",CWE-295 (Certificate Validation),sslSocketFactory = SSLContext.getDefault().getSocketFactory();,Cause not established.
+561,v0,v1,0.9838,"{""s0"": 0.0046, ""v0"": 0.0072, ""s1"": 0.0044, ""v1"": 0.9838}",CWE-295 (Certificate Validation),"webView.getSettings().setAllowFileAccessFromFileURLs(true); webView.loadUrl(""https://untrusted.com"");",Cause not established.
+599,v0,v1,0.9834,"{""s0"": 0.0043, ""v0"": 0.0083, ""s1"": 0.004, ""v1"": 0.9834}",CWE-295 (Certificate Validation),sslSocket.setEnabledCipherSuites(sslSocket.getSupportedCipherSuites()); ,Cause not established.
+603,v0,v1,0.799,"{""s0"": 0.004, ""v0"": 0.1933, ""s1"": 0.0037, ""v1"": 0.799}",CWE-295 (Certificate Validation),if (error.getPrimaryError() == SslError.SSL_EXPIRED) { handler.proceed(); },Cause not established.

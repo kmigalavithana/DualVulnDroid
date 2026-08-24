@@ -1,0 +1,71 @@
+{
+  "random_seed": 42,
+  "raw_dataset_path": "dataset .csv",
+  "raw_row_count": 1687,
+  "raw_label_distribution": {
+    "s0": 450,
+    "v0": 448,
+    "s1": 439,
+    "v1": 350
+  },
+  "excluded_conflicting_label_rows": 559,
+  "excluded_conflicting_label_groups": 270,
+  "exclusion_reason": "Exact-duplicate-text-with-conflicting-label AND near-duplicate-template-with-conflicting-label rows: the same normalize_code() template maps to more than one distinct label elsewhere in the raw dataset. This is label noise, not benign duplication - kept out of train/val/test entirely (saved separately in excluded_conflicting_labels.csv, not silently dropped).",
+  "clean_row_count": 1128,
+  "clean_label_distribution": {
+    "v0": 426,
+    "v1": 330,
+    "s0": 196,
+    "s1": 176
+  },
+  "split_group_definition": "ml.feature_pipeline.normalize_code(vulnerable_line) - identical function used for TF-IDF/count text normalization",
+  "split_sizes": {
+    "train": 791,
+    "validation": 169,
+    "test": 168
+  },
+  "split_fractions": {
+    "train": 0.7012,
+    "validation": 0.1498,
+    "test": 0.1489
+  },
+  "split_label_distribution": {
+    "train": {
+      "v0": 297,
+      "v1": 231,
+      "s0": 138,
+      "s1": 125
+    },
+    "validation": {
+      "v0": 65,
+      "v1": 49,
+      "s0": 29,
+      "s1": 26
+    },
+    "test": {
+      "v0": 64,
+      "v1": 50,
+      "s0": 29,
+      "s1": 25
+    }
+  },
+  "leakage_check": {
+    "group_key_disjoint_across_splits": "PASSED (assert_no_group_leakage)",
+    "exact_duplicate_text_groups": 0,
+    "exact_duplicate_text_rows": 0,
+    "near_duplicate_template_groups": 23,
+    "near_duplicate_template_rows": 48,
+    "cross_split_normalized_template_overlap": {
+      "train_val": 0,
+      "train_test": 0,
+      "val_test": 0
+    },
+    "cross_split_exact_text_overlap": {
+      "train_val": 0,
+      "train_test": 0,
+      "val_test": 0
+    }
+  },
+  "known_limitation": "The dataset has no application/project identifier, so this is a near-duplicate-grouped split (via normalize_code() template matching), not a true application-level split - identical to the limitation already documented in ml/data/dataset_report.json.",
+  "reused_from": "ml.dataset_prep (split_conflicting_labels, grouped_stratified_split, assert_no_group_leakage) - not re-implemented"
+}

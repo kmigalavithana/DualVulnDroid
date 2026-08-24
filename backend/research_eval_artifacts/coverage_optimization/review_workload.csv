@@ -1,0 +1,4 @@
+operating_point,vulnerable_threshold,safe_threshold,total_cases,automatic_decisions,deferred_cases,coverage,review_workload_pct
+conservative,1.37,-0.885,168,65,103,0.3869047619047619,0.6130952380952381
+balanced,0.753,-0.376,168,149,19,0.8869047619047619,0.1130952380952381
+higher_coverage,1.0,0.994,168,167,1,0.9940476190476191,0.005952380952380952

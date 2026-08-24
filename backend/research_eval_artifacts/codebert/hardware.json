@@ -1,0 +1,15 @@
+{
+  "platform": "Windows-10-10.0.26200-SP0",
+  "processor": "Intel64 Family 6 Model 142 Stepping 12, GenuineIntel",
+  "python_version": "3.11.0 (main, Oct 24 2022, 18:26:48) [MSC v.1933 64 bit (AMD64)]",
+  "torch_version": "2.13.0+cpu",
+  "transformers_version": "5.13.1",
+  "device": "cpu",
+  "gpu_available": false,
+  "gpu_note": "CPU-only run - no CUDA GPU detected/available in this environment.",
+  "ram": {
+    "total_gb": 16.91,
+    "available_gb": 3.85
+  },
+  "hf_cache_location": "F:\\hf_cache"
+}

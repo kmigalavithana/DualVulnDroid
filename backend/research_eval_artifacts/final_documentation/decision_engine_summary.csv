@@ -1,0 +1,3 @@
+Configuration,Status,Scope,Coverage,FNR,FPR,Precision,ReviewWorkload,RobustnessClassification,ProductionCandidateDecision
+Current production thresholds (vulnerable=1.379, safe=-0.926),DEPLOYED,Auto-decided cases only (55 of 168 test cases),0.3274,0.0303,0.0909,0.9412,0.6726,N/A - current production,N/A - current production
+Balanced research candidate (vulnerable=0.753, safe=-0.376),NOT DEPLOYED,Auto-decided cases (149 of 168 test cases),0.8869,0.2024,0.1385,0.8816,0.1131,INCONCLUSIVE,B. PROMISING BUT MORE DATA REQUIRED

@@ -1,0 +1,12 @@
+{
+  "fairness_check": "PASSED - all 3 models evaluated on the identical 168-row frozen test set",
+  "best_model_by_macro_f1_under_this_protocol": "XGBoost",
+  "best_model_macro_f1": 0.7874,
+  "plots": {
+    "plots_generated": true,
+    "files": [
+      "main_comparison.png",
+      "confusion_matrices.png"
+    ]
+  }
+}

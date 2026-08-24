@@ -1,0 +1,72 @@
+{
+  "model_info": {
+    "model_type": "XGBoost",
+    "version": "v2.0_enhanced",
+    "objective": "multi:softprob",
+    "num_classes": 4,
+    "vulnerabilities": [
+      "CWE-89 (SQL Injection)",
+      "CWE-295 (Certificate Validation)"
+    ]
+  },
+  "label_mapping": {
+    "s0": 0,
+    "v0": 1,
+    "s1": 2,
+    "v1": 3
+  },
+  "reverse_mapping": {
+    "0": "s0",
+    "1": "v0",
+    "2": "s1",
+    "3": "v1"
+  },
+  "feature_engineering": {
+    "word_tfidf": true,
+    "char_tfidf": true,
+    "count_vectorizer": true,
+    "total_features": 8000
+  },
+  "performance_metrics": {
+    "accuracy": 0.8545454545454545,
+    "precision": 0.860682601900604,
+    "recall": 0.8545454545454545,
+    "f1_score": 0.8491219698020727,
+    "confusion_matrix": [
+      [
+        88,
+        0,
+        1,
+        0
+      ],
+      [
+        0,
+        72,
+        0,
+        15
+      ],
+      [
+        14,
+        1,
+        18,
+        0
+      ],
+      [
+        0,
+        9,
+        0,
+        57
+      ]
+    ]
+  },
+  "training_info": {
+    "data_splitting": "stratified_with_leak_detection",
+    "validation_method": "holdout_and_cross_validation",
+    "leakage_prevention": true
+  },
+  "cross_validation": {
+    "best_iteration": 46,
+    "best_score": 0.1538482297063903,
+    "cv_std": 0.018813933856710995
+  }
+}

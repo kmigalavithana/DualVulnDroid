@@ -1,0 +1,10 @@
+{
+  "python_version": "3.11.0 (main, Oct 24 2022, 18:26:48) [MSC v.1933 64 bit (AMD64)]",
+  "platform": "Windows-10-10.0.26200-SP0",
+  "scikit_learn_version": "1.9.0",
+  "xgboost_version": "3.2.0",
+  "random_seed": 42,
+  "frozen_source": "research_eval_artifacts/xgboost/ (RESEARCH-EVAL-1), no retraining",
+  "validation_size": 169,
+  "test_size": 168
+}

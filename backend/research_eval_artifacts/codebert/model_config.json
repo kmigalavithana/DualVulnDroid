@@ -1,0 +1,64 @@
+{
+  "checkpoint": {
+    "model_name": "microsoft/codebert-base",
+    "model_version_note": "as resolved by transformers.AutoModelForSequenceClassification.from_pretrained at run time",
+    "tokenizer_name": "microsoft/codebert-base",
+    "hidden_size": 768,
+    "num_hidden_layers": 12,
+    "num_attention_heads": 12,
+    "max_position_embeddings": 514,
+    "model_type": "roberta"
+  },
+  "label_mapping": {
+    "s0": 0,
+    "v0": 1,
+    "s1": 2,
+    "v1": 3
+  },
+  "selected_strategy": "C_full_finetune",
+  "all_strategies_tried": [
+    {
+      "strategy": "A_frozen_encoder",
+      "n_trainable_params": 593668,
+      "n_total_params": 124648708,
+      "best_epoch": 1,
+      "best_val_macro_f1": 0.3595962595962596,
+      "epochs_trained": 4,
+      "training_seconds": 1150.143824338913
+    },
+    {
+      "strategy": "B_last2_unfrozen",
+      "n_trainable_params": 14769412,
+      "n_total_params": 124648708,
+      "best_epoch": 4,
+      "best_val_macro_f1": 0.784371266427718,
+      "epochs_trained": 5,
+      "training_seconds": 1695.9863271713257
+    },
+    {
+      "strategy": "C_full_finetune",
+      "n_trainable_params": 124648708,
+      "n_total_params": 124648708,
+      "best_epoch": 2,
+      "best_val_macro_f1": 0.8431666353832503,
+      "epochs_trained": 5,
+      "training_seconds": 3888.9228932857513
+    }
+  ],
+  "selection_method": "max validation macro-F1 across the 3 pre-declared fine-tuning strategies (validation only, test never touched)",
+  "max_sequence_length": 79,
+  "class_weight": {
+    "0": 1.4329710144927537,
+    "1": 0.6658249158249159,
+    "2": 1.582,
+    "3": 0.8560606060606061
+  },
+  "train_label_distribution": {
+    "s0": 138,
+    "v0": 297,
+    "s1": 125,
+    "v1": 231
+  },
+  "random_seed": 42,
+  "architecture": "CodeBERT (RoBERTa encoder) -> pooled [CLS] representation -> RobertaClassificationHead (dropout -> dense -> dropout -> out_proj) -> 4 classes"
+}

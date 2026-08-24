@@ -1,0 +1,46 @@
+{
+  "python_version": "3.11.0 (main, Oct 24 2022, 18:26:48) [MSC v.1933 64 bit (AMD64)]",
+  "platform": "Windows-10-10.0.26200-SP0",
+  "scikit_learn_version": "1.9.0",
+  "xgboost_version": "3.2.0",
+  "random_seed": 42,
+  "dataset": {
+    "raw_row_count": 1687,
+    "excluded_conflicting_label_rows": 559,
+    "clean_row_count": 1128,
+    "split_sizes": {
+      "train": 791,
+      "validation": 169,
+      "test": 168
+    }
+  },
+  "feature_dimensions": {
+    "total": 7610,
+    "text": 7587,
+    "security": 23
+  },
+  "final_hyperparameters_per_model": {
+    "linear_svm": {
+      "C": 10.0,
+      "class_weight": "balanced",
+      "max_iter": 5000,
+      "calibration": "CalibratedClassifierCV(cv=3), fit on train split only"
+    },
+    "random_forest": {
+      "max_depth": 20,
+      "min_samples_leaf": 2,
+      "n_estimators": 400,
+      "class_weight": "balanced"
+    },
+    "xgboost": {
+      "objective": "multi:softprob",
+      "num_class": 4,
+      "eval_metric": "mlogloss",
+      "seed": 42,
+      "max_depth": 4,
+      "eta": 0.1,
+      "num_boost_round_selected": 103,
+      "early_stopping_rounds": 20
+    }
+  }
+}

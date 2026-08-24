@@ -1,0 +1,250 @@
+{
+  "s0": [
+    {
+      "feature": "sql_sink_detected",
+      "mean_abs_shap": 1.29843
+    },
+    {
+      "feature": "ql",
+      "mean_abs_shap": 0.40411
+    },
+    {
+      "feature": "ne",
+      "mean_abs_shap": 0.36235
+    },
+    {
+      "feature": "r ",
+      "mean_abs_shap": 0.18349
+    },
+    {
+      "feature": "et",
+      "mean_abs_shap": 0.13768
+    },
+    {
+      "feature": "[]{",
+      "mean_abs_shap": 0.13417
+    },
+    {
+      "feature": ");",
+      "mean_abs_shap": 0.13202
+    },
+    {
+      "feature": "cursor rawquery",
+      "mean_abs_shap": 0.10689
+    },
+    {
+      "feature": "ew ",
+      "mean_abs_shap": 0.08879
+    },
+    {
+      "feature": "ra",
+      "mean_abs_shap": 0.06753
+    },
+    {
+      "feature": "tri",
+      "mean_abs_shap": 0.06564
+    },
+    {
+      "feature": "in",
+      "mean_abs_shap": 0.05443
+    },
+    {
+      "feature": " +",
+      "mean_abs_shap": 0.04868
+    },
+    {
+      "feature": "str",
+      "mean_abs_shap": 0.04785
+    },
+    {
+      "feature": "w ",
+      "mean_abs_shap": 0.04674
+    }
+  ],
+  "v0": [
+    {
+      "feature": "sql_sink_detected",
+      "mean_abs_shap": 1.50215
+    },
+    {
+      "feature": ".getd",
+      "mean_abs_shap": 0.31224
+    },
+    {
+      "feature": " tru",
+      "mean_abs_shap": 0.1732
+    },
+    {
+      "feature": "oc",
+      "mean_abs_shap": 0.16207
+    },
+    {
+      "feature": "ru",
+      "mean_abs_shap": 0.11896
+    },
+    {
+      "feature": "er",
+      "mean_abs_shap": 0.09995
+    },
+    {
+      "feature": "l(",
+      "mean_abs_shap": 0.09263
+    },
+    {
+      "feature": "ab",
+      "mean_abs_shap": 0.08594
+    },
+    {
+      "feature": "na",
+      "mean_abs_shap": 0.08442
+    },
+    {
+      "feature": " = ",
+      "mean_abs_shap": 0.06452
+    },
+    {
+      "feature": "nd",
+      "mean_abs_shap": 0.06224
+    },
+    {
+      "feature": "at",
+      "mean_abs_shap": 0.06044
+    },
+    {
+      "feature": "en",
+      "mean_abs_shap": 0.05756
+    },
+    {
+      "feature": "ra",
+      "mean_abs_shap": 0.05665
+    },
+    {
+      "feature": "qu",
+      "mean_abs_shap": 0.05498
+    }
+  ],
+  "s1": [
+    {
+      "feature": "sql_sink_detected",
+      "mean_abs_shap": 1.50829
+    },
+    {
+      "feature": ");",
+      "mean_abs_shap": 0.433
+    },
+    {
+      "feature": "ti",
+      "mean_abs_shap": 0.20164
+    },
+    {
+      "feature": " nu",
+      "mean_abs_shap": 0.18789
+    },
+    {
+      "feature": "st",
+      "mean_abs_shap": 0.14165
+    },
+    {
+      "feature": "le",
+      "mean_abs_shap": 0.13756
+    },
+    {
+      "feature": "sl",
+      "mean_abs_shap": 0.12596
+    },
+    {
+      "feature": "[]{",
+      "mean_abs_shap": 0.10547
+    },
+    {
+      "feature": "ew ",
+      "mean_abs_shap": 0.10347
+    },
+    {
+      "feature": "r ",
+      "mean_abs_shap": 0.09332
+    },
+    {
+      "feature": ", ",
+      "mean_abs_shap": 0.06336
+    },
+    {
+      "feature": "ec",
+      "mean_abs_shap": 0.06296
+    },
+    {
+      "feature": "ne",
+      "mean_abs_shap": 0.0557
+    },
+    {
+      "feature": "ss",
+      "mean_abs_shap": 0.05215
+    },
+    {
+      "feature": "tes",
+      "mean_abs_shap": 0.04383
+    }
+  ],
+  "v1": [
+    {
+      "feature": "sql_sink_detected",
+      "mean_abs_shap": 1.3299
+    },
+    {
+      "feature": ".getd",
+      "mean_abs_shap": 0.22551
+    },
+    {
+      "feature": ".g",
+      "mean_abs_shap": 0.16015
+    },
+    {
+      "feature": "getde",
+      "mean_abs_shap": 0.15845
+    },
+    {
+      "feature": "tt",
+      "mean_abs_shap": 0.15353
+    },
+    {
+      "feature": "); ",
+      "mean_abs_shap": 0.14371
+    },
+    {
+      "feature": "ue",
+      "mean_abs_shap": 0.1151
+    },
+    {
+      "feature": ").",
+      "mean_abs_shap": 0.10661
+    },
+    {
+      "feature": "in",
+      "mean_abs_shap": 0.09933
+    },
+    {
+      "feature": "s(",
+      "mean_abs_shap": 0.08786
+    },
+    {
+      "feature": "or",
+      "mean_abs_shap": 0.08586
+    },
+    {
+      "feature": ".ge",
+      "mean_abs_shap": 0.08297
+    },
+    {
+      "feature": "ne",
+      "mean_abs_shap": 0.0787
+    },
+    {
+      "feature": "rt",
+      "mean_abs_shap": 0.0773
+    },
+    {
+      "feature": ".c",
+      "mean_abs_shap": 0.07565
+    }
+  ]
+}

@@ -1,0 +1,115 @@
+{
+  "model": "Random Forest (RandomForestClassifier)",
+  "random_seed": 42,
+  "feature_dims": 7610,
+  "hyperparameter_search": {
+    "param_grid": {
+      "n_estimators": [
+        200,
+        400
+      ],
+      "max_depth": [
+        null,
+        20
+      ],
+      "min_samples_leaf": [
+        1,
+        2
+      ]
+    },
+    "best_params": {
+      "max_depth": 20,
+      "min_samples_leaf": 2,
+      "n_estimators": 400
+    },
+    "best_cv_f1_macro": 0.7710956005950246,
+    "n_splits": 5,
+    "all_candidates_mean_f1_macro": [
+      0.7626892901736693,
+      0.7623763408373391,
+      0.7568522610289905,
+      0.7650469340126979,
+      0.7577844811560446,
+      0.7577845612286535,
+      0.769397760429918,
+      0.7710956005950246
+    ],
+    "all_candidates_std_f1_macro": [
+      0.04282181036242837,
+      0.043453960332651774,
+      0.04182327723438567,
+      0.044846457861482864,
+      0.04617440831299985,
+      0.041760809262589245,
+      0.045908949439904444,
+      0.04094642578677144
+    ],
+    "all_candidates_params": [
+      {
+        "max_depth": null,
+        "min_samples_leaf": 1,
+        "n_estimators": 200
+      },
+      {
+        "max_depth": null,
+        "min_samples_leaf": 1,
+        "n_estimators": 400
+      },
+      {
+        "max_depth": null,
+        "min_samples_leaf": 2,
+        "n_estimators": 200
+      },
+      {
+        "max_depth": null,
+        "min_samples_leaf": 2,
+        "n_estimators": 400
+      },
+      {
+        "max_depth": 20,
+        "min_samples_leaf": 1,
+        "n_estimators": 200
+      },
+      {
+        "max_depth": 20,
+        "min_samples_leaf": 1,
+        "n_estimators": 400
+      },
+      {
+        "max_depth": 20,
+        "min_samples_leaf": 2,
+        "n_estimators": 200
+      },
+      {
+        "max_depth": 20,
+        "min_samples_leaf": 2,
+        "n_estimators": 400
+      }
+    ]
+  },
+  "final_hyperparameters": {
+    "max_depth": 20,
+    "min_samples_leaf": 2,
+    "n_estimators": 400,
+    "class_weight": "balanced"
+  },
+  "train_only_cv_robustness_check": {
+    "performed": true,
+    "n_splits": 5,
+    "scoring": "f1_macro",
+    "fold_scores": [
+      0.7960043988269794,
+      0.7223813420621931,
+      0.7393259471892766,
+      0.8365389285898276,
+      0.7612273863068466
+    ],
+    "mean": 0.7710956005950246,
+    "std": 0.04094642578677144
+  },
+  "split_sizes": {
+    "train": 791,
+    "validation": 169,
+    "test": 168
+  }
+}

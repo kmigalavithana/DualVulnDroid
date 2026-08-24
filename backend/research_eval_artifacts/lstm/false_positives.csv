@@ -1,0 +1,13 @@
+row_identifier,true_label,predicted_label,predicted_probability,cwe,code
+659,s1,s0,0.785,CWE-89 (SQL Injection),"Cursor cursor = db.rawQuery(""SELECT EXISTS (SELECT * FROM "" + ScanColumns.TABLE_NAME"
+706,s1,s0,0.6123,CWE-89 (SQL Injection),"val cursor = db!!.rawQuery(""select stop_name, zone_id from stops"", null);"
+709,s1,s0,0.5476,CWE-89 (SQL Injection),"Cursor c1 = floatingEvents.rawQuery(sql, args);"
+712,s1,s0,0.702,CWE-89 (SQL Injection),"Cursor cursor = db.rawQuery(""SELECT * FROM "" + LoyaltyCardDbIds.TABLE + "";"", null);"
+759,s1,s0,0.5446,CWE-89 (SQL Injection),"Cursor rawQuery8 = readableDatabase.rawQuery(str, null);"
+770,s1,s0,0.5682,CWE-89 (SQL Injection),"Cursor rawQuery = sQLiteDatabase.rawQuery(""SELECT authtoken FROM authtokens WHERE type = ""com.getpebble"" LIMIT 1"", null);"
+784,s1,s0,0.6183,CWE-89 (SQL Injection),"Cursor c2 = this.db.query(table, null, null, null, null, null, null);"
+809,v1,v0,0.5159,CWE-295 (Certificate Validation),"SSLContext sslContextTmp = SSLContext.getInstance(""TLSv1.3""); sslContextTmp.init(null, null, new SecureRandom());"
+838,v1,v0,0.7567,CWE-295 (Certificate Validation),"try { trustManager.checkServerTrusted(chain, authType); } catch (CertificateException e) { throw e; }"
+844,v1,v0,0.9738,CWE-295 (Certificate Validation),PinningTrustManager pinningTrustManager = new PinningTrustManager(new String[]{});
+935,v1,v0,0.609,CWE-295 (Certificate Validation),"throw new IllegalArgumentException(""invalid SSLCertificateSocketFactory"");"
+996,v1,v0,0.7692,CWE-295 (Certificate Validation),HttpClient httpClient2 = new DefaultHttpClient();

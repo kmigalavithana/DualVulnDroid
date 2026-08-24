@@ -1,0 +1,35 @@
+[
+  {
+    "Model": "Linear SVM",
+    "Accuracy": 0.8036,
+    "Precision (macro)": 0.7864,
+    "Recall (macro)": 0.78,
+    "F1 (macro)": 0.7789,
+    "Precision (weighted)": 0.8084,
+    "Recall (weighted)": 0.8036,
+    "F1 (weighted)": 0.8024,
+    "ROC-AUC": 0.9025
+  },
+  {
+    "Model": "Random Forest",
+    "Accuracy": 0.7738,
+    "Precision (macro)": 0.7584,
+    "Recall (macro)": 0.7558,
+    "F1 (macro)": 0.7519,
+    "Precision (weighted)": 0.7835,
+    "Recall (weighted)": 0.7738,
+    "F1 (weighted)": 0.7731,
+    "ROC-AUC": 0.8758
+  },
+  {
+    "Model": "XGBoost",
+    "Accuracy": 0.7917,
+    "Precision (macro)": 0.7923,
+    "Recall (macro)": 0.793,
+    "F1 (macro)": 0.7874,
+    "Precision (weighted)": 0.8062,
+    "Recall (weighted)": 0.7917,
+    "F1 (weighted)": 0.7918,
+    "ROC-AUC": 0.8957
+  }
+]

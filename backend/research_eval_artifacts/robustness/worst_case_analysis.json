@@ -1,0 +1,26 @@
+{
+  "worst_fnr": {
+    "seed": 42,
+    "value": 0.20238095238095238
+  },
+  "worst_fpr": {
+    "seed": 84,
+    "value": 0.3188405797101449
+  },
+  "lowest_coverage": {
+    "seed": 123,
+    "value": 0.8439306358381503
+  },
+  "highest_review_workload": {
+    "seed": 123,
+    "value": 0.1560693641618497
+  },
+  "worst_cwe89_fnr": {
+    "seed": 7,
+    "value": 0.2
+  },
+  "worst_cwe295_fnr": {
+    "seed": 42,
+    "value": 0.2542372881355932
+  }
+}

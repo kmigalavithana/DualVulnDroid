@@ -1,0 +1,292 @@
+{
+  "multi_criteria_analysis": {
+    "lowest_fnr": "SVM",
+    "highest_vulnerability_recall": "SVM",
+    "best_macro_f1": "XGBoost",
+    "lowest_fpr": "XGBoost",
+    "best_cwe89_recall": "SVM",
+    "best_cwe295_recall": "SVM",
+    "raw_values": {
+      "SVM": {
+        "fnr": 0.1827956989247312,
+        "recall": 0.8172043010752688,
+        "macro_f1": 0.7789372844973155,
+        "fpr": 0.2,
+        "cwe89_recall": 0.8275862068965517,
+        "cwe295_recall": 0.8125
+      },
+      "XGBoost": {
+        "fnr": 0.25806451612903225,
+        "recall": 0.7419354838709677,
+        "macro_f1": 0.7873909063167531,
+        "fpr": 0.14666666666666667,
+        "cwe89_recall": 0.7931034482758621,
+        "cwe295_recall": 0.71875
+      }
+    },
+    "verdict": "No single approach (SVM vs XGBoost, among the two full-coverage models) dominates all security-relevant metrics."
+  },
+  "threshold_analysis": {
+    "validity_note": "A binary threshold on P(vulnerable)=P(s0)+P(v0) is mathematically well-defined here (VULNERABLE={s0,v0} is a clean partition of the 4-class softmax output, the same aggregate already used for ROC-AUC elsewhere in this project) - not forced onto an inappropriate representation. This analysis is binary-only: it does not re-derive a specific CWE (s0 vs v0) for flagged rows.",
+    "selection_rule": "minimize FNR on VALIDATION only (ties broken by higher F1); TEST never used for selection",
+    "validation_sweep": [
+      {
+        "threshold": 0.3,
+        "tp": 89,
+        "tn": 57,
+        "fp": 18,
+        "fn": 5,
+        "precision": 0.8317757009345794,
+        "recall": 0.9468085106382979,
+        "f1": 0.8855721393034826,
+        "fpr": 0.24,
+        "fnr": 0.05319148936170213
+      },
+      {
+        "threshold": 0.4,
+        "tp": 88,
+        "tn": 63,
+        "fp": 12,
+        "fn": 6,
+        "precision": 0.88,
+        "recall": 0.9361702127659575,
+        "f1": 0.9072164948453608,
+        "fpr": 0.16,
+        "fnr": 0.06382978723404255
+      },
+      {
+        "threshold": 0.5,
+        "tp": 87,
+        "tn": 65,
+        "fp": 10,
+        "fn": 7,
+        "precision": 0.8969072164948454,
+        "recall": 0.925531914893617,
+        "f1": 0.9109947643979057,
+        "fpr": 0.13333333333333333,
+        "fnr": 0.07446808510638298
+      },
+      {
+        "threshold": 0.6,
+        "tp": 81,
+        "tn": 66,
+        "fp": 9,
+        "fn": 13,
+        "precision": 0.9,
+        "recall": 0.8617021276595744,
+        "f1": 0.8804347826086957,
+        "fpr": 0.12,
+        "fnr": 0.13829787234042554
+      },
+      {
+        "threshold": 0.7,
+        "tp": 77,
+        "tn": 66,
+        "fp": 9,
+        "fn": 17,
+        "precision": 0.8953488372093024,
+        "recall": 0.8191489361702128,
+        "f1": 0.8555555555555555,
+        "fpr": 0.12,
+        "fnr": 0.18085106382978725
+      }
+    ],
+    "selected_threshold": 0.3,
+    "default_threshold_for_comparison": 0.5,
+    "test_set_result_at_selected_threshold": {
+      "threshold": 0.3,
+      "tp": 77,
+      "tn": 57,
+      "fp": 18,
+      "fn": 16,
+      "precision": 0.8105263157894737,
+      "recall": 0.8279569892473119,
+      "f1": 0.8191489361702128,
+      "fpr": 0.24,
+      "fnr": 0.17204301075268819,
+      "note": "TEST touched exactly once, after the threshold was already frozen on validation."
+    }
+  },
+  "calibration": {
+    "method": "Brier score + 5-bin reliability curve on P(vulnerable)=P(s0)+P(v0), computed directly on already-frozen predictions - nothing is fit/refit here (no Platt scaling, no isotonic regression), so using test predictions for MEASUREMENT (not fitting) is legitimate.",
+    "sample_size_caveat": "validation n=169, test n=168 - both are small for a 5-bin reliability curve (some bins will have very few samples); per-bin observed frequency should be read as indicative, not a precise calibration guarantee.",
+    "validation": {
+      "brier_score": 0.09679125994443893,
+      "reliability_curve": [
+        {
+          "bin": [
+            0.0,
+            0.2
+          ],
+          "n": 58,
+          "mean_predicted": 0.05440335348248482,
+          "observed_frequency": 0.06896551724137931
+        },
+        {
+          "bin": [
+            0.2,
+            0.4
+          ],
+          "n": 11,
+          "mean_predicted": 0.3113192319869995,
+          "observed_frequency": 0.18181818181818182
+        },
+        {
+          "bin": [
+            0.4,
+            0.6
+          ],
+          "n": 10,
+          "mean_predicted": 0.5169447064399719,
+          "observed_frequency": 0.7
+        },
+        {
+          "bin": [
+            0.6,
+            0.8
+          ],
+          "n": 13,
+          "mean_predicted": 0.7121332883834839,
+          "observed_frequency": 0.8461538461538461
+        },
+        {
+          "bin": [
+            0.8,
+            1.0
+          ],
+          "n": 77,
+          "mean_predicted": 0.9495894312858582,
+          "observed_frequency": 0.9090909090909091
+        }
+      ]
+    },
+    "test": {
+      "brier_score": 0.1422152817249298,
+      "reliability_curve": [
+        {
+          "bin": [
+            0.0,
+            0.2
+          ],
+          "n": 65,
+          "mean_predicted": 0.06440843641757965,
+          "observed_frequency": 0.2
+        },
+        {
+          "bin": [
+            0.2,
+            0.4
+          ],
+          "n": 17,
+          "mean_predicted": 0.28618139028549194,
+          "observed_frequency": 0.5294117647058824
+        },
+        {
+          "bin": [
+            0.4,
+            0.6
+          ],
+          "n": 9,
+          "mean_predicted": 0.48205724358558655,
+          "observed_frequency": 0.3333333333333333
+        },
+        {
+          "bin": [
+            0.6,
+            0.8
+          ],
+          "n": 17,
+          "mean_predicted": 0.6878815293312073,
+          "observed_frequency": 0.6470588235294118
+        },
+        {
+          "bin": [
+            0.8,
+            1.0
+          ],
+          "n": 60,
+          "mean_predicted": 0.9571903944015503,
+          "observed_frequency": 0.95
+        }
+      ]
+    }
+  },
+  "hypotheses": {
+    "H1": {
+      "hypothesis": "H1: XGBoost provides stronger overall multiclass performance than SVM.",
+      "evidence": {
+        "xgboost_macro_f1": 0.7873909063167531,
+        "svm_macro_f1": 0.7789372844973155,
+        "xgboost_accuracy": 0.7916666666666666,
+        "svm_accuracy": 0.8035714285714286
+      },
+      "verdict": "INCONCLUSIVE",
+      "explanation": "XGBoost leads on macro-F1 (0.7874 vs 0.7789) but SVM leads on accuracy (0.8036 vs 0.7917) and ROC-AUC - the two models disagree across metrics, so 'stronger overall' is not a clean win either way."
+    },
+    "H2": {
+      "hypothesis": "H2: SVM provides lower vulnerability false-negative rate than XGBoost.",
+      "evidence": {
+        "svm_fnr": 0.1827956989247312,
+        "xgboost_fnr": 0.25806451612903225
+      },
+      "verdict": "SUPPORTED",
+      "explanation": "SVM FNR=0.1828 vs XGBoost FNR=0.2581."
+    },
+    "H3": {
+      "hypothesis": "H3: The Hybrid Decision Engine can improve security decision quality by using non-ML evidence.",
+      "evidence": {
+        "auto_decision_view_precision": 0.9411764705882353,
+        "auto_decision_view_recall": 0.9696969696969697,
+        "auto_decision_view_fnr": 0.030303030303030304,
+        "auto_decision_view_coverage": 0.3273809523809524,
+        "all_case_view_fnr": 0.6559139784946236,
+        "xgboost_alone_fnr": 0.25806451612903225
+      },
+      "verdict": "SUPPORTED (for the subset of cases it chooses to decide)",
+      "explanation": "Among the 55/168 cases the engine auto-decided (32.7% coverage), FNR=0.0303 - substantially better than XGBoost alone (FNR=0.2581). BUT the ALL-CASE real-output FNR (counting deferred cases as not-flagged, matching what the system actually surfaces to a user today) is 0.6559 - worse than either raw model. The engine improves decision quality only where it is confident enough to commit; it does not improve the system's current end-to-end FNR as actually surfaced, because so much is deferred."
+    },
+    "H4": {
+      "hypothesis": "H4: The Decision Engine may reduce the number of automatic decisions, trading coverage for safer decisions.",
+      "evidence": {
+        "coverage": 0.3273809523809524,
+        "deferred_fraction": 0.6726190476190477,
+        "auto_decision_view_precision": 0.9411764705882353,
+        "auto_decision_view_fnr": 0.030303030303030304
+      },
+      "verdict": "SUPPORTED",
+      "explanation": "Coverage is 32.7% (113 of 168 cases deferred). Among the auto-decided subset, precision=0.9412 and FNR=0.0303 - both far better than either raw ML model. This is exactly the coverage-for-safety trade the hypothesis describes."
+    }
+  },
+  "final_comparison_table": [
+    {
+      "Approach": "SVM",
+      "Accuracy": 0.8035714285714286,
+      "Macro F1": 0.7789372844973155,
+      "ROC-AUC": 0.9025089605734767,
+      "Vuln Recall": 0.8172043010752688,
+      "FPR": 0.2,
+      "FNR": 0.1827956989247312,
+      "Coverage": 1.0
+    },
+    {
+      "Approach": "XGBoost",
+      "Accuracy": 0.7916666666666666,
+      "Macro F1": 0.7873909063167531,
+      "ROC-AUC": 0.8956989247311828,
+      "Vuln Recall": 0.7419354838709677,
+      "FPR": 0.14666666666666667,
+      "FNR": 0.25806451612903225,
+      "Coverage": 1.0
+    },
+    {
+      "Approach": "XGBoost + Decision Engine (auto-decided subset)",
+      "Accuracy": null,
+      "Macro F1": null,
+      "ROC-AUC": null,
+      "Vuln Recall": 0.9696969696969697,
+      "FPR": 0.09090909090909091,
+      "FNR": 0.030303030303030304,
+      "Coverage": 0.3273809523809524
+    }
+  ]
+}

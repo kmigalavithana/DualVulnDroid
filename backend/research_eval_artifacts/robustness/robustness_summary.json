@@ -1,0 +1,253 @@
+{
+  "balanced_vs_xgboost": {
+    "xgboost_fnr": 0.25806451612903225,
+    "balanced_fnr": 0.20238095238095238,
+    "absolute_fnr_improvement": 0.05568356374807987,
+    "relative_fnr_reduction": 0.21577380952380948,
+    "xgboost_coverage": 1.0,
+    "balanced_coverage": 0.8869047619047619,
+    "xgboost_fpr": 0.14666666666666667,
+    "balanced_fpr": 0.13846153846153847,
+    "balanced_review_workload": 0.1130952380952381,
+    "note": "No statistical significance claimed - single frozen 168-row test set comparison."
+  },
+  "threshold_sensitivity_ranges_validation": null,
+  "threshold_sensitivity_ranges_test": {
+    "coverage_sensitivity": 0.2678571428571429,
+    "fnr_sensitivity": 0.13630952380952382,
+    "fpr_sensitivity": 0.1455223880597015,
+    "coverage_range": [
+      0.7202380952380952,
+      0.9880952380952381
+    ],
+    "fnr_range": [
+      0.1375,
+      0.27380952380952384
+    ],
+    "fpr_range": [
+      0.1044776119402985,
+      0.25
+    ]
+  },
+  "split_statistics": {
+    "coverage": {
+      "n": 5,
+      "mean": 0.8781727371661459,
+      "median": 0.884393063583815,
+      "std": 0.02851798211876879,
+      "min": 0.8439306358381503,
+      "max": 0.9176470588235294
+    },
+    "recall": {
+      "n": 5,
+      "mean": 0.8759242388272301,
+      "median": 0.8875,
+      "std": 0.053730131219750295,
+      "min": 0.7976190476190477,
+      "max": 0.9425287356321839
+    },
+    "fnr": {
+      "n": 5,
+      "mean": 0.12407576117276989,
+      "median": 0.1125,
+      "std": 0.05373013121975032,
+      "min": 0.05747126436781609,
+      "max": 0.20238095238095238
+    },
+    "fpr": {
+      "n": 5,
+      "mean": 0.2216946338685469,
+      "median": 0.2153846153846154,
+      "std": 0.06898662421118984,
+      "min": 0.13846153846153847,
+      "max": 0.3188405797101449
+    },
+    "review_workload": {
+      "n": 5,
+      "mean": 0.121827262833854,
+      "median": 0.11560693641618502,
+      "std": 0.02851798211876879,
+      "min": 0.08235294117647063,
+      "max": 0.1560693641618497
+    },
+    "note": "Split-to-split variability statistics (mean/median/std/min/max across the 5 alternative-split fixed-threshold results) - NOT confidence intervals."
+  },
+  "cwe_robustness_statistics": {
+    "cwe_89_fnr": {
+      "n": 5,
+      "mean": 0.10577984977984978,
+      "median": 0.08,
+      "std": 0.06327404012672957,
+      "min": 0.038461538461538464,
+      "max": 0.2
+    },
+    "cwe_295_fnr": {
+      "n": 5,
+      "mean": 0.13326937841863043,
+      "median": 0.10344827586206896,
+      "std": 0.08198248855821935,
+      "min": 0.06451612903225806,
+      "max": 0.2542372881355932
+    },
+    "original_finding_cwe89_fnr": 0.08,
+    "original_finding_cwe295_fnr": 0.2542372881355932
+  },
+  "worst_case_analysis": {
+    "worst_fnr": {
+      "seed": 42,
+      "value": 0.20238095238095238
+    },
+    "worst_fpr": {
+      "seed": 84,
+      "value": 0.3188405797101449
+    },
+    "lowest_coverage": {
+      "seed": 123,
+      "value": 0.8439306358381503
+    },
+    "highest_review_workload": {
+      "seed": 123,
+      "value": 0.1560693641618497
+    },
+    "worst_cwe89_fnr": {
+      "seed": 7,
+      "value": 0.2
+    },
+    "worst_cwe295_fnr": {
+      "seed": 42,
+      "value": 0.2542372881355932
+    }
+  },
+  "bootstrap_summary": {
+    "coverage": {
+      "point_estimate": 0.8869047619047619,
+      "bootstrap_mean": 0.8875892857142859,
+      "95%_bootstrap_percentile_interval": [
+        0.8392857142857143,
+        0.9345238095238095
+      ],
+      "n_valid_resamples": 10000
+    },
+    "precision": {
+      "point_estimate": 0.881578947368421,
+      "bootstrap_mean": 0.8814097277144843,
+      "95%_bootstrap_percentile_interval": [
+        0.8055555555555556,
+        0.948051948051948
+      ],
+      "n_valid_resamples": 10000
+    },
+    "recall": {
+      "point_estimate": 0.7976190476190477,
+      "bootstrap_mean": 0.797592913371709,
+      "95%_bootstrap_percentile_interval": [
+        0.7073170731707317,
+        0.8795180722891566
+      ],
+      "n_valid_resamples": 10000
+    },
+    "fpr": {
+      "point_estimate": 0.13846153846153847,
+      "bootstrap_mean": 0.13878823767190995,
+      "95%_bootstrap_percentile_interval": [
+        0.06060606060606061,
+        0.22580645161290322
+      ],
+      "n_valid_resamples": 10000
+    },
+    "fnr": {
+      "point_estimate": 0.20238095238095238,
+      "bootstrap_mean": 0.20240708662829096,
+      "95%_bootstrap_percentile_interval": [
+        0.12048192771084337,
+        0.2926829268292683
+      ],
+      "n_valid_resamples": 10000
+    }
+  },
+  "hypotheses": {
+    "H1": {
+      "hypothesis": "H1: Balanced remains better than raw XGBoost FNR across alternative splits.",
+      "evidence": [
+        [
+          42,
+          0.20238095238095238,
+          true
+        ],
+        [
+          7,
+          0.10344827586206896,
+          true
+        ],
+        [
+          21,
+          0.1125,
+          true
+        ],
+        [
+          84,
+          0.05747126436781609,
+          true
+        ],
+        [
+          123,
+          0.14457831325301204,
+          true
+        ]
+      ],
+      "verdict": "SUPPORTED",
+      "explanation": "Balanced FNR was lower than XGBoost's own frozen test FNR (0.2581) on 5/5 alternative splits (fixed-threshold view)."
+    },
+    "H2": {
+      "hypothesis": "H2: Balanced trade-off is stable under small threshold perturbations.",
+      "evidence": {
+        "fnr_sensitivity_test": 0.13630952380952382,
+        "coverage_sensitivity_test": 0.2678571428571429,
+        "bootstrap_fnr_interval_width": 0.1722009991184249
+      },
+      "verdict": "INCONCLUSIVE",
+      "explanation": "Test-set FNR sensitivity across the +-0.2 perturbation grid is 0.1363 (coverage sensitivity 0.2679) - ambiguous relative to the point estimates being defended."
+    },
+    "H3": {
+      "hypothesis": "H3: CWE-89/CWE-295 asymmetry persists across alternative splits.",
+      "evidence": {
+        "cwe89_fnrs_by_seed": [
+          0.08,
+          0.2,
+          0.13636363636363635,
+          0.038461538461538464,
+          0.07407407407407407
+        ],
+        "cwe295_fnrs_by_seed": [
+          0.2542372881355932,
+          0.06451612903225806,
+          0.10344827586206896,
+          0.06557377049180328,
+          0.17857142857142858
+        ]
+      },
+      "verdict": "NOT SUPPORTED",
+      "explanation": "CWE-295 FNR exceeded CWE-89 FNR on 3/5 alternative splits."
+    },
+    "H4": {
+      "hypothesis": "H4: Enough robustness evidence exists to justify production integration.",
+      "verdict": "INCONCLUSIVE",
+      "explanation": "Derived from H1=SUPPORTED and H2=INCONCLUSIVE - production integration requires BOTH cross-split generalization and threshold stability; a single INCONCLUSIVE/NOT SUPPORTED component is enough to withhold H4 support."
+    }
+  },
+  "robustness_classification": {
+    "classification": "INCONCLUSIVE",
+    "reasoning": {
+      "H1_cross_split_fnr_advantage": "SUPPORTED",
+      "H2_threshold_stability": "INCONCLUSIVE",
+      "H3_cwe_asymmetry_persists": "NOT SUPPORTED",
+      "bootstrap_95pct_upper_bound_below_xgboost_fnr": false,
+      "bootstrap_fnr_interval": [
+        0.12048192771084337,
+        0.2926829268292683
+      ],
+      "xgboost_frozen_test_fnr": 0.25806451612903225
+    }
+  },
+  "production_candidate_decision": "B. PROMISING BUT MORE DATA REQUIRED"
+}

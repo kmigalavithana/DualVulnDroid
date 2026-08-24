@@ -1,0 +1,41 @@
+{
+  "random_seed": 42,
+  "raw_row_count": 1687,
+  "excluded_conflicting_label_rows": 559,
+  "excluded_conflicting_label_groups": 270,
+  "clean_row_count": 1128,
+  "clean_label_distribution": {
+    "v0": 426,
+    "v1": 330,
+    "s0": 196,
+    "s1": 176
+  },
+  "distinct_group_keys_in_clean": 1103,
+  "split_sizes": {
+    "train": 791,
+    "val": 169,
+    "test": 168
+  },
+  "split_label_distribution": {
+    "train": {
+      "v0": 297,
+      "v1": 231,
+      "s0": 138,
+      "s1": 125
+    },
+    "val": {
+      "v0": 65,
+      "v1": 49,
+      "s0": 29,
+      "s1": 26
+    },
+    "test": {
+      "v0": 64,
+      "v1": 50,
+      "s0": 29,
+      "s1": 25
+    }
+  },
+  "leakage_check": "PASSED - no normalize_code() group_key shared across splits",
+  "known_limitation": "The dataset has no application/project identifier, so this is a near-duplicate-grouped split (via normalize_code() template matching), not a true application-level split. Two rows with identical code after literal/number normalization are always kept in the same split; rows from the same real-world app that happen to differ textually would not be detected as related."
+}

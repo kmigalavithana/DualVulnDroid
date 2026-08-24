@@ -1,0 +1,26 @@
+{
+  "seed": 21,
+  "raw_row_count": 1687,
+  "clean_row_count": 1128,
+  "split_sizes": {
+    "train": 793,
+    "validation": 166,
+    "test": 169
+  },
+  "split_fractions": {
+    "train": 0.703,
+    "validation": 0.1472,
+    "test": 0.1498
+  },
+  "group_overlap": {
+    "train_val": 0,
+    "train_test": 0,
+    "val_test": 0
+  },
+  "exact_text_overlap": {
+    "train_val": 0,
+    "train_test": 0,
+    "val_test": 0
+  },
+  "leakage_check": "PASSED - zero overlap on both group_key and exact text"
+}

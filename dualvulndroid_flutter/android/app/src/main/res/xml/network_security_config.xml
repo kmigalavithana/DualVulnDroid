@@ -1,0 +1,26 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Phase 10C: real device/emulator validation revealed that Android's
+  default network security policy (API 28+/Android 9+) blocks all
+  cleartext (http://) traffic app-wide. The backend has no HTTPS option
+  (backend/core/api_config.dart's ApiConfig always builds a plain
+  http:// URL for local development), so without this the app could not
+  reach the backend from any real Android device or emulator at all -
+  the failure never showed up in `flutter test` because those tests use
+  http.testing.MockClient, which never touches the OS network stack.
+
+  Scoped narrowly to the actual local-development hosts (Android
+  emulator's fixed host alias, loopback, and the LAN-IP override
+  ApiConfig.physicalDeviceHost documents) rather than a blanket
+  android:usesCleartextTraffic="true" for the whole app - arbitrary
+  internet hosts still require HTTPS. This is a client-side dev
+  convenience only; it does not touch or weaken the backend's own
+  security.
+-->
+<network-security-config>
+    <domain-config cleartextTrafficPermitted="true">
+        <domain includeSubdomains="false">10.0.2.2</domain>
+        <domain includeSubdomains="false">127.0.0.1</domain>
+        <domain includeSubdomains="false">localhost</domain>
+    </domain-config>
+</network-security-config>

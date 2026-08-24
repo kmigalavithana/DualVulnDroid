@@ -1,0 +1,80 @@
+{
+  "random_seed": 42,
+  "dataset": {
+    "raw_dataset_path": "dataset .csv",
+    "raw_row_count": 1687,
+    "raw_label_distribution": {"s0": 450, "v0": 448, "s1": 439, "v1": 350},
+    "excluded_conflicting_label_rows": 559,
+    "excluded_conflicting_label_groups": 270,
+    "clean_row_count": 1128,
+    "clean_label_distribution": {"s0": 196, "v0": 426, "s1": 176, "v1": 330}
+  },
+  "split": {
+    "method": "grouped_stratified_split, grouped by ml.feature_pipeline.normalize_code()",
+    "train_size": 791,
+    "validation_size": 169,
+    "test_size": 168,
+    "train_label_distribution": {"s0": 138, "v0": 297, "s1": 125, "v1": 231},
+    "leakage_check": "PASSED - zero cross-split overlap on both normalized-template group key and exact text (assert_no_group_leakage)",
+    "known_limitation": "No application/project identifier exists in the dataset, so this is a near-duplicate-grouped split, not a true application-level split."
+  },
+  "feature_pipeline": {
+    "source_module": "ml.feature_pipeline (production, reused unmodified for research evaluation)",
+    "total_dimensions": 7610,
+    "text_dimensions": 7587,
+    "security_dimensions": 23,
+    "word_vectorizer": {"max_features": 5000, "ngram_range": [1, 3]},
+    "char_vectorizer": {"max_features": 2000, "ngram_range": [2, 5], "analyzer": "char"},
+    "count_vectorizer": {"max_features": 1000, "ngram_range": [1, 2]},
+    "fitted_on": "train split only (791 samples)",
+    "reused_for": "validation, test, and production inference (no refitting)"
+  },
+  "production_model": {
+    "algorithm": "XGBoost (multi:softprob, 4-class)",
+    "objective": "multi:softprob",
+    "num_class": 4,
+    "eval_metric": "mlogloss",
+    "max_depth": 4,
+    "eta": 0.1,
+    "seed": 42,
+    "num_boost_round_selected": 103,
+    "raw_boosted_rounds_saved": 123,
+    "early_stopping_rounds": 20,
+    "note_on_103_vs_123": "123 rounds were boosted before early stopping triggered (best iteration 102, i.e. round 103, plus the early_stopping_rounds=20 patience window); predictor.py loads the raw 123-round booster and slices it to the first 103 rounds at load time (booster[0:103]), verified bit-identical to iteration_range-based prediction.",
+    "class_order": ["s0", "v0", "s1", "v1"],
+    "selection_method": "max validation macro-F1 across 4 hyperparameter candidates (validation only, never test)"
+  },
+  "software_versions": {
+    "python_version": "3.11.0",
+    "platform": "Windows-10-10.0.26200-SP0",
+    "scikit_learn_version": "1.9.0",
+    "xgboost_version": "3.2.0"
+  },
+  "artifact_provenance_note": "research_eval_artifacts/codebert/test_metrics.json is the verified, canonical CodeBERT source used throughout this documentation (its numbers match the independently-supplied verification set exactly). Two other directories - 'codebert final result/' and 'codebert_final_artifacts/' - contain a different, non-matching run (accuracy 0.8333 vs 0.7976) and were NOT used; they are retained on disk as earlier/superseded experimental output, not deleted, but are explicitly excluded from every reported number in this documentation set.",
+  "decision_engine_current_production": {
+    "thresholds": {"vulnerable_threshold": 1.379, "safe_threshold": -0.926},
+    "threshold_source": "calibrated on validation set (ml/artifacts/decision_engine_thresholds.json)",
+    "evaluated_on": "168-row frozen test set",
+    "coverage": 0.3274,
+    "auto_decision_fnr": 0.0303,
+    "auto_decision_fpr": 0.0909,
+    "auto_decision_precision": 0.9412,
+    "source_artifact": "research_eval_artifacts/security_selection/decision_engine_metrics.json"
+  },
+  "decision_engine_balanced_research_candidate": {
+    "thresholds": {"vulnerable_threshold": 0.753, "safe_threshold": -0.376},
+    "status": "NOT DEPLOYED",
+    "evaluated_on": "168-row frozen test set",
+    "coverage": 0.8869,
+    "fnr": 0.2024,
+    "fpr": 0.1385,
+    "review_workload": 0.1131,
+    "robustness_classification": "INCONCLUSIVE",
+    "production_candidate_decision": "B. PROMISING BUT MORE DATA REQUIRED",
+    "source_artifacts": [
+      "research_eval_artifacts/coverage_optimization/final_summary.json",
+      "research_eval_artifacts/robustness/robustness_summary.json"
+    ]
+  },
+  "verification_method": "Every numeric value in this file and in the accompanying documentation set was read directly from the stored JSON artifacts under backend/research_eval_artifacts/ in this session, not recomputed or transcribed from memory. No value was silently changed from what was supplied for this phase; all matched exactly."
+}

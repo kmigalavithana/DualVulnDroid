@@ -1,0 +1,4 @@
+Model,Accuracy,Precision (macro),Recall (macro),F1 (macro),Precision (weighted),Recall (weighted),F1 (weighted),ROC-AUC
+Linear SVM,0.8036,0.7864,0.78,0.7789,0.8084,0.8036,0.8024,0.9025
+Random Forest,0.7738,0.7584,0.7558,0.7519,0.7835,0.7738,0.7731,0.8758
+XGBoost,0.7917,0.7923,0.793,0.7874,0.8062,0.7917,0.7918,0.8957

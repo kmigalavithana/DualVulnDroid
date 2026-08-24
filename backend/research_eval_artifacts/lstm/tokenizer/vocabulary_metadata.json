@@ -1,0 +1,29 @@
+{
+  "raw_distinct_tokens_in_train": 754,
+  "vocab_size": 756,
+  "min_frequency": 1,
+  "max_vocab_size_cap": 4000,
+  "oov_strategy": "any token not in the train-fit vocabulary (including all validation/test-only tokens) maps to <UNK> (id=1) - never added to the vocabulary",
+  "most_frequent_20": [
+    ".",
+    "(",
+    ")",
+    ";",
+    ",",
+    "STRING",
+    "=",
+    "{",
+    "}",
+    "new",
+    "null",
+    "+",
+    "]",
+    "[",
+    "rawQuery",
+    "getInstance",
+    "String",
+    "SSLContext",
+    "HttpsURLConnection",
+    "TrustManagerFactory"
+  ]
+}

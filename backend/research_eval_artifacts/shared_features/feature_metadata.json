@@ -1,0 +1,55 @@
+{
+  "fitted_on": "train split only (research_eval_artifacts/train_indices.json)",
+  "fitted_on_n_samples": 791,
+  "word_vectorizer_params": {
+    "max_features": 5000,
+    "ngram_range": [
+      1,
+      3
+    ]
+  },
+  "char_vectorizer_params": {
+    "max_features": 2000,
+    "ngram_range": [
+      2,
+      5
+    ],
+    "analyzer": "char"
+  },
+  "count_vectorizer_params": {
+    "max_features": 1000,
+    "ngram_range": [
+      1,
+      2
+    ]
+  },
+  "security_feature_names": [
+    "sql_source_detected",
+    "sql_sink_detected",
+    "sql_source_to_sink",
+    "sql_string_concatenation",
+    "sql_parameterized_query",
+    "sql_user_input",
+    "sql_raw_query",
+    "sql_exec_sql",
+    "sql_compile_statement",
+    "certificate_hostname_verifier",
+    "certificate_return_true",
+    "certificate_trust_manager",
+    "certificate_empty_trust_check",
+    "certificate_exception_validation",
+    "certificate_default_verifier",
+    "webview_ssl_error",
+    "webview_handler_proceed",
+    "webview_handler_cancel",
+    "dataflow_depth",
+    "interprocedural_flow",
+    "unsafe_flow_count",
+    "safe_flow_count",
+    "suspicious_flow_count"
+  ],
+  "total_feature_dims": 7610,
+  "text_feature_dims": 7587,
+  "security_feature_dims": 23,
+  "source_module": "ml.feature_pipeline (production feature pipeline, reused unmodified)"
+}

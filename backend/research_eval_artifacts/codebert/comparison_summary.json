@@ -1,0 +1,61 @@
+{
+  "feature_representation_caveat": "All models use the same source dataset and frozen evaluation split, but their internal representations are model-specific: SVM/Random Forest/XGBoost use TF-IDF word/char n-grams + count vectorizer + 23 deterministic CWE-89/CWE-295 security features; LSTM uses a from-scratch learned token embedding; CodeBERT uses a pretrained Transformer code representation, fine-tuned on this task. Representations are NOT identical across models.",
+  "comparison_table": [
+    {
+      "Model": "Linear SVM",
+      "Type": "Classical ML",
+      "Accuracy": 0.8036,
+      "Macro F1": 0.7789,
+      "ROC-AUC": 0.9025,
+      "Binary F1": 0.8261,
+      "FPR": 0.2,
+      "FNR": 0.1828
+    },
+    {
+      "Model": "Random Forest",
+      "Type": "Classical ML",
+      "Accuracy": 0.7738,
+      "Macro F1": 0.7519,
+      "ROC-AUC": 0.8758,
+      "Binary F1": 0.7889,
+      "FPR": 0.2133,
+      "FNR": 0.2366
+    },
+    {
+      "Model": "XGBoost",
+      "Type": "Boosted Tree ML",
+      "Accuracy": 0.7917,
+      "Macro F1": 0.7874,
+      "ROC-AUC": 0.8957,
+      "Binary F1": 0.7977,
+      "FPR": 0.1467,
+      "FNR": 0.2581
+    },
+    {
+      "Model": "LSTM",
+      "Type": "Deep Learning",
+      "Accuracy": 0.7798,
+      "Macro F1": 0.7448,
+      "ROC-AUC": 0.8845,
+      "Binary F1": 0.7861,
+      "FPR": 0.16,
+      "FNR": 0.2688
+    },
+    {
+      "Model": "CodeBERT",
+      "Type": "Transformer/DL",
+      "Accuracy": 0.7976,
+      "Macro F1": 0.778,
+      "ROC-AUC": 0.8764,
+      "Binary F1": 0.809,
+      "FPR": 0.1733,
+      "FNR": 0.2258
+    }
+  ],
+  "codebert_rank_by_macro_f1": 3,
+  "codebert_rank_by_fnr": 2,
+  "best_macro_f1_model": "XGBoost",
+  "best_fnr_model": "Linear SVM",
+  "best_fpr_model": "XGBoost",
+  "note": "Ranks are 1=best. No claim of 'CodeBERT is better' is made unless the table itself supports it."
+}

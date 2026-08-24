@@ -1,0 +1,16 @@
+{
+  "model": "microsoft/codebert-base",
+  "strategy": "C_full_finetune",
+  "best_validation_macro_f1": 0.8676880946169854,
+  "train_size": 791,
+  "validation_size": 169,
+  "test_size": 168,
+  "max_length": 79,
+  "label_mapping": {
+    "s0": 0,
+    "v0": 1,
+    "s1": 2,
+    "v1": 3
+  },
+  "device": "cuda"
+}
