@@ -258,3 +258,42 @@ pending explicit confirmation before either is attempted.
 
 **All items remain NOT VALIDATED.** No screenshot was captured. Q1/Q2/C1/C2
 remain PASS from Phase 14B, untouched.
+
+## Phase 27 update — final live UI validation of the new 59-test build attempted, delayed-onset ANR (see `phase27_final_live_ui_validation.md`)
+
+A separate, later UI-restyle phase (not itself documented in this file, since
+it predates the items above and its own outcome is tracked in
+`phase_ui_implementation_and_validation.md`) added `SettingsScreen`,
+`VulnerabilityDetailScreen`, `NotAvailableScreen`, and a 4-tab bottom
+navigation shell, plus restyled all 8 pre-existing screens, bringing the
+Flutter automated suite from 43 to 59 passing tests. That phase's own live-
+validation attempt was blocked by the same class of ANR documented
+throughout this file. Phase 27 is a second, independent attempt specifically
+targeting this new build.
+
+Pre-launch RAM was 6.38 GB free (healthy). The existing APK was found stale
+(predated all 16 UI-restyle source files) and was rebuilt; the rebuild was
+confirmed current before proceeding. `Medium_Phone_API_36.1` cold-booted in
+10 seconds to a genuinely responsive System UI/launcher — the first time
+since Phase 21 that System UI was *not* already in an ANR state immediately
+after boot. A deliberate extra 15-second stability recheck was performed
+specifically because of this improved initial signal.
+
+**At +15s, the same `com.android.systemui` ANR appeared** — a delayed onset,
+not previously observed in this project's history (every prior ANR was
+present from the first post-boot check). It did not clear across a further
+20-second bounded recheck. RAM remained healthy throughout (2.91-2.96 GB
+free, not degrading); qemu CPU time again showed the same extreme,
+multi-core-saturating pattern (997.4 CPU-seconds in ~65-70s wall time),
+consistent with every prior finding and Phase 18's graphics-pipeline
+diagnosis.
+
+Per instruction, the attempt was stopped immediately: **the APK was never
+installed, no screen was reached, and no screenshot was captured.** All 12
+UI-restyle target screens (UI-01 through UI-12) and all 9 functional-
+regression items remain **NOT VALIDATED**. No previously genuine PASS result
+(Phase 14B, Phase 21) was touched. The one new finding this phase
+contributes to this project's diagnostic history is that the instability's
+onset timing is itself variable (immediate in most prior attempts, delayed
+here), reinforcing that it is not a simple, single-cause, deterministically
+timed failure.

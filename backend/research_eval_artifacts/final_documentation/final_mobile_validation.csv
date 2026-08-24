@@ -13,3 +13,15 @@ Search — remaining sub-case D (network error),PARTIAL (Phase 14B),NOT VALIDATE
 Compatibility — INCOMPATIBLE,PARTIAL (Phase 14B),NOT VALIDATED — Phase 22 attempted with real data identified (Snaptube, min_sdk_version=21); emulator ANR before app launch,phase14d_final_live_validation.md Section 4; phase22_search_compatibility_live_validation.md Section 5
 Compatibility — NOT_AVAILABLE,PARTIAL (Phase 14B),NOT VALIDATED — Phase 22 attempted; emulator ANR before app launch,phase14d_final_live_validation.md Section 4; phase22_search_compatibility_live_validation.md Section 5
 APK upload,NOT VALIDATED — by design (Phase 14B),Not Applicable / No implemented UI,phase14b_android_validation.md Section K (uiautomator dump confirms no upload entry point)
+UI-01 Splash (restyled),NEW — no prior live status,NOT VALIDATED — Automated PASS only (flutter test/analyze); Phase 27 blocked by emulator ANR before app install,phase27_final_live_ui_validation.md Section 8
+UI-02 Login (restyled),NEW — no prior live status,NOT VALIDATED — Automated PASS only; Phase 27 blocked before app install,phase27_final_live_ui_validation.md Section 8
+UI-03 Registration (restyled),NEW — no prior live status,NOT VALIDATED — Automated PASS only; Phase 27 blocked before app install,phase27_final_live_ui_validation.md Section 8
+UI-04 Dashboard (restyled: settings icon/3-action row/stat cards),NEW — no prior live status,NOT VALIDATED — Automated PASS only; Phase 27 blocked before app install,phase27_final_live_ui_validation.md Section 8
+UI-05 Search (restyled: app-icon avatar),NEW — no prior live status,NOT VALIDATED — Automated PASS only; Phase 27 blocked before app install,phase27_final_live_ui_validation.md Section 8
+UI-06 Application Details (restyled: gradient status card/View details),NEW — no prior live status,NOT VALIDATED — Automated PASS only; Phase 27 blocked before app install,phase27_final_live_ui_validation.md Section 8
+UI-07 Vulnerability Details (new screen),NEW — no prior live status,NOT VALIDATED — Automated PASS only; Phase 27 blocked before app install,phase27_final_live_ui_validation.md Section 8
+UI-08 Security Chat (restyled + date separators),NEW — no prior live status,NOT VALIDATED — Automated PASS only; Phase 27 blocked before app install,phase27_final_live_ui_validation.md Section 8
+UI-09 Chat History grouping (Today/Yesterday, in chat screen),NEW — no prior live status,NOT VALIDATED — Automated PASS only; Phase 27 blocked before app install,phase27_final_live_ui_validation.md Section 8
+UI-10 Settings (new screen),NEW — no prior live status,NOT VALIDATED — Automated PASS only; Phase 27 blocked before app install,phase27_final_live_ui_validation.md Section 8
+UI-11 Bottom Navigation (new AppShell, 4 tabs),NEW — no prior live status,NOT VALIDATED — Automated PASS only; Phase 27 blocked before app install,phase27_final_live_ui_validation.md Section 8
+UI-12 Not Available state (Installed Apps / Upload APK),NEW — no prior live status,NOT VALIDATED — Automated PASS only; Phase 27 blocked before app install,phase27_final_live_ui_validation.md Section 8
