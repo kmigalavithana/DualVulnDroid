@@ -102,3 +102,8 @@ backend/research_eval_artifacts/codebert/model/model.safetensors
 # ---- Misc generated/temporary --------------------------------------------
 *.log
 *.tmp
+
+# ---- Local backup archives (not part of the tracked project source) -------
+# Full-folder backup zips of research_eval_artifacts; far over GitHub's
+# 100MB/file limit. Kept on local disk only.
+backend/research_eval_artifacts.zip
