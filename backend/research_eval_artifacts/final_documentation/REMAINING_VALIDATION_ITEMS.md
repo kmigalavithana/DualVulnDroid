@@ -297,3 +297,128 @@ contributes to this project's diagnostic history is that the instability's
 onset timing is itself variable (immediate in most prior attempts, delayed
 here), reinforcing that it is not a simple, single-cause, deterministically
 timed failure.
+
+## Phase 30 update — final live validation attempted, persistent ANR again (see `phase30_final_live_ui_validation.md`)
+
+A third, independent live-validation attempt, specifically targeting the
+final UI-redesign build (13 screens: Splash, Login, Registration,
+Dashboard, Search, Application Details, Vulnerability Details, Security
+Results, Security Chat, Chat History, Settings, Not Available, Bottom
+Navigation).
+
+Pre-launch RAM was 6.17 GB free (healthy); `flutter analyze` (0 errors)
+and `flutter test` (59 passed / 0 failed) were re-confirmed immediately
+before the attempt. The APK was rebuilt fresh and confirmed newer than
+the prior build and current against all source files.
+`Medium_Phone_API_36.1` cold-booted in 50 seconds. Per this phase's
+instruction, an additional 20-second wait was observed after boot
+completion (rather than checking immediately) before the first stability
+check.
+
+**At +20s post-boot-complete, `com.android.systemui` was already in a
+persistent ANR** — confirmed unchanged at a further recheck 15 seconds
+later (+35s). RAM remained healthy throughout (3.48 GB free during the
+ANR); qemu CPU time again showed the same extreme, multi-core-saturating
+pattern (503.8 CPU-seconds in ~85s wall time), consistent with every
+prior finding and Phase 18's graphics-pipeline diagnosis.
+
+Per instruction, the attempt was stopped immediately: **the APK was never
+installed, no screen was reached, and no screenshot was captured.** All
+13 UI-redesign target screens and all 12 functional-regression flows
+remain **NOT VALIDATED**. No previously genuine PASS result (Phase 14B,
+Phase 21) was touched.
+
+**Summary across the first three UI-redesign live-validation attempts**
+(the UI-restyle phase itself, Phase 27, and Phase 30): all three were
+independently blocked by the same class of System UI ANR before the
+application could be installed or launched.
+
+## Phase 32 update — FIRST GENUINE LIVE SESSION ACHIEVED (see `phase32_final_live_ui_validation.md`)
+
+A fourth attempt, using the same AVD and instructed to give the emulator a
+longer, patient stabilization window rather than checking immediately,
+succeeded: a 90-second bounded post-boot check showed **zero ANR at every
+recheck** — the first sustained stable boot observed in this project's
+history for the restyled build. The current APK was installed and
+launched successfully.
+
+**Genuinely live-validated this phase** (real device, real backend, real
+database, 20 screenshots): real registration (`POST /register`, real
+success snackbar), real login, Dashboard (real user data, settings icon,
+3-action row, FAB, empty recent-assessments state), the new 4-tab bottom
+navigation (real tab-switch observed), both honest Not-Available screens
+(Installed Apps, Upload APK), Search (real query "Snaptube" against the
+real backend, real HIGH-risk result), Application Details (real header/
+version/date), and — for the first time — the new **gradient risk-status
+card** rendering correctly with real data (HIGH, Score 80,
+AVOID_INSTALLING), the real Findings/evidence display, and the
+finding-expansion interaction revealing a real, correctly-wrapped
+"Malicious URL" finding.
+
+**Session ended partway through** (~23 minutes in, after tapping "View
+details" on the real finding): the device stopped responding to input.
+Diagnosis (without restarting or modifying anything) found `system_server`
+stuck in kernel state `D` (uninterruptible sleep) — the InputManagerService
+had genuinely disappeared from the guest's service list, and the screen
+went fully black. A bounded 60-second recheck showed no recovery. Host RAM
+was confirmed healthy throughout (3.62-3.73 GB free), ruling out memory
+exhaustion; qemu's CPU-time-to-wall-time ratio was notably *not* in the
+extreme multi-core-saturation range seen during the earlier ANR episodes —
+a genuinely different failure signature from Phase 31's documented
+pattern, not an exact repeat of it. Per instruction, the AVD was **not**
+restarted, wiped, or reconfigured; the session was left as-is.
+
+**Vulnerability Details (UI-07), Security Chat, Chat History, Settings,
+and the remaining planned functional/edge-case tests (network-error
+recovery, Compatibility NOT_AVAILABLE, unknown-app search, empty search,
+keyboard/scroll edge cases) remain NOT VALIDATED** — not reached before
+the session ended. This is reported honestly, not upgraded, and no
+previously genuine PASS result (Phase 14B, Phase 21) was touched.
+
+**No application-level bug was found.** The session-ending failure is a
+host/environment issue, not a DualVulnDroid defect — no code was changed
+this phase.
+
+## Phase 33 update — RECOVERED, and the most comprehensive live session in this project's history (see `phase33_final_live_validation.md`)
+
+The Phase 32 emulator was confirmed unrecoverable via read-only
+diagnostics (ADB transport alive, but `system_server` still `D`, input
+service gone, app process gone, screen still black). Authorized clean
+recovery was performed: `adb emu kill` succeeded within 5 seconds (no
+force-kill needed), and the **same, unmodified** `Medium_Phone_API_36.1`
+AVD was rebooted. The +20s post-boot check showed `system_server` healthy
+(state `S`) and zero ANR.
+
+The recovered session then ran continuously and stably for **~1 hour 45
+minutes of in-app time**, completing nearly the entire remaining priority
+list with 44 genuine screenshots:
+
+- **View Details → Vulnerability Details** — the exact action that hung
+  Phase 32 — completed with no issue this time. Real evidence, honest SHAP
+  disclaimer, correct absence of the CWE reference panel (this finding's
+  `cwe` is null, not CWE-89/295) and of any Quick Fix button.
+- **Security Chat** — FAB navigation, suggestion chips, a real 3-turn
+  conversation (a suggestion-chip question, a typed question about
+  CWE-89, and a deliberately nonsensical unknown question), all with real
+  `/ai-chat` responses and a real "Today" date separator.
+- **Chat history persistence** — left the chat, reopened via the
+  bottom-nav Chat tab, the full 3-turn conversation reloaded correctly.
+- **Settings** — real Account data, honest Notifications/Appearance (no
+  fake toggles), real About section, real Logout button.
+- **Search — unknown application** — real honest empty state, no
+  fabricated results.
+- **Compatibility — INCOMPATIBLE** — real API level 15 vs Snaptube's real
+  `minSdkVersion=21` → real red INCOMPATIBLE badge.
+- **Compatibility — NOT_AVAILABLE** — no Android version supplied → real
+  NOT_AVAILABLE badges and a real DecisionCard "Avoid installing"
+  recommendation (reflecting the app's real HIGH security risk, which
+  compatibility does not override).
+
+**Search — network-error remains NOT VALIDATED** — not attempted this
+phase (would require deliberately stopping the backend mid-session; not
+reached given the breadth of other tests already completed).
+
+**No application-level bug was found or fixed across Phase 32 or Phase
+33.** No previously genuine PASS result (Phase 14B, Phase 21) was
+touched. See `final_mobile_validation.csv` for the complete, item-by-item
+current status of every tracked case.
