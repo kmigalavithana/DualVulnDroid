@@ -1,0 +1,48 @@
+{
+  "corpus_path": "backend/research_eval_artifacts/new_cwe89_corpus_final/",
+  "old_artifacts_loaded": "NONE",
+  "text_representation": {
+    "source_column": "code_context",
+    "excluded_columns": [
+      "cwe",
+      "dataflow_path",
+      "evidence_type",
+      "label",
+      "label_confidence",
+      "parameterized",
+      "sanitized",
+      "sink",
+      "source",
+      "tainted_variable"
+    ]
+  },
+  "vectorizer": {
+    "class": "TfidfVectorizer",
+    "lowercase": true,
+    "token_pattern": "(?u)\\b\\w\\w+\\b",
+    "ngram_range": [
+      1,
+      1
+    ],
+    "min_df": 1,
+    "max_features": 1000,
+    "fit_on": "TRAIN ONLY (15 docs)",
+    "vocab_size": 251
+  },
+  "models": {
+    "svm": "LinearSVC(class_weight='balanced', random_state=42, max_iter=5000)",
+    "xgb": "XGBClassifier(n_estimators=100, max_depth=3, learning_rate=0.1, scale_pos_weight=14.00, random_state=42)",
+    "fusion": "LogisticRegression(class_weight='balanced', C=1.0, random_state=42) on [oof_ml_svm, static_score, completeness]"
+  },
+  "oof_procedure": "Leave-one-out CV over the 15 TRAIN samples; TF-IDF refit inside each fold; 1 structurally degenerate fold (holding out the only positive) handled by fixing its OOF score to 0.0 and flagging it explicitly (not silently dropped or faked).",
+  "static_analyzer": "backend/dataflow.py (analyze_sql_dataflow, sql_sink_safety_summary) imported READ-ONLY, not modified; experiment-local wrapper extends sink-name matching to .query(/.update(/.delete(/.insert( (documented, structural, non-label-derived extension), reusing dataflow.py's _extract_sink_args/_has_placeholder unchanged.",
+  "calibration": "Platt scaling on VALIDATION ONLY",
+  "abstention_objective": "Predeclared: maximize coverage s.t. FNR<=0 on VALIDATION; frozen band applied once to TEST",
+  "random_seed": 42,
+  "excluded_models": [
+    "LSTM",
+    "CodeBERT (old-dataset checkpoint)",
+    "generic transformer"
+  ],
+  "run_timestamp_utc": "2026-08-29T07:26:55.549324+00:00"
+}

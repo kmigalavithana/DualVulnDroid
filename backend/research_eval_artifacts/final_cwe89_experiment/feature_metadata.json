@@ -1,0 +1,168 @@
+{
+  "text_source_column": "code_context",
+  "excluded_columns": [
+    "cwe",
+    "dataflow_path",
+    "evidence_type",
+    "label",
+    "label_confidence",
+    "parameterized",
+    "sanitized",
+    "sink",
+    "source",
+    "tainted_variable"
+  ],
+  "vectorizer_params": {
+    "lowercase": true,
+    "token_pattern": "(?u)\\b\\w\\w+\\b",
+    "ngram_range": [
+      1,
+      1
+    ],
+    "min_df": 1,
+    "max_features": 1000
+  },
+  "vocab_size": 251,
+  "feature_dims": 251,
+  "train_documents": 15,
+  "dimensionality_note": "251 TF-IDF features from only 15 training documents (1 positive) -- feature count vastly exceeds sample count, a curse-of-dimensionality situation reported honestly rather than concealed by aggressive feature selection, which would itself risk indirectly encoding label information into the pipeline.",
+  "interpretability": {
+    "model_interpreted": "svm (LinearSVC, chosen a priori as the primary/most-interpretable model)",
+    "method": "raw linear coefficient inspection (NOT SHAP)",
+    "shap_considered_but_not_used": true,
+    "shap_rationale": "With 1 positive training example, any SHAP attribution would reduce to the same trivial 'textually similar to the one known positive or not' story the raw linear coefficients already fully reveal, while implying a level of statistical stability the sample size (n=15 train, 1 positive) does not support. Per the task's own instruction ('If the sample size makes SHAP unstable or misleading: do not force SHAP'), simple coefficient inspection is used instead and is more honest here.",
+    "top_positive_tokens_toward_vulnerable": [
+      {
+        "token": "note",
+        "coef": 0.9864042617787284
+      },
+      {
+        "token": "notetable",
+        "coef": 0.45261798211366094
+      },
+      {
+        "token": "sql",
+        "coef": 0.42326989202391785
+      },
+      {
+        "token": "myquery",
+        "coef": 0.3079880440672504
+      },
+      {
+        "token": "quoteifnotquoted",
+        "coef": 0.3079880440672504
+      },
+      {
+        "token": "try",
+        "coef": 0.3079880440672504
+      },
+      {
+        "token": "logger",
+        "coef": 0.3079880440672504
+      },
+      {
+        "token": "var",
+        "coef": 0.3079880440672504
+      },
+      {
+        "token": "fixonenote",
+        "coef": 0.3079880440672504
+      },
+      {
+        "token": "getcontenttosearch",
+        "coef": 0.3079880440672504
+      },
+      {
+        "token": "iscancelled",
+        "coef": 0.3079880440672504
+      },
+      {
+        "token": "exception",
+        "coef": 0.3079880440672504
+      },
+      {
+        "token": "content_to_search",
+        "coef": 0.3079880440672504
+      },
+      {
+        "token": "catch",
+        "coef": 0.3079880440672504
+      },
+      {
+        "token": "noteid",
+        "coef": 0.18518222776957538
+      }
+    ],
+    "top_negative_tokens_toward_safe": [
+      {
+        "token": "audience",
+        "coef": -0.1894518766157435
+      },
+      {
+        "token": "visibility",
+        "coef": -0.1894518766157435
+      },
+      {
+        "token": "val",
+        "coef": -0.164648440443498
+      },
+      {
+        "token": "string",
+        "coef": -0.1470918449887134
+      },
+      {
+        "token": "null",
+        "coef": -0.13770974707254882
+      },
+      {
+        "token": "db",
+        "coef": -0.13618329173390875
+      },
+      {
+        "token": "case",
+        "coef": -0.127784031399651
+      },
+      {
+        "token": "long",
+        "coef": -0.12446551888486929
+      },
+      {
+        "token": "final",
+        "coef": -0.12230093618230686
+      },
+      {
+        "token": "metadb",
+        "coef": -0.12135098925786886
+      },
+      {
+        "token": "else",
+        "coef": -0.11924523361201952
+      },
+      {
+        "token": "use",
+        "coef": -0.10633338462351806
+      },
+      {
+        "token": "rawquery",
+        "coef": -0.10480998492078444
+      },
+      {
+        "token": "did",
+        "coef": -0.10417089037973327
+      },
+      {
+        "token": "updatefoldercolumn",
+        "coef": -0.09761788656929281
+      }
+    ],
+    "finding": "The top positive-weighted tokens (note, notetable, myquery, quoteifnotquoted, fixonenote, getcontenttosearch, iscancelled, content_to_search) are literal identifiers unique to the single training-set vulnerable example (as-001, andstatus-andstatus). This is direct, concrete evidence that the model learned to recognize the LITERAL VOCABULARY of the one positive example it saw, not a generalizable lexical signature of CWE-89 -- consistent with, and explaining, its failure to flag the mechanistically-different test-set positive (os-001) in Experiment A."
+  },
+  "static_baseline_evidence_fields": [
+    "sinks_found",
+    "all_parameterized",
+    "verdict",
+    "static_score",
+    "sink_details",
+    "traced_findings_count"
+  ]
+}

@@ -1,0 +1,110 @@
+sample_id,cwe,label,code,language,repository,commit,file_path,source_url,source_type,evidence,evidence_strength,collection_date,collection_method,pair_id
+cwe295safe105_0001,CWE-295,v1,"public void checkCertTrusted(X509Certificate[] chain, String authType, boolean isServer)
+    throws CertificateException
+{
+    try {
+        if (isServer)
+            appTrustManager.checkServerTrusted(chain, authType);
+        else
+            appTrustManager.checkClientTrusted(chain, authType);
+    } catch (CertificateException ae) {
+        if (isCertKnown(chain[0])) {
+            return;
+        }
+        try {
+            if (isServer)
+                defaultTrustManager.checkServerTrusted(chain, authType);
+            else
+                defaultTrustManager.checkClientTrusted(chain, authType);
+        } catch (CertificateException e) {
+            interactCert(chain, authType, e);
+        }
+    }
+}",Java,ge0rg/MemorizingTrustManager,d092aaeb93388e096f34f2d9a622e39a365ff5a3,src/de/duenndns/ssl/MemorizingTrustManager.java,https://raw.githubusercontent.com/ge0rg/MemorizingTrustManager/master/src/de/duenndns/ssl/MemorizingTrustManager.java,real_library_current_file,"Widely-used, real, independent Android TLS library (used by Conversations/XMPP, DAVx5, and others). Tries a real app-configured trust manager first, then falls back to the platform default trust manager - only if BOTH real validation paths fail does it consult an already-approved local keystore or interact with the user (Trust-On-First-Use). Log statements present in the original method were omitted here for brevity; the control flow and all statements are verbatim and unmodified.",STRONG,2026-09-02,"GitHub REST API / raw.githubusercontent.com fetch, manually reviewed against project evidence rules",
+cwe295safe105_0002,CWE-295,v1,"override fun checkClientTrusted(chain: Array<X509Certificate>?, authType: String?) {
+    throw CertificateException(""cert4android doesn't validate client certificates"")
+}",Kotlin,bitfireAT/cert4android,master (HEAD at collection time),lib/src/main/java/at/bitfire/cert4android/CustomCertManager.kt,https://raw.githubusercontent.com/bitfireAT/cert4android/main/lib/src/main/java/at/bitfire/cert4android/CustomCertManager.kt,real_library_current_file,"Fail-closed rejection of client-certificate validation entirely (unconditional throw), used by the real DAVx5 CalDAV/CardDAV Android client - contrast with an empty/no-op checkClientTrusted body, this actively refuses rather than silently accepting.",STRONG,2026-09-02,"GitHub REST API / raw.githubusercontent.com fetch, manually reviewed against project evidence rules",
+cwe295safe105_0003,CWE-295,v1,"override fun checkServerTrusted(chain: Array<X509Certificate>, authType: String) {
+    if (!certStore.isTrusted(
+            chain,
+            authType,
+            trustSystemCerts = settings.trustSystemCerts,
+            appInForeground = settings.appInForeground
+        )
+    )
+        throw CertificateException(""Certificate chain not trusted"")
+}",Kotlin,bitfireAT/cert4android,master (HEAD at collection time),lib/src/main/java/at/bitfire/cert4android/CustomCertManager.kt,https://raw.githubusercontent.com/bitfireAT/cert4android/main/lib/src/main/java/at/bitfire/cert4android/CustomCertManager.kt,real_library_current_file,"Wires the real chain-trust decision (delegated to CustomCertStore.isTrusted, which itself delegates to a real system trust manager - see the paired sample below) to an active rejection when the chain is not trusted.",STRONG,2026-09-02,"GitHub REST API / raw.githubusercontent.com fetch, manually reviewed against project evidence rules",pair_cert4android_check_and_store
+cwe295safe105_0004,CWE-295,v1,"try {
+    systemKeyStore.checkServerTrusted(chain, authType)
+    return true
+} catch (_: CertificateException) {
+}",Kotlin,bitfireAT/cert4android,master (HEAD at collection time),lib/src/main/java/at/bitfire/cert4android/CustomCertStore.kt,https://raw.githubusercontent.com/bitfireAT/cert4android/main/lib/src/main/java/at/bitfire/cert4android/CustomCertStore.kt,real_library_current_file,"The actual implementation behind isTrusted(): a real system X509TrustManager (obtained via TrustManagerFactory) performs the primary, standard chain validation before any Trust-On-First-Use fallback logic runs.",STRONG,2026-09-02,"GitHub REST API / raw.githubusercontent.com fetch, manually reviewed against project evidence rules",pair_cert4android_check_and_store
+cwe295safe105_0005,CWE-295,v1,"fun buildPinner(
+    host: String = PROTON_HOST,
+    pins: List<String> = loadFromClasspath()
+): CertificatePinner {
+    val builder = CertificatePinner.Builder()
+    if (pins.isNotEmpty()) {
+        builder.add(host, *pins.toTypedArray())
+    }
+    return builder.build()
+}",Kotlin,andreabenetton/pcontacts,9a62cbe86751d4aaecf398c708febe51a6fc898f,core/proton-api/src/main/kotlin/io/pcontacts/core/proton/api/http/ProtonCertificatePins.kt,https://raw.githubusercontent.com/andreabenetton/pcontacts/master/core/proton-api/src/main/kotlin/io/pcontacts/core/proton/api/http/ProtonCertificatePins.kt,real_app_current_file,"Real APPLICATION-level (not library-internal) use of OkHttp's CertificatePinner, wiring actual SPKI pins (root-CA-level: ISRG Root X1/X2) for the app's real API host (*.proton.me). Application code, not library internals - a meaningful diversity contribution versus this dataset's largely library/platform-sourced CWE-295 safe rows.",STRONG,2026-09-02,"GitHub REST API / raw.githubusercontent.com fetch, manually reviewed against project evidence rules",
+cwe295safe105_0006,CWE-295,v1,"if (!hostnameVerifier.verify(canonicalizeHost(host), sslSocket.getSession())) {
+    throw new SSLPeerUnverifiedException(""Cannot verify hostname: "" + host);
+}",Java,grpc/grpc-java,master (HEAD at collection time),okhttp/src/main/java/io/grpc/okhttp/OkHttpTlsUpgrader.java,https://raw.githubusercontent.com/grpc/grpc-java/master/okhttp/src/main/java/io/grpc/okhttp/OkHttpTlsUpgrader.java,real_library_current_file,"Real, active hostname-verification enforcement in Google's gRPC Java library (used by real Android apps built on gRPC) - a genuinely separate codebase/team from Conscrypt despite the shared parent organization.",STRONG,2026-09-02,"GitHub REST API / raw.githubusercontent.com fetch, manually reviewed against project evidence rules",
+cwe295safe105_0007,CWE-295,v1,"public void checkServerTrusted(X509Certificate[] chain, String authType)
+    throws CertificateException
+{
+  trustManager.checkServerTrusted(chain, authType);
+
+  for (X509Certificate certificate : chain) {
+    for (Pair<String, BigInteger> blacklistedSerial : BLACKLIST) {
+      if (certificate.getIssuerDN().getName().equals(blacklistedSerial.first()) &&
+          certificate.getSerialNumber().equals(blacklistedSerial.second()))
+      {
+        throw new CertificateException(""Blacklisted Serial: "" + certificate.getSerialNumber());
+      }
+    }
+  }
+}",Java,signalapp/libsignal-service-java,master (HEAD at collection time; repo archived),java/src/main/java/org/whispersystems/signalservice/internal/util/BlacklistingTrustManager.java,https://raw.githubusercontent.com/signalapp/libsignal-service-java/master/java/src/main/java/org/whispersystems/signalservice/internal/util/BlacklistingTrustManager.java,real_library_archived_file,"Real historical Signal/Open Whisper Systems networking code (author: Moxie Marlinspike). Delegates fully to a real X509TrustManager for standard chain validation FIRST, then additionally rejects any certificate matching a specific known-bad issuer+serial pair - defense-in-depth composition, not a replacement of standard validation.",STRONG,2026-09-02,"GitHub REST API / raw.githubusercontent.com fetch, manually reviewed against project evidence rules",
+cwe295safe105_0008,CWE-295,v1,"public static TrustManager[] createFor(TrustStore trustStore) {
+  try {
+    InputStream keyStoreInputStream = trustStore.getKeyStoreInputStream();
+    KeyStore    keyStore            = KeyStore.getInstance(""BKS"");
+
+    keyStore.load(keyStoreInputStream, trustStore.getKeyStorePassword().toCharArray());
+
+    TrustManagerFactory trustManagerFactory = TrustManagerFactory.getInstance(""X509"");
+    trustManagerFactory.init(keyStore);
+
+    return BlacklistingTrustManager.createFor(trustManagerFactory.getTrustManagers());
+  } catch (KeyStoreException | CertificateException | IOException | NoSuchAlgorithmException e) {
+    throw new AssertionError(e);
+  }
+}",Java,signalapp/libsignal-service-java,master (HEAD at collection time; repo archived),java/src/main/java/org/whispersystems/signalservice/internal/util/BlacklistingTrustManager.java,https://raw.githubusercontent.com/signalapp/libsignal-service-java/master/java/src/main/java/org/whispersystems/signalservice/internal/util/BlacklistingTrustManager.java,real_library_archived_file,"Builds a real pinned TrustManagerFactory from an app-bundled BKS (BouncyCastle KeyStore) trust store, rather than trusting arbitrary system CAs - a genuine, real certificate-pinning construction distinct from the SPKI-hash pinning already collected elsewhere in this dataset.",STRONG,2026-09-02,"GitHub REST API / raw.githubusercontent.com fetch, manually reviewed against project evidence rules",
+cwe295safe105_0009,CWE-295,v1,"public void checkServerTrusted( X509Certificate[] certificates, String authType )
+        throws CertificateException
+{
+    standardTrustManager.checkServerTrusted( certificates, authType );
+
+    for (X509Certificate cert : certificates) {
+        String issuer_name = cert.getIssuerDN().getName();
+        if (issuer_name.indexOf("",O="" + TRUSTED_CA_AUTHORITY + "","") == -1)
+            throw new CertificateException();
+    }
+}",Java,OWASP/MASTG-Hacking-Playground,e2dedbab55ed51daada42fd3176d8d017e280cb1,Android/MSTG-Android-Java-App/app/src/main/java/sg/vp/owasp_mobile/OMTG_Android/HardenedX509TrustManager.java,https://raw.githubusercontent.com/OWASP/MASTG-Hacking-Playground/master/Android/MSTG-Android-Java-App/app/src/main/java/sg/vp/owasp_mobile/OMTG_Android/HardenedX509TrustManager.java,real_security_benchmark_reference_implementation,"OWASP's own reference 'hardened' TrustManager from its official mobile-security benchmark project (explicitly named to contrast with the project's own vulnerable trust-manager examples). Delegates to the real platform trust manager for full chain validation FIRST, then additionally requires the issuer to match a specific pinned CA organization string - positive evidence of both standard validation and additional CA pinning. A debug Log.w call on the success path was omitted here for brevity; all validation logic is verbatim.",STRONG,2026-09-02,"GitHub REST API / raw.githubusercontent.com fetch, manually reviewed against project evidence rules",
+cwe295safe105_0010,CWE-295,v1,"InputStream caInput = new BufferedInputStream(getResources().openRawResource(R.raw.certificate));
+Certificate ca = cf.generateCertificate(caInput);
+caInput.close();
+
+String keyStoreType = KeyStore.getDefaultType();
+KeyStore keyStore = KeyStore.getInstance(keyStoreType);
+keyStore.load(null, null);
+keyStore.setCertificateEntry(""ca"", ca);
+
+String tmfAlgorithm = TrustManagerFactory.getDefaultAlgorithm();
+TrustManagerFactory tmf = TrustManagerFactory.getInstance(tmfAlgorithm);
+tmf.init(keyStore);
+
+final SSLContext context = SSLContext.getInstance(""TLS"");
+context.init(null, tmf.getTrustManagers(), null);",Java,OWASP/MASTG-Hacking-Playground,e2dedbab55ed51daada42fd3176d8d017e280cb1,Android/MSTG-Android-Java-App/app/src/main/java/sg/vp/owasp_mobile/OMTG_Android/OMTG_NETW_004_SSL_Pinning_Certificate.java,https://raw.githubusercontent.com/OWASP/MASTG-Hacking-Playground/master/Android/MSTG-Android-Java-App/app/src/main/java/sg/vp/owasp_mobile/OMTG_Android/OMTG_NETW_004_SSL_Pinning_Certificate.java,real_security_benchmark_reference_implementation,"OWASP's official reference implementation of certificate pinning via a bundled, app-embedded CA certificate resource: loads the real cert, builds a KeyStore containing only it, and initializes a genuine TrustManagerFactory/SSLContext from that KeyStore - a distinct real pinning mechanism (bundled full-certificate pinning) from the SPKI-hash pinning collected elsewhere in this dataset.",STRONG,2026-09-02,"GitHub REST API / raw.githubusercontent.com fetch, manually reviewed against project evidence rules",

@@ -1,0 +1,4 @@
+experiment,split,w_ml,w_static,threshold,n_samples,n_positive,TP,TN,FP,FN,precision,recall,f1,FNR,FPR,power_note
+C_fusion,train,0.5,0.5,0.5,15,1,1,1,13,0,0.0714,1.0,0.1333,0.0,0.9286,LOW_POWER/DESCRIPTIVE (n_pos_true=1)
+C_fusion,validation,0.5,0.5,0.5,11,1,1,2,8,0,0.1111,1.0,0.2,0.0,0.8,LOW_POWER/DESCRIPTIVE (n_pos_true=1)
+C_fusion,test,0.5,0.5,0.5,8,1,1,1,6,0,0.1429,1.0,0.25,0.0,0.8571,LOW_POWER/DESCRIPTIVE (n_pos_true=1)

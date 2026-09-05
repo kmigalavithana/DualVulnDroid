@@ -1,0 +1,19 @@
+{
+  "predeclared_safety_objective": "Maximize coverage subject to FNR <= 0 on VALIDATION (never auto-decide the validation split's one true positive as SAFE)",
+  "selection_procedure": "Grid search over lower in [0.05,0.50) step 0.05, upper in [0.50,0.95] step 0.05, on VALIDATION fusion scores only; among bands achieving FNR<=0, select the one maximizing validation coverage",
+  "selected_band_late_fusion": [
+    0.05,
+    0.5
+  ],
+  "validation_coverage_achieved": 0.0,
+  "test_coverage_achieved_frozen_band": 0.0,
+  "finding": "Under the predeclared zero-missed-vulnerability safety objective, the ONLY band satisfying FNR<=0 on validation forces 0% coverage (total abstention) -- every validation sample's fusion score falls too close to every other sample's for any non-trivial threshold band to isolate the one true positive without risking it. Applying this frozen band to the test split (as required -- no re-selection after seeing test) also yields 0% coverage. This is reported as the honest, quantitative headline result for RQ2/RQ3: at this corpus's current scale, a safety-first selective-prediction policy cannot support any confident automatic decision at all.",
+  "ml_only_selective_band": [
+    0.3,
+    0.5
+  ],
+  "rule_only_selective_band": [
+    0.1,
+    0.5
+  ]
+}

@@ -1,0 +1,7 @@
+pair_id,vulnerable_sample_id,fixed_sample_id
+pair_owncloud_fileprovider_appendwhere,collected_0014,collected_0015
+pair_owncloud_fileprovider_id_where,collected_0013,collected_0016
+pair_phonegap_sync_trust,collected_0001,
+pair_phonegap_sync_trust,collected_0002,
+pair_phonegap_sync_trust,collected_0003,
+pair_phonegap_sync_trust,collected_0004,

@@ -1,0 +1,16 @@
+experiment,model,split,TP,TN,FP,FN
+A_ml_only,svm,train,1,14,0,0
+A_ml_only,svm,validation,0,10,0,1
+A_ml_only,svm,test,0,7,0,1
+A_ml_only,rf,train,1,14,0,0
+A_ml_only,rf,validation,0,10,0,1
+A_ml_only,rf,test,0,7,0,1
+A_ml_only,xgb,train,1,14,0,0
+A_ml_only,xgb,validation,0,10,0,1
+A_ml_only,xgb,test,1,7,0,0
+B_static_only,static_wrapper,train,1,1,13,0
+B_static_only,static_wrapper,validation,1,0,8,0
+B_static_only,static_wrapper,test,1,0,6,0
+C_fusion,ml(svm)+static,train,1,1,13,0
+C_fusion,ml(svm)+static,validation,1,2,8,0
+C_fusion,ml(svm)+static,test,1,1,6,0

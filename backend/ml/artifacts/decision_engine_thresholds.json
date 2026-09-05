@@ -4,5 +4,7 @@
   "validation_accuracy_among_auto_decided": 0.9411764705882353,
   "validation_auto_decided_coverage": 0.40236686390532544,
   "validation_row_count": 169,
-  "note": "Thresholds chosen on the VALIDATION split by maximizing accuracy among auto-decided (non-SUSPICIOUS_REVIEW) cases, subject to at least 40% coverage. Never touched the test split."
+  "model_version": "bb9ecbbfb62a",
+  "calibrated_against": "ml/artifacts/xgboost_model.json",
+  "note": "Thresholds chosen on the VALIDATION split by maximizing accuracy among auto-decided (non-SUSPICIOUS_REVIEW) cases, subject to at least 40% coverage. Never touched the test split. P0 Step 5: this file predates model_version stamping and was calibrated against ml/artifacts/xgboost_model.json (model_version bb9ecbbfb62a), which is NOT the model currently in production (research_eval_artifacts/xgboost/model.json, model_version d682af2d0485 - a different training run with a different feature-pipeline dimensionality). decision_engine.py's model_version guard correctly ignores this file for that reason and falls back to the hand-picked reference defaults (1.5 / -0.9) until a calibration run against the current production model is performed. Kept on disk for provenance/history, not deleted."
 }

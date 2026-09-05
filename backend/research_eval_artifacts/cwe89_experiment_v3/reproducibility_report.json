@@ -1,0 +1,32 @@
+{
+  "corpus_path": "backend/research_eval_artifacts/cwe89_corpus_v3/",
+  "corpus_files_hashed": {
+    "corpus_v3_candidate_samples.csv": "7fe6d01193e027d4f2a0510f383037a347c86b02f5c1e1921adf31f94f1f353c",
+    "project_split_manifest.csv": "d87971afdc8930aad5c7924f2e1e7c4599618ee14dfcfeab972b2fa2b719d9d2"
+  },
+  "random_seed": 42,
+  "python_version": "3.11.0",
+  "platform": "Windows-10-10.0.26200-SP0",
+  "library_versions": {
+    "scikit-learn": "1.9.0",
+    "xgboost": "3.2.0",
+    "numpy": "2.4.6",
+    "pandas": "3.0.3"
+  },
+  "project_split": {
+    "train_projects": 8,
+    "validation_projects": 6,
+    "test_projects": 6
+  },
+  "training_timestamp_utc": "2026-08-29T09:26:16.125348+00:00",
+  "test_evaluation_timestamp_utc": "2026-08-29T09:26:16.125348+00:00",
+  "old_artifacts_loaded": "NONE",
+  "comparison_to_prior_experiment_v2": {
+    "vulnerable_projects": "6 (v3) vs 3 (v2)",
+    "vulnerable_projects_per_split": "2 (v3) vs 1 (v2)",
+    "degenerate_oof_folds": "0 (v3) vs 1 (v2)",
+    "fusion_ml_coefficient_sign": "negative in both rounds (-0.2512 in v3, -1.1468 in v2) -- smaller magnitude in v3 but still inverted",
+    "mcnemar_discordant_pairs_svm_vs_fusion": "0 in both rounds",
+    "abstention_coverage_under_predeclared_fnr0_objective": "0% in both rounds"
+  }
+}

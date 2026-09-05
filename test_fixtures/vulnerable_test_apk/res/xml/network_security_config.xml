@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Deliberately permissive network security configuration (test fixture).
+  This is the exact shape the plugin's NetworkSecurityAnnotator flags in
+  source form: cleartext permitted at base-config level, and user-added
+  CA certificates trusted outside a debug-overrides block.
+-->
+<network-security-config>
+    <base-config cleartextTrafficPermitted="true">
+        <trust-anchors>
+            <certificates src="system" />
+            <certificates src="user" />
+        </trust-anchors>
+    </base-config>
+</network-security-config>

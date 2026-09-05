@@ -1,0 +1,4 @@
+experiment,split,lower_threshold,upper_threshold,n_samples,n_positive,coverage,n_abstained,abstained_sample_ids,full_coverage_TP,full_coverage_TN,full_coverage_FP,full_coverage_FN,decided_only_TP,decided_only_TN,decided_only_FP,decided_only_FN,decided_only_precision,decided_only_recall,decided_only_FNR,decided_only_FPR
+D_fusion_plus_abstention,train,0.45,0.55,15,1,1.0,0,,1,1,13,0,1,1,13,0,0.0714,1.0,0.0,0.9286
+D_fusion_plus_abstention,validation,0.45,0.55,11,1,1.0,0,,1,2,8,0,1,2,8,0,0.1111,1.0,0.0,0.8
+D_fusion_plus_abstention,test,0.45,0.55,8,1,1.0,0,,1,1,6,0,1,1,6,0,0.1429,1.0,0.0,0.8571

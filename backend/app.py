@@ -48,6 +48,19 @@ app.add_middleware(
 
 MAX_CODE_SIZE_BYTES = 200_000  # ~200KB; a legitimate size guard, not a made-up limit
 
+# P0 Step 9: /predict (unlike /developer/predict's _guarded_predict() below)
+# had NO size limit at all - an oversized "code" payload would go straight
+# into feature extraction, XGBoost, SHAP, and data-flow analysis. Defaults
+# to the SAME already-justified ~200KB Android-source-file ceiling as
+# MAX_CODE_SIZE_BYTES (not a new, arbitrary number - a single real Android
+# Java/Kotlin source file is realistically a few KB up to a few tens of
+# KB; 200KB comfortably covers even unusually large generated/legacy
+# files without being so loose it defeats the point), kept as its own
+# env-configurable constant so this endpoint's limit can be tuned
+# independently of /developer/predict's without touching that route's
+# already-tested behavior.
+PREDICT_MAX_CODE_SIZE_BYTES = int(os.getenv("PREDICT_MAX_CODE_SIZE_BYTES", str(MAX_CODE_SIZE_BYTES)))
+
 
 @app.exception_handler(Exception)
 async def unhandled_exception_handler(request: Request, exc: Exception):
@@ -228,6 +241,26 @@ def predict(request: CodeRequest):
     # Phase 3/4 fields (decision, decisionEvidence, securityFeatures,
     # severity, shapTopFeatures) additively, so existing clients are
     # unaffected and updated clients get the richer data for free.
+    #
+    # P0 Step 9: reject an oversized `code` payload BEFORE it ever reaches
+    # feature extraction/XGBoost/SHAP/data-flow analysis. Measured as real
+    # UTF-8 byte length (matches MAX_CODE_SIZE_BYTES's own convention and
+    # actually reflects request payload size, unlike Python's len(str)
+    # which undercounts multi-byte characters) of the code field only -
+    # fileName is never size-limited, since it isn't the vulnerability-
+    # relevant input and rejecting on it would be exactly the "unrelated
+    # JSON field" mistake this step is meant to avoid.
+    code_size = len(request.code.encode("utf-8"))
+    if code_size > PREDICT_MAX_CODE_SIZE_BYTES:
+        raise HTTPException(
+            status_code=413,
+            detail=(
+                f"code exceeds the {PREDICT_MAX_CODE_SIZE_BYTES} byte limit "
+                f"({code_size} bytes received). Configurable via the "
+                "PREDICT_MAX_CODE_SIZE_BYTES environment variable."
+            ),
+        )
+
     result = predict_code(request.code, request.fileName)
 
     return result

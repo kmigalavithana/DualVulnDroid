@@ -1,0 +1,48 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  DELIBERATELY INSECURE TEST FIXTURE - NOT A REAL APPLICATION.
+
+  Built solely to exercise DualVulnDroid's own APK scanner
+  (backend/apk_scanner.py). Every insecure setting below is intentional
+  and exists to give the scanner something real to detect. This app has
+  no code, no network activity, and no functionality of any kind.
+-->
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    package="com.dualvulndroid.vulnerabletestapp"
+    android:versionCode="1"
+    android:versionName="1.0-insecure-test">
+
+    <uses-sdk android:minSdkVersion="21" android:targetSdkVersion="33" />
+
+    <!-- Dangerous permissions (scanner's DANGEROUS_LIST) -->
+    <uses-permission android:name="android.permission.CAMERA" />
+    <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
+    <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
+    <uses-permission android:name="android.permission.READ_CONTACTS" />
+    <uses-permission android:name="android.permission.WRITE_CONTACTS" />
+    <uses-permission android:name="android.permission.RECORD_AUDIO" />
+    <uses-permission android:name="android.permission.READ_SMS" />
+    <uses-permission android:name="android.permission.SEND_SMS" />
+    <uses-permission android:name="android.permission.READ_CALL_LOG" />
+    <uses-permission android:name="android.permission.WRITE_CALL_LOG" />
+    <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE" />
+    <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" />
+
+    <!-- Normal permissions (should land in normal_permissions, not dangerous) -->
+    <uses-permission android:name="android.permission.INTERNET" />
+    <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
+    <uses-permission android:name="android.permission.VIBRATE" />
+
+    <!-- uses-feature declarations, to exercise _extract_uses_features() -->
+    <uses-feature android:name="android.hardware.camera" android:required="true" />
+    <uses-feature android:name="android.hardware.location.gps" android:required="false" />
+    <uses-feature android:name="android.hardware.microphone" />
+
+    <application
+        android:label="@string/app_name"
+        android:usesCleartextTraffic="true"
+        android:debuggable="true"
+        android:allowBackup="true"
+        android:networkSecurityConfig="@xml/network_security_config" />
+
+</manifest>

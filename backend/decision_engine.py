@@ -35,11 +35,15 @@ These two threshold constants are reference defaults (chosen so the three
 worked examples below classify correctly). ml/calibrate_decision_engine.py
 data-drives a second, tuned set of thresholds from the VALIDATION split
 (never the test split) and saves them to
-ml/artifacts/decision_engine_thresholds.json; predictor.py loads the
-calibrated thresholds when that file exists, falling back to these
-defaults otherwise. See ml/reports/model_comparison.json for how each
-threshold choice performs on the held-out test set (evaluated by
-ml/experiment_d.py).
+ml/artifacts/decision_engine_thresholds.json; this module loads the
+calibrated thresholds when that file exists AND explicitly declares a
+`model_version` matching the model currently in production, falling back
+to these defaults otherwise (P0 Step 5: a calibration file computed
+against a different model artifact - different training run, different
+feature dimensionality - is not valid for whatever model is actually
+loaded, so it is never trusted silently). See ml/reports/model_comparison.json
+for how each threshold choice performs on the held-out test set (evaluated
+by ml/experiment_d.py).
 
 Examples (from the design spec, verified in tests/test_decision_engine.py):
   ML=0.61, strong traced SQL source-to-sink            -> VULNERABLE
@@ -60,6 +64,7 @@ distinguish "confidently safe" from "uncertain, ask a human" without
 another schema change.
 """
 
+import hashlib
 import json
 import os
 from collections import OrderedDict
@@ -77,14 +82,56 @@ VULNERABLE_THRESHOLD = 1.5
 SAFE_THRESHOLD = -0.9
 
 _CALIBRATED_THRESHOLDS_PATH = os.path.join("ml", "artifacts", "decision_engine_thresholds.json")
+# The production model currently loaded by predictor.py (see its own
+# ARTIFACT_DIR/PRODUCTION_MODEL_INFO) - computed independently here so a
+# calibration file can be checked for staleness at import time, before
+# predictor.py (which imports THIS module) has computed its own copy.
+_PRODUCTION_MODEL_PATH = os.path.join("research_eval_artifacts", "xgboost", "model.json")
+_CURRENT_PRODUCTION_MODEL_VERSION = None
+if os.path.exists(_PRODUCTION_MODEL_PATH):
+    with open(_PRODUCTION_MODEL_PATH, "rb") as _f:
+        _CURRENT_PRODUCTION_MODEL_VERSION = hashlib.sha256(_f.read()).hexdigest()[:12]
+
 CALIBRATION_SOURCE = "hand-picked defaults (no calibration file found)"
 if os.path.exists(_CALIBRATED_THRESHOLDS_PATH):
     try:
         with open(_CALIBRATED_THRESHOLDS_PATH) as _f:
             _calibrated = json.load(_f)
-        VULNERABLE_THRESHOLD = _calibrated["vulnerable_threshold"]
-        SAFE_THRESHOLD = _calibrated["safe_threshold"]
-        CALIBRATION_SOURCE = f"calibrated on validation set ({_CALIBRATED_THRESHOLDS_PATH})"
+        _calibrated_model_version = _calibrated.get("model_version")
+        # P0 Step 5: a calibration file is only trusted when it
+        # explicitly declares the exact production model_version it was
+        # computed against AND that matches what's actually loaded right
+        # now. Thresholds calibrated against a different model artifact
+        # (different training run, different feature dimensionality) are
+        # not valid for this one - silently reusing them would mean the
+        # VULNERABLE/SAFE cutoffs no longer correspond to this model's
+        # real evidence-score distribution. Any ambiguity (field missing,
+        # mismatch, or the production model file not found) falls back
+        # to the hand-picked reference defaults above rather than
+        # guessing.
+        if (
+            _calibrated_model_version is not None
+            and _CURRENT_PRODUCTION_MODEL_VERSION is not None
+            and _calibrated_model_version == _CURRENT_PRODUCTION_MODEL_VERSION
+        ):
+            VULNERABLE_THRESHOLD = _calibrated["vulnerable_threshold"]
+            SAFE_THRESHOLD = _calibrated["safe_threshold"]
+            CALIBRATION_SOURCE = (
+                f"calibrated on validation set ({_CALIBRATED_THRESHOLDS_PATH}), "
+                f"model_version={_calibrated_model_version}"
+            )
+        else:
+            print(
+                f"[decision_engine] ignoring {_CALIBRATED_THRESHOLDS_PATH}: it was calibrated "
+                f"for model_version={_calibrated_model_version!r}, but the current production "
+                f"model is {_CURRENT_PRODUCTION_MODEL_VERSION!r} - falling back to the "
+                "hand-picked reference defaults until a calibration matching the current "
+                "model is produced."
+            )
+            CALIBRATION_SOURCE = (
+                f"hand-picked defaults ({_CALIBRATED_THRESHOLDS_PATH} exists but does not match "
+                f"the current production model_version={_CURRENT_PRODUCTION_MODEL_VERSION!r}; ignored)"
+            )
     except Exception as _e:
         print(f"[decision_engine] failed to load calibrated thresholds, using defaults: {_e}")
 
@@ -176,7 +223,28 @@ def compute_evidence(label: str, ml_confidence_pct: float, sql_flow: list, cert_
         })
 
     # ---- Static keyword rule (weak, corroborating only) ----
-    if rule_keyword_hit:
+    # A keyword hit only proves security-relevant API vocabulary is
+    # present (e.g. every X509TrustManager/HostnameVerifier override -
+    # safe or not - necessarily contains words like "checkServerTrusted"
+    # or "HostnameVerifier"), never that its usage is unsafe. It must not
+    # be allowed to nudge the score toward "vulnerable" when the real
+    # structural data-flow check for the SAME category has already
+    # confirmed SAFE (P0 Step 5) - otherwise the mere structural presence
+    # of a security-relevant API would push a genuinely safe
+    # implementation toward SUSPICIOUS_REVIEW for no real reason. It still
+    # applies normally whenever that structural check found something
+    # actually unsafe (or didn't run at all), so it keeps corroborating a
+    # real vulnerable/ambiguous signal exactly as before.
+    contradicted_by_confirmed_safe_dataflow = (
+        (bool(cert_safe) and not cert_vulnerable and not cert_suspicious)
+        or (
+            sink_safety.get("sinks_found", 0) > 0
+            and sink_safety.get("all_parameterized")
+            and not traced
+            and not concat_only
+        )
+    )
+    if rule_keyword_hit and not contradicted_by_confirmed_safe_dataflow:
         evidence_score += STATIC_RULE_WEIGHT
         reasons.append({
             "source": "static_rule",

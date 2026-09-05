@@ -1,0 +1,11 @@
+sample_id,project_id,model,error_type,category,explanation
+ot-001,owntracks-android,rule_only,FP,sanitization_parameterization_misunderstanding,Multi-fragment literal/constant SQL-text concatenation misread as unsafe by the strict single-literal parameterization check.
+tk-001,tuskyapp-tusky,rule_only,FP,sanitization_parameterization_misunderstanding,Multi-fragment literal/constant SQL-text concatenation misread as unsafe by the strict single-literal parameterization check.
+ca-001,commons-app-apps-android-commons,rule_only,FP,sanitization_parameterization_misunderstanding,Multi-fragment literal/constant SQL-text concatenation misread as unsafe by the strict single-literal parameterization check.
+os-001,openintents-safe,svm_only,FN,training_data_coverage_gap,No training-set positive shares this sample's vulnerability mechanism/vocabulary closely enough for the linear text model to recognize it.
+os-001,openintents-safe,xgb_only,FN,training_data_coverage_gap,Same root cause as the SVM FN on this sample; XGBoost's test score for this sample did not cross the 0.5 threshold either.
+os-002,openintents-safe,rule_only,FP,sanitization_parameterization_misunderstanding,Multi-fragment literal/constant SQL-text concatenation misread as unsafe by the strict single-literal parameterization check.
+nc-001,nextcloud-android,rule_only,FP,sanitization_parameterization_misunderstanding,Multi-fragment literal/constant SQL-text concatenation misread as unsafe by the strict single-literal parameterization check.
+ca-002,commons-app-apps-android-commons,rule_only,FP,sanitization_parameterization_misunderstanding,Multi-fragment literal/constant SQL-text concatenation misread as unsafe by the strict single-literal parameterization check.
+nc-002,nextcloud-android,svm_only,FN,training_data_coverage_gap,No training-set positive shares this sample's vulnerability mechanism/vocabulary closely enough for the linear text model to recognize it.
+nc-002,nextcloud-android,xgb_only,FN,training_data_coverage_gap,Same root cause as the SVM FN on this sample; XGBoost's test score for this sample did not cross the 0.5 threshold either.

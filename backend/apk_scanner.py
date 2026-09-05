@@ -201,6 +201,7 @@ def extract_apk_metadata(apk_path: str) -> dict:
         "target_sdk_version": None,
         "debuggable": None,
         "allow_backup": None,
+        "uses_cleartext_traffic": None,
         "features": [],
         "manifest_parse_error": None,
     }
@@ -261,6 +262,13 @@ def extract_apk_metadata(apk_path: str) -> dict:
     try:
         metadata["allow_backup"] = _parse_manifest_bool(
             apk.get_attribute_value("application", "allowBackup")
+        )
+    except Exception:
+        pass
+
+    try:
+        metadata["uses_cleartext_traffic"] = _parse_manifest_bool(
+            apk.get_attribute_value("application", "usesCleartextTraffic")
         )
     except Exception:
         pass
@@ -412,48 +420,56 @@ def scan_apk_file(apk_path: str):
         with zipfile.ZipFile(apk_path, 'r') as zip_ref:
             zip_ref.extractall(temp_dir)
             
-        # 1. Check for AndroidManifest.xml
-        manifest_path = os.path.join(temp_dir, "AndroidManifest.xml")
-        if os.path.exists(manifest_path):
-            # In a real scenario, this is binary XML unless decompiled with apktool.
-            # We will attempt to read strings from the binary to find cleartext traffic flags.
-            try:
-                with open(manifest_path, 'rb') as f:
-                    content = f.read().decode('utf-8', errors='ignore').lower()
-                    
-                    if 'usescleartexttraffic="true"' in content or 'usescleartexttraffic' in content:
-                        report["vulnerable"] = True
-                        report["risk_level"] = "high"
-                        report["detections"].append({
-                            "type": "Network Security",
-                            "code": "android:usesCleartextTraffic='true' found in Manifest",
-                            "line": 0
-                        })
-                        
-                    # In binary AndroidManifest.xml, standard XML tags don't exist as plain text.
-                    # Instead, we just search the string pool for "android.permission.XXX"
-                    perms = re.findall(r'android\.permission\.([a-z_]+)', content, re.IGNORECASE)
-                    
-                    for perm_name in perms:
-                        perm_name = perm_name.upper()
-                        if perm_name in DANGEROUS_LIST:
-                            if perm_name not in report["dangerous_permissions"]:
-                                report["dangerous_permissions"].append(perm_name)
-                        else:
-                            if perm_name not in report["normal_permissions"]:
-                                report["normal_permissions"].append(perm_name)
-                                
-                    if report["dangerous_permissions"]:
-                        report["vulnerable"] = True
-                        report["risk_level"] = "high"
-                        report["detections"].append({
-                            "type": "Dangerous Permissions",
-                            "code": ", ".join(report["dangerous_permissions"]),
-                            "line": 0
-                        })
-            except Exception as e:
-                pass
-                
+        # 1. Cleartext-traffic flag + dangerous/normal permission split.
+        #
+        # Bug fix (Flutter APK Scan validation phase, test_fixtures/
+        # vulnerable_test_apk/README.md's "Gap 1"): this used to re-open
+        # AndroidManifest.xml and decode it as UTF-8, then search for the
+        # literal substrings "usescleartexttraffic" and
+        # "android.permission.XXX". A real, aapt2-compiled manifest's AXML
+        # string pool is UTF-16LE, so those bytes are "u\0s\0e\0s\0..." and
+        # neither search could ever match on a real APK - verified live
+        # against the project's own vulnerable_test_apk fixture (which
+        # plants 12 dangerous permissions and a cleartext-traffic flag):
+        # the old code always reported dangerous_permissions=[] and no
+        # "Network Security" detection despite pyaxmlparser (used two
+        # lines above, in extract_apk_metadata()) correctly reading all 15
+        # real permissions. Fixed by deriving both signals from the
+        # already-correctly-decoded pyaxmlparser data instead of a second,
+        # broken raw-byte search - no new dependency, no behavior change
+        # to anything else in this function.
+        for full_permission in metadata["permissions"]:
+            perm_name = full_permission.rsplit(".", 1)[-1].upper()
+            if perm_name in DANGEROUS_LIST:
+                if perm_name not in report["dangerous_permissions"]:
+                    report["dangerous_permissions"].append(perm_name)
+            else:
+                if perm_name not in report["normal_permissions"]:
+                    report["normal_permissions"].append(perm_name)
+
+        if report["dangerous_permissions"]:
+            report["vulnerable"] = True
+            report["risk_level"] = "high"
+            report["detections"].append({
+                "type": "Dangerous Permissions",
+                "code": ", ".join(report["dangerous_permissions"]),
+                "line": 0
+            })
+
+        # metadata["uses_cleartext_traffic"] is True only when the manifest
+        # explicitly declares android:usesCleartextTraffic="true" - None
+        # (attribute absent) is never treated as a finding, consistent
+        # with how debuggable/allow_backup are already handled above.
+        if metadata["uses_cleartext_traffic"] is True:
+            report["vulnerable"] = True
+            report["risk_level"] = "high"
+            report["detections"].append({
+                "type": "Network Security",
+                "code": "android:usesCleartextTraffic=\"true\" found in Manifest",
+                "line": 0
+            })
+
+
         # 2. Real URL extraction: scan every extracted file's raw bytes for
         # URL-shaped strings (dex, resources.arsc, assets, etc. all store
         # string constants as readable text), then run each found URL

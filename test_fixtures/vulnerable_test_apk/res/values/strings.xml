@@ -1,0 +1,39 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Test-fixture strings. The URLs below are deliberate scanner bait for
+  predictor.predict_url()'s heuristic (IP-literal hosts and the keyword
+  list: "free-", "hack", "update-now", "win-prize", "stealer", "trojan",
+  "malware", ".ru", "admin").
+
+  All hostnames use RFC 2606 / RFC 6761 reserved test domains
+  (.example / .test / .invalid) or private-range IPs, so none of them
+  resolve to a real host. Nothing here contacts anything.
+-->
+<resources>
+    <string name="app_name">DualVulnDroid Vulnerable Test App</string>
+
+    <!-- IP-literal host -> predict_url() flags "Contains IP Address instead of Domain" -->
+    <string name="endpoint_ip_literal">http://192.168.1.77/collect</string>
+    <string name="endpoint_ip_literal_2">http://10.0.0.5:8080/telemetry</string>
+
+    <!-- keyword: "free-" and "win-prize" -->
+    <string name="endpoint_prize">http://free-offers.win-prize.example.test/claim</string>
+
+    <!-- keyword: "update-now" -->
+    <string name="endpoint_update">http://update-now.example.test/patch.bin</string>
+
+    <!-- keyword: "admin" -->
+    <string name="endpoint_admin">http://admin.example.test/panel/login</string>
+
+    <!-- keyword: "malware" -->
+    <string name="endpoint_malware_named">http://malware-sample.example.test/report</string>
+
+    <!-- keyword: ".ru" -->
+    <string name="endpoint_ru">http://analytics.example.ru/beacon</string>
+
+    <!-- keyword: "hack" -->
+    <string name="endpoint_hack">http://hack-tools.example.test/list</string>
+
+    <!-- benign control URL: should NOT be flagged by predict_url() -->
+    <string name="endpoint_benign">https://developer.android.com/guide</string>
+</resources>

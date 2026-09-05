@@ -492,8 +492,26 @@ def _line_of(code: str, char_idx: int) -> int:
     return code[:char_idx].count('\n')
 
 
-HOSTNAME_VERIFIER_RE = re.compile(r'(?:class\s+\w+\s*[:(].*?\bHostnameVerifier\b|:\s*HostnameVerifier\b|new\s+HostnameVerifier\s*\(\s*\)|implements\s+HostnameVerifier\b)')
-TRUST_MANAGER_RE = re.compile(r'(?:class\s+\w+\s*[:(].*?\bX509TrustManager\b|:\s*X509TrustManager\b|new\s+X509TrustManager\s*\(\s*\)|implements\s+X509TrustManager\b)')
+# A leading dotted package prefix (e.g. "implements javax.net.ssl.X509TrustManager",
+# the form javac requires when the interface isn't separately imported) is
+# optional in every branch below - a bare, unqualified reference matches
+# exactly as before. Without this, real Android code that doesn't import
+# the interface by simple name was silently invisible to this analyzer
+# (falling through to no finding at all, neither SAFE nor VULNERABLE).
+_QUALIFIED_HOSTNAME_VERIFIER = r'(?:[\w.]+\.)?HostnameVerifier'
+_QUALIFIED_TRUST_MANAGER = r'(?:[\w.]+\.)?X509TrustManager'
+HOSTNAME_VERIFIER_RE = re.compile(
+    r'(?:class\s+\w+\s*[:(].*?\b' + _QUALIFIED_HOSTNAME_VERIFIER + r'\b'
+    r'|:\s*' + _QUALIFIED_HOSTNAME_VERIFIER + r'\b'
+    r'|new\s+' + _QUALIFIED_HOSTNAME_VERIFIER + r'\s*\(\s*\)'
+    r'|implements\s+' + _QUALIFIED_HOSTNAME_VERIFIER + r'\b)'
+)
+TRUST_MANAGER_RE = re.compile(
+    r'(?:class\s+\w+\s*[:(].*?\b' + _QUALIFIED_TRUST_MANAGER + r'\b'
+    r'|:\s*' + _QUALIFIED_TRUST_MANAGER + r'\b'
+    r'|new\s+' + _QUALIFIED_TRUST_MANAGER + r'\s*\(\s*\)'
+    r'|implements\s+' + _QUALIFIED_TRUST_MANAGER + r'\b)'
+)
 SSL_ERROR_HANDLER_RE = re.compile(r'\bonReceivedSslError\s*\([^)]*\)')
 
 

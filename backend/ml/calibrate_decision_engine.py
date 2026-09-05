@@ -16,6 +16,7 @@ Run from backend/, after ml/train.py has produced ml/artifacts/:
     python -m ml.calibrate_decision_engine
 """
 
+import hashlib
 import json
 import os
 import numpy as np
@@ -106,6 +107,15 @@ def main():
         print("[calibrate] no threshold pair met MIN_COVERAGE - keeping decision_engine.py defaults")
         return
 
+    # P0 Step 5: decision_engine.py only trusts this file when its
+    # model_version matches the model actually in production - stamping
+    # it here (the same sha256-prefix convention predictor.py already
+    # uses for PRODUCTION_MODEL_INFO) makes that check possible instead
+    # of silently reusing thresholds calibrated against whatever model
+    # happened to be in ARTIFACT_DIR when this script last ran.
+    with open(os.path.join(ARTIFACT_DIR, "xgboost_model.json"), "rb") as _f:
+        model_version = hashlib.sha256(_f.read()).hexdigest()[:12]
+
     accuracy_among_auto, coverage, safe_thr, vuln_thr = result
     output = {
         "safe_threshold": float(safe_thr),
@@ -113,10 +123,14 @@ def main():
         "validation_accuracy_among_auto_decided": float(accuracy_among_auto),
         "validation_auto_decided_coverage": float(coverage),
         "validation_row_count": int(len(scores)),
+        "model_version": model_version,
+        "calibrated_against": os.path.join(ARTIFACT_DIR, "xgboost_model.json"),
         "note": (
             "Thresholds chosen on the VALIDATION split by maximizing accuracy "
             "among auto-decided (non-SUSPICIOUS_REVIEW) cases, subject to at "
-            "least 40% coverage. Never touched the test split."
+            "least 40% coverage. Never touched the test split. Only trusted by "
+            "decision_engine.py when model_version matches the model actually "
+            "in production."
         ),
     }
 

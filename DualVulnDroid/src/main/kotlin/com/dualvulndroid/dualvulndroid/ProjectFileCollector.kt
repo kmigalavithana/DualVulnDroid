@@ -22,7 +22,11 @@ object ProjectFileCollector {
     // matches section 6's exclusion list.
     private val EXCLUDED_PATH_SEGMENTS = setOf(
         "build", ".gradle", "generated", "node_modules", ".idea",
-        ".git", "out", "captures", ".cxx", "intermediates"
+        ".git", "out", "captures", ".cxx", "intermediates",
+        // STEP 6: "target" (Maven) added for the plugin-fix task's
+        // recursive-fallback source discovery, which can now land directly
+        // on a project's base directory (see MyToolWindow.discoverSourceRoots).
+        "target"
     )
 
     // Mirrors backend/app.py's MAX_CODE_SIZE_BYTES (200_000) so obviously

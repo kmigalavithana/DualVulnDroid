@@ -197,3 +197,58 @@ client = new WebViewClient() {
 def test_cert_unrelated_code_is_clean():
     code = 'System.out.println("hello world");'
     assert analyze_cert_dataflow(code) == []
+
+
+# ---------------------------------------------------------------------
+# P0 Step 5 regression: fully package-qualified interface names.
+#
+# Real Android code very commonly writes `implements javax.net.ssl.X509TrustManager`
+# / `implements javax.net.ssl.HostnameVerifier` without a separate simple-name
+# import. TRUST_MANAGER_RE/HOSTNAME_VERIFIER_RE previously only matched the
+# bare, unqualified name, so any code written this way was entirely invisible
+# to analyze_cert_dataflow() - it silently returned [] instead of a SAFE or
+# VULNERABLE verdict, in both directions (this is what let a genuinely
+# vulnerable empty-body TrustManager slip through with zero dataflow_cert
+# evidence, and separately let a genuinely safe one land on
+# SUSPICIOUS_REVIEW purely from the static keyword rule + an
+# unrelated-but-confident ML signal - see decision_engine.py's P0 Step 5
+# evidence-combination fix for the second half of that).
+# ---------------------------------------------------------------------
+
+def test_cert_trust_manager_fully_qualified_name_safe_is_recognized():
+    code = '''
+public class RealTrustManager implements javax.net.ssl.X509TrustManager {
+    public void checkServerTrusted(X509Certificate[] chain, String authType) throws CertificateException {
+        if (chain == null || chain.length == 0) {
+            throw new CertificateException("Empty chain");
+        }
+    }
+}
+'''
+    findings = analyze_cert_dataflow(code)
+    assert any(f["component"] == "X509TrustManager.checkServerTrusted" and f["verdict"] == "SAFE" for f in findings)
+
+
+def test_cert_trust_manager_fully_qualified_name_vulnerable_is_recognized():
+    code = '''
+public class InsecureTrustManager implements javax.net.ssl.X509TrustManager {
+    public void checkServerTrusted(X509Certificate[] chain, String authType) {
+    }
+}
+'''
+    findings = analyze_cert_dataflow(code)
+    assert any(f["component"] == "X509TrustManager.checkServerTrusted" and f["verdict"] == "VULNERABLE" for f in findings)
+
+
+def test_cert_hostname_verifier_fully_qualified_name_is_recognized():
+    code = '''
+public class NetworkConfig {
+    HostnameVerifier hv = new javax.net.ssl.HostnameVerifier() {
+        public boolean verify(String hostname, SSLSession session) {
+            return true;
+        }
+    };
+}
+'''
+    findings = analyze_cert_dataflow(code)
+    assert any(f["component"] == "HostnameVerifier" and f["verdict"] == "VULNERABLE" for f in findings)

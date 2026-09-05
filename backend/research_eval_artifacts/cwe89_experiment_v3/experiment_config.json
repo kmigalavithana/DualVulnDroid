@@ -1,0 +1,61 @@
+{
+  "corpus_path": "backend/research_eval_artifacts/cwe89_corpus_v3/",
+  "corpus_totals": {
+    "total_samples": 37,
+    "vulnerable_samples": 6,
+    "safe_samples": 31,
+    "independent_projects": 20,
+    "independent_vulnerable_projects": 6,
+    "vulnerable_projects_per_split": {
+      "train": 2,
+      "validation": 2,
+      "test": 2
+    }
+  },
+  "old_artifacts_loaded": "NONE -- no old dataset, old model checkpoint, old vectorizer/scaler, old CodeBERT, old LSTM, old metrics, or old thresholds were loaded",
+  "text_representation": {
+    "source_column": "code_context",
+    "excluded_columns": [
+      "cwe",
+      "dataflow_path",
+      "evidence_type",
+      "label",
+      "label_confidence",
+      "parameterized",
+      "sanitized",
+      "sink",
+      "source",
+      "tainted_variable"
+    ]
+  },
+  "vectorizer": {
+    "class": "TfidfVectorizer",
+    "lowercase": true,
+    "token_pattern": "(?u)\\b\\w\\w+\\b",
+    "ngram_range": [
+      1,
+      1
+    ],
+    "min_df": 1,
+    "max_features": 1000,
+    "fit_on": "TRAIN ONLY (16 docs)",
+    "vocab_size": 256
+  },
+  "models": {
+    "svm": "LinearSVC(class_weight='balanced', random_state=42, max_iter=5000)",
+    "xgb": "XGBClassifier(n_estimators=100, max_depth=3, learning_rate=0.1, scale_pos_weight=7.00, random_state=42)",
+    "fusion": "LogisticRegression(class_weight='balanced', C=1.0, random_state=42) on [oof_ml_svm, static_score, completeness]"
+  },
+  "oof_procedure": "Leave-one-out CV over the 16 TRAIN samples; TF-IDF refit inside each fold; 0 structurally degenerate folds this round (vs. 1/15 in the prior v2 experiment) because train now has 2 positive examples, so holding out one still leaves 1 positive to train each fold on.",
+  "static_analyzer": "backend/dataflow.py (analyze_sql_dataflow, sql_sink_safety_summary) imported READ-ONLY, not modified; same experiment-local sink-list extension as the v2 round (.query(/.update(/.delete(/.insert() reused unchanged.",
+  "calibration": "Platt scaling on VALIDATION ONLY (12 samples, 2 positive)",
+  "abstention_objective": "Predeclared: maximize coverage s.t. FNR<=0 on VALIDATION; frozen band applied once to TEST",
+  "random_seed": 42,
+  "excluded_models": [
+    "LSTM",
+    "CodeBERT",
+    "generic transformer"
+  ],
+  "excluded_models_reason": "Corpus scale (37 samples, 6 vulnerable) does not justify a high-capacity or pretrained-fine-tuning model; Random Forest also not used as a primary model per this round's task instruction (SVM + XGBoost primary, RF optional and not exercised).",
+  "run_timestamp_utc": "2026-08-29T09:26:16.125348+00:00"
+}

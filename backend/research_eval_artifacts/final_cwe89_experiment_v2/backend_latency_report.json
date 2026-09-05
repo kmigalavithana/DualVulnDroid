@@ -1,0 +1,48 @@
+{
+  "measurement_scope": "predict_code() compute path only (direct in-process Python call, NO HTTP/network layer, NO IDE/editor round trip)",
+  "label": "backend inference latency (NOT real-time IDE latency, NOT editor-to-annotation latency)",
+  "model_startup_import_time_seconds": 5.117,
+  "note_on_model_used": "This measures the latency of the CURRENTLY DEPLOYED backend inference pipeline (predictor.py / the existing production XGBoost+SHAP+dataflow pipeline). This is a SYSTEMS/ENGINEERING measurement only. It provides NO evidence about detection accuracy -- accuracy is evaluated exclusively via the new CWE-89 corpus experiment (final_cwe89_experiment_v2/), which uses freshly-trained models on the new corpus, not this deployed pipeline.",
+  "machine": "Windows-10-10.0.26200-SP0",
+  "python_version": "3.11.0",
+  "n_warmup_calls_per_snippet": 3,
+  "n_repeated_calls_per_snippet": 30,
+  "results_by_snippet": {
+    "short": {
+      "n_requests": 30,
+      "n_errors": 0,
+      "n_chars": 53,
+      "mean_ms": 65.25,
+      "p50_ms": 64.97,
+      "p95_ms": 73.06,
+      "p99_ms": 84.31,
+      "min_ms": 54.28,
+      "max_ms": 88.62,
+      "cold_first_call_ms": 73.98
+    },
+    "medium": {
+      "n_requests": 30,
+      "n_errors": 0,
+      "n_chars": 341,
+      "mean_ms": 45.41,
+      "p50_ms": 45.46,
+      "p95_ms": 48.68,
+      "p99_ms": 50.29,
+      "min_ms": 40.19,
+      "max_ms": 50.93,
+      "cold_first_call_ms": 43.9
+    },
+    "long": {
+      "n_requests": 30,
+      "n_errors": 0,
+      "n_chars": 4719,
+      "mean_ms": 110.03,
+      "p50_ms": 110.56,
+      "p95_ms": 116.58,
+      "p99_ms": 118.75,
+      "min_ms": 102.19,
+      "max_ms": 119.16,
+      "cold_first_call_ms": 125.78
+    }
+  }
+}

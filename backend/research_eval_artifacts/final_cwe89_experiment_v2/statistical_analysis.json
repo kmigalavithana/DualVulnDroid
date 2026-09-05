@@ -1,0 +1,29 @@
+{
+  "project_level_bootstrap_2000_resamples": {
+    "svm_only_test_accuracy": {
+      "mean": 0.8804896464646466,
+      "ci_lower": 0.6666666666666666,
+      "ci_upper": 1.0,
+      "n_boot": 2000
+    },
+    "late_fusion_test_accuracy": {
+      "mean": 0.881648015873016,
+      "ci_lower": 0.6666666666666666,
+      "ci_upper": 1.0,
+      "n_boot": 2000
+    },
+    "caveat": "Resampled over only 6 test projects (1 vulnerable); intervals are wide and should be read as low-power/descriptive, not as evidence of a precise effect size."
+  },
+  "mcnemar_svm_vs_late_fusion_test": {
+    "b_svm_correct_fusion_wrong": 0,
+    "c_svm_wrong_fusion_correct": 0,
+    "discordant_pairs": 0,
+    "exact_binomial_p_value": null,
+    "finding": "Zero discordant pairs: SVM-only and late-fusion produced IDENTICAL predictions on all 8 test samples (both predict SAFE for every sample, including the true positive). No paired significance test is applicable when there is no disagreement between the two methods being compared -- this is itself the finding, not a null result to explain away."
+  },
+  "risk_coverage_aurc_test": {
+    "aurc": 0.23647959183673467,
+    "n_test": 8,
+    "caveat": "n=8, 1 positive -- LOW_POWER/DESCRIPTIVE, not a robust AURC estimate"
+  }
+}

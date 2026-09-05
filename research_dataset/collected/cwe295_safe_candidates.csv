@@ -1,0 +1,227 @@
+sample_id,cwe,label,code,language,repository,commit,file_path,source_url,source_type,evidence,evidence_strength,collection_date,collection_method,pair_id_if_available,provenance_note
+cwe295safe_0001,CWE-295,v1,"return getSubjectAltNames(certificate, ALT_IPA_NAME).any {
+  canonicalIpAddress == it.toCanonicalHost()
+}",Kotlin,square/okhttp,f258f7a14b3a56106ed051a841ce71fa8a978b97,okhttp/src/commonJvmAndroid/kotlin/okhttp3/internal/tls/OkHostnameVerifier.kt,https://raw.githubusercontent.com/square/okhttp/main/okhttp/src/commonJvmAndroid/kotlin/okhttp3/internal/tls/OkHostnameVerifier.kt,real_library_current_file,"OkHttp's canonical hostname verifier: matches the connection's canonical IP address against the certificate's IP-type Subject Alternative Names - real positive comparison, not a stub.",STRONG,2026-09-02,"GitHub REST API / raw.githubusercontent.com fetch, manually reviewed against project evidence rules",,"repository slug currently redirects to lysine-dev/okhttp on GitHub (org rename); confirmed via web search this is the same continuously-maintained OkHttp project (46.9k stars, v5.5.0 released Feb 2026), not an unrelated namesquat."
+cwe295safe_0002,CWE-295,v1,"private fun verifyHostname(hostname: String, certificate: X509Certificate): Boolean {
+  val hostname = hostname.asciiToLowercase()
+  return getSubjectAltNames(certificate, ALT_DNS_NAME).any {
+    verifyHostname(hostname, it)
+  }
+}",Kotlin,square/okhttp,f258f7a14b3a56106ed051a841ce71fa8a978b97,okhttp/src/commonJvmAndroid/kotlin/okhttp3/internal/tls/OkHostnameVerifier.kt,https://raw.githubusercontent.com/square/okhttp/main/okhttp/src/commonJvmAndroid/kotlin/okhttp3/internal/tls/OkHostnameVerifier.kt,real_library_current_file,Matches a normalized hostname against the certificate's DNS-type Subject Alternative Names - the real hostname-validation half of the same canonical verifier.,STRONG,2026-09-02,"GitHub REST API / raw.githubusercontent.com fetch, manually reviewed against project evidence rules",,
+cwe295safe_0003,CWE-295,v1,"""sha256"" -> {
+  if (sha256 == null) sha256 = peerCertificate.sha256Hash()
+  if (pin.hash == sha256) return // Success!
+}",Kotlin,square/okhttp,f258f7a14b3a56106ed051a841ce71fa8a978b97,okhttp/src/commonJvmAndroid/kotlin/okhttp3/CertificatePinner.kt,https://raw.githubusercontent.com/square/okhttp/main/okhttp/src/commonJvmAndroid/kotlin/okhttp3/CertificatePinner.kt,real_library_current_file,Real SHA-256 SPKI pin comparison inside CertificatePinner.check() - computes the actual peer certificate's public-key hash and compares it against the configured pin.,STRONG,2026-09-02,"GitHub REST API / raw.githubusercontent.com fetch, manually reviewed against project evidence rules",,
+cwe295safe_0004,CWE-295,v1,throw SSLPeerUnverifiedException(message),Kotlin,square/okhttp,f258f7a14b3a56106ed051a841ce71fa8a978b97,okhttp/src/commonJvmAndroid/kotlin/okhttp3/CertificatePinner.kt,https://raw.githubusercontent.com/square/okhttp/main/okhttp/src/commonJvmAndroid/kotlin/okhttp3/CertificatePinner.kt,real_library_current_file,"Active enforcement: raises SSLPeerUnverifiedException when no configured pin matches any certificate in the chain, after exhausting all candidates - a real rejection path, not a silent pass-through.",STRONG,2026-09-02,"GitHub REST API / raw.githubusercontent.com fetch, manually reviewed against project evidence rules",,
+cwe295safe_0005,CWE-295,v1,"validatorLocal = CertPathValidator.getInstance(""PKIX"");",Java,google/conscrypt,master (HEAD at collection time),common/src/main/java/org/conscrypt/TrustManagerImpl.java,https://raw.githubusercontent.com/google/conscrypt/master/common/src/main/java/org/conscrypt/TrustManagerImpl.java,real_library_current_file,"Instantiates a real PKIX CertPathValidator - the standard-library algorithm that performs full X.509 certificate chain validation, used by Google's own Conscrypt TLS provider (the default provider on modern Android).",STRONG,2026-09-02,"GitHub REST API / raw.githubusercontent.com fetch, manually reviewed against project evidence rules",,
+cwe295safe_0006,CWE-295,v1,"ConscryptHostnameVerifier verifier = getHttpsVerifier();
+if (!verifier.verify(certs, hostname, session)) {
+    throw new CertificateException(""No subjectAltNames on the certificate match"");
+}",Java,google/conscrypt,master (HEAD at collection time),common/src/main/java/org/conscrypt/TrustManagerImpl.java,https://raw.githubusercontent.com/google/conscrypt/master/common/src/main/java/org/conscrypt/TrustManagerImpl.java,real_library_current_file,"When endpoint identification is HTTPS, actively calls a real hostname verifier against the presented chain and throws CertificateException on mismatch.",STRONG,2026-09-02,"GitHub REST API / raw.githubusercontent.com fetch, manually reviewed against project evidence rules",,
+cwe295safe_0007,CWE-295,v1,"if (pinManager != null) {
+    pinManager.checkChainPinning(host, wholeChain);
+}",Java,google/conscrypt,master (HEAD at collection time),common/src/main/java/org/conscrypt/TrustManagerImpl.java,https://raw.githubusercontent.com/google/conscrypt/master/common/src/main/java/org/conscrypt/TrustManagerImpl.java,real_library_current_file,"Real certificate-pinning enforcement invoked as part of chain verification, on the whole built (and already anchor-validated) chain.",STRONG,2026-09-02,"GitHub REST API / raw.githubusercontent.com fetch, manually reviewed against project evidence rules",,
+cwe295safe_0008,CWE-295,v1,"private void checkBlocklist(X509Certificate cert) throws CertificateException {
+    if (blocklist != null && blocklist.isPublicKeyBlockListed(cert.getPublicKey())) {
+        throw new CertificateException(""Certificate blocklisted by public key: "" + cert);
+    }
+}",Java,google/conscrypt,master (HEAD at collection time),common/src/main/java/org/conscrypt/TrustManagerImpl.java,https://raw.githubusercontent.com/google/conscrypt/master/common/src/main/java/org/conscrypt/TrustManagerImpl.java,real_library_current_file,Rejects any certificate in the chain whose public key is on a real revocation/blocklist - an active-rejection security control beyond ordinary chain validation.,STRONG,2026-09-02,"GitHub REST API / raw.githubusercontent.com fetch, manually reviewed against project evidence rules",,
+cwe295safe_0009,CWE-295,v1,"validator.validate(certPath, params);",Java,google/conscrypt,master (HEAD at collection time),common/src/main/java/org/conscrypt/TrustManagerImpl.java,https://raw.githubusercontent.com/google/conscrypt/master/common/src/main/java/org/conscrypt/TrustManagerImpl.java,real_library_current_file,The actual PKIX path-validation call (java.security.cert.CertPathValidator.validate) - this is where the untrusted chain is genuinely cryptographically verified against the trust anchor.,STRONG,2026-09-02,"GitHub REST API / raw.githubusercontent.com fetch, manually reviewed against project evidence rules",,
+cwe295safe_0010,CWE-295,v1,"if (!clientAuth && host != null && ct != null
+    && policy.isCertificateTransparencyVerificationRequired(host)) {
+    ct.checkCT(wholeChain, ocspData, tlsSctData, host);
+}",Java,google/conscrypt,master (HEAD at collection time),common/src/main/java/org/conscrypt/TrustManagerImpl.java,https://raw.githubusercontent.com/google/conscrypt/master/common/src/main/java/org/conscrypt/TrustManagerImpl.java,real_library_current_file,"Real Certificate Transparency verification, invoked when policy requires it for the host - an additional, independent positive validation layer beyond chain/pin checks.",STRONG,2026-09-02,"GitHub REST API / raw.githubusercontent.com fetch, manually reviewed against project evidence rules",,
+cwe295safe_0011,CWE-295,v1,"if (trustAnchorChain.isEmpty()) {
+    throw new CertificateException(new CertPathValidatorException(
+            ""Trust anchor for certification path not found."", null, certPath, -1));
+}",Java,google/conscrypt,master (HEAD at collection time),common/src/main/java/org/conscrypt/TrustManagerImpl.java,https://raw.githubusercontent.com/google/conscrypt/master/common/src/main/java/org/conscrypt/TrustManagerImpl.java,real_library_current_file,"Refuses to proceed when no trust anchor was found for the chain - fail-closed behavior, not a default-accept.",STRONG,2026-09-02,"GitHub REST API / raw.githubusercontent.com fetch, manually reviewed against project evidence rules",,
+cwe295safe_0012,CWE-295,v1,"if (untrustedChain.size() > MAX_UNTRUSTED_CHAIN_LENGTH) {
+    throw new CertificateException(""Certificate chain too long"");
+}",Java,google/conscrypt,master (HEAD at collection time),common/src/main/java/org/conscrypt/TrustManagerImpl.java,https://raw.githubusercontent.com/google/conscrypt/master/common/src/main/java/org/conscrypt/TrustManagerImpl.java,real_library_current_file,"Bounds untrusted-chain length during path building, part of the real recursive chain-building/validation routine (checkTrustedRecursive) - rejects abusively long chains rather than accepting them.",MODERATE,2026-09-02,"GitHub REST API / raw.githubusercontent.com fetch, manually reviewed against project evidence rules",,"MODERATE not STRONG: this is a resource-limit safeguard supporting validation, not itself a certificate-content check."
+cwe295safe_0013,CWE-295,v1,"if (--budget[0] < 0) {
+    throw new CertificateException(""Path-building iteration limit exceeded"");
+}",Java,google/conscrypt,master (HEAD at collection time),common/src/main/java/org/conscrypt/TrustManagerImpl.java,https://raw.githubusercontent.com/google/conscrypt/master/common/src/main/java/org/conscrypt/TrustManagerImpl.java,real_library_current_file,"Bounds the number of path-building attempts during real chain construction - same class of safeguard as the chain-length check above, from the same method.",MODERATE,2026-09-02,"GitHub REST API / raw.githubusercontent.com fetch, manually reviewed against project evidence rules",,
+cwe295safe_0014,CWE-295,v1,"if (modulusLength < MIN_RSA_MODULUS_LEN_BITS) {
+    throw new CertificateException(""RSA modulus is < "" + MIN_RSA_MODULUS_LEN_BITS + "" bits"");
+}",Java,google/conscrypt,master (HEAD at collection time),common/src/main/java/org/conscrypt/ChainStrengthAnalyzer.java,https://raw.githubusercontent.com/google/conscrypt/master/common/src/main/java/org/conscrypt/ChainStrengthAnalyzer.java,real_library_current_file,"Real key-strength enforcement: rejects a certificate whose RSA modulus is weaker than a defined minimum (1024 bits) - positive evidence the chain is checked for weak keys, not just presence of a chain.",STRONG,2026-09-02,"GitHub REST API / raw.githubusercontent.com fetch, manually reviewed against project evidence rules",,
+cwe295safe_0015,CWE-295,v1,"if (fieldSizeBits < MIN_EC_FIELD_SIZE_BITS) {
+    throw new CertificateException(""EC key field size is < "" + MIN_EC_FIELD_SIZE_BITS + "" bits"");
+}",Java,google/conscrypt,master (HEAD at collection time),common/src/main/java/org/conscrypt/ChainStrengthAnalyzer.java,https://raw.githubusercontent.com/google/conscrypt/master/common/src/main/java/org/conscrypt/ChainStrengthAnalyzer.java,real_library_current_file,"Same weak-key enforcement for EC keys, from the same real method.",STRONG,2026-09-02,"GitHub REST API / raw.githubusercontent.com fetch, manually reviewed against project evidence rules",,
+cwe295safe_0016,CWE-295,v1,"throw new CertificateException(""Signature uses an insecure hash function: "" + oid);",Java,google/conscrypt,master (HEAD at collection time),common/src/main/java/org/conscrypt/ChainStrengthAnalyzer.java,https://raw.githubusercontent.com/google/conscrypt/master/common/src/main/java/org/conscrypt/ChainStrengthAnalyzer.java,real_library_current_file,"Rejects certificates signed with an insecure signature-hash algorithm (checked against a real blacklist including md5WithRSAEncryption, sha1WithRSAEncryption, etc.).",STRONG,2026-09-02,"GitHub REST API / raw.githubusercontent.com fetch, manually reviewed against project evidence rules",,
+cwe295safe_0017,CWE-295,v1,"public static final void check(X509Certificate[] chain) throws CertificateException {
+    for (X509Certificate cert : chain) {
+        try {
+            checkCert(cert);
+        } catch (CertificateException e) {
+            throw new CertificateException(
+                    ""Unacceptable certificate: "" + cert.getSubjectX500Principal(), e);
+        }
+    }
+}",Java,google/conscrypt,master (HEAD at collection time),common/src/main/java/org/conscrypt/ChainStrengthAnalyzer.java,https://raw.githubusercontent.com/google/conscrypt/master/common/src/main/java/org/conscrypt/ChainStrengthAnalyzer.java,real_library_current_file,Public entry point applying the RSA/EC/DSA key-strength and signature-hash checks above to every certificate in a chain - rejects the whole chain if any single certificate fails.,STRONG,2026-09-02,"GitHub REST API / raw.githubusercontent.com fetch, manually reviewed against project evidence rules",,
+cwe295safe_0018,CWE-295,v1,"public void verify(final String host, final X509Certificate cert) throws SSLException {
+    final HostNameType hostType = determineHostFormat(host);
+    switch (hostType) {
+    case IPv4:
+        matchIPAddress(host, getSubjectAltNames(cert, SubjectName.IP));
+        break;
+    case IPv6:
+        matchIPv6Address(host, getSubjectAltNames(cert, SubjectName.IP));
+        break;
+    default:
+        final List<SubjectName> subjectAlts = getSubjectAltNames(cert, SubjectName.DNS);
+        if (subjectAlts.isEmpty()) {
+            matchCN(host, cert, this.publicSuffixMatcher);
+        } else {
+            matchDNSName(host, subjectAlts, this.publicSuffixMatcher);
+        }
+    }
+}",Java,apache/httpcomponents-client,master (HEAD at collection time),httpclient5/src/main/java/org/apache/hc/client5/http/ssl/DefaultHostnameVerifier.java,https://raw.githubusercontent.com/apache/httpcomponents-client/master/httpclient5/src/main/java/org/apache/hc/client5/http/ssl/DefaultHostnameVerifier.java,real_library_current_file,"Apache HttpClient's real hostname-verification dispatch: routes IPv4/IPv6/DNS hosts to the correct SAN-matching routine, falling back to CN matching only when no DNS SANs exist (per RFC 2818).",STRONG,2026-09-02,"GitHub REST API / raw.githubusercontent.com fetch, manually reviewed against project evidence rules",,
+cwe295safe_0019,CWE-295,v1,"static void matchIPAddress(final String host, final List<SubjectName> subjectAlts) throws SSLPeerUnverifiedException {
+    for (final SubjectName subjectAlt : subjectAlts) {
+        if (subjectAlt.getType() == SubjectName.IP) {
+            if (host.equals(subjectAlt.getValue())) {
+                return;
+            }
+        }
+    }
+    throw new SSLPeerUnverifiedException(""Certificate for <"" + host + ""> doesn't match any ""
+            + ""of the subject alternative names: "" + subjectAlts);
+}",Java,apache/httpcomponents-client,master (HEAD at collection time),httpclient5/src/main/java/org/apache/hc/client5/http/ssl/DefaultHostnameVerifier.java,https://raw.githubusercontent.com/apache/httpcomponents-client/master/httpclient5/src/main/java/org/apache/hc/client5/http/ssl/DefaultHostnameVerifier.java,real_library_current_file,Real IPv4 SAN matching with fail-closed throw when no SAN matches the connection host.,STRONG,2026-09-02,"GitHub REST API / raw.githubusercontent.com fetch, manually reviewed against project evidence rules",,
+cwe295safe_0020,CWE-295,v1,"static void matchIPv6Address(final String host, final List<SubjectName> subjectAlts) throws SSLPeerUnverifiedException {
+    final String normalisedHost = normaliseAddress(host);
+    for (final SubjectName subjectAlt : subjectAlts) {
+        if (subjectAlt.getType() == SubjectName.IP) {
+            final String normalizedSubjectAlt = normaliseAddress(subjectAlt.getValue());
+            if (normalisedHost.equals(normalizedSubjectAlt)) {
+                return;
+            }
+        }
+    }
+    throw new SSLPeerUnverifiedException(""Certificate for <"" + host + ""> doesn't match any ""
+            + ""of the subject alternative names: "" + subjectAlts);
+}",Java,apache/httpcomponents-client,master (HEAD at collection time),httpclient5/src/main/java/org/apache/hc/client5/http/ssl/DefaultHostnameVerifier.java,https://raw.githubusercontent.com/apache/httpcomponents-client/master/httpclient5/src/main/java/org/apache/hc/client5/http/ssl/DefaultHostnameVerifier.java,real_library_current_file,Real IPv6 SAN matching (with address normalization) and fail-closed throw.,STRONG,2026-09-02,"GitHub REST API / raw.githubusercontent.com fetch, manually reviewed against project evidence rules",,
+cwe295safe_0021,CWE-295,v1,"static void matchDNSName(final String host, final List<SubjectName> subjectAlts,
+                         final PublicSuffixMatcher publicSuffixMatcher) throws SSLPeerUnverifiedException {
+    final String normalizedHost = DnsUtils.normalizeUnicode(host);
+    for (final SubjectName subjectAlt : subjectAlts) {
+        if (subjectAlt.getType() == SubjectName.DNS) {
+            final String normalizedSubjectAlt = DnsUtils.normalizeUnicode(subjectAlt.getValue());
+            if (matchIdentity(normalizedHost, normalizedSubjectAlt, publicSuffixMatcher, true)) {
+                return;
+            }
+        }
+    }
+    throw new SSLPeerUnverifiedException(""Certificate for <"" + host + ""> doesn't match any ""
+            + ""of the subject alternative names: "" + subjectAlts);
+}",Java,apache/httpcomponents-client,master (HEAD at collection time),httpclient5/src/main/java/org/apache/hc/client5/http/ssl/DefaultHostnameVerifier.java,https://raw.githubusercontent.com/apache/httpcomponents-client/master/httpclient5/src/main/java/org/apache/hc/client5/http/ssl/DefaultHostnameVerifier.java,real_library_current_file,"Real DNS-name SAN matching including public-suffix-aware identity matching, with fail-closed throw.",STRONG,2026-09-02,"GitHub REST API / raw.githubusercontent.com fetch, manually reviewed against project evidence rules",,
+cwe295safe_0022,CWE-295,v1,"static void matchCN(final String host, final X509Certificate cert,
+                    final PublicSuffixMatcher publicSuffixMatcher) throws SSLException {
+    final X500Principal subjectPrincipal = cert.getSubjectX500Principal();
+    final String cn = extractCN(subjectPrincipal.getName(X500Principal.RFC2253));
+    if (cn == null) {
+        throw new SSLPeerUnverifiedException(""Certificate subject for <"" + host + ""> doesn't contain ""
+                + ""a common name and does not have alternative names"");
+    }
+    final String normalizedHost = DnsUtils.normalizeUnicode(host);
+    final String normalizedCn = DnsUtils.normalizeUnicode(cn);
+    if (!matchIdentity(normalizedHost, normalizedCn, publicSuffixMatcher, true)) {
+        throw new SSLPeerUnverifiedException(""Certificate for <"" + host + ""> doesn't match ""
+                + ""common name of the certificate subject: "" + cn);
+    }
+}",Java,apache/httpcomponents-client,master (HEAD at collection time),httpclient5/src/main/java/org/apache/hc/client5/http/ssl/DefaultHostnameVerifier.java,https://raw.githubusercontent.com/apache/httpcomponents-client/master/httpclient5/src/main/java/org/apache/hc/client5/http/ssl/DefaultHostnameVerifier.java,real_library_current_file,"Real, RFC-2818-compliant common-name fallback matching, used only when no DNS SAN exists - fail-closed on missing CN or mismatch.",STRONG,2026-09-02,"GitHub REST API / raw.githubusercontent.com fetch, manually reviewed against project evidence rules",,
+cwe295safe_0023,CWE-295,v1,"<domain-config>
+    <domain includeSubdomains=""true"">attestation.app</domain>
+    <pin-set>
+        <pin digest=""SHA-256"">C5+lpZ7tcVwmwQIMcRtPbsQtWLABXhQzejna0wHFr8M=</pin>
+        <pin digest=""SHA-256"">diGVwiVYbubAI3RW4hB9xU8e/CH2GnkuvVFZE8zmgzI=</pin>
+        <pin digest=""SHA-256"">sCkq5UWXjg+7mKu9lMhhYF5bGLsy7VI/UNW3tccdR7w=</pin>
+        <pin digest=""SHA-256"">fk6IOKit1ild5647BH06ujSIq5XbCgqlbYl6ANhhi88=</pin>
+        <pin digest=""SHA-256"">q3TMLLQkHOLGnFXKL1RytMd1Vr906gdK/ymgcBnk144=</pin>
+        <pin digest=""SHA-256"">x3i8R25x59RNyo1LAunh4lGFvnIYXT5oTq2dOVgxTWU=</pin>
+    </pin-set>
+</domain-config>",XML,GrapheneOS/Auditor,1c74b66319247e3af6c7d578f86ca68fa7300f17,app/src/main/res/xml/network_security_config.xml,https://raw.githubusercontent.com/GrapheneOS/Auditor/main/app/src/main/res/xml/network_security_config.xml,real_app_current_file,"Real Android Network Security Configuration from a genuine, currently-maintained security-focused app: an explicit domain-scoped pin-set (real base64 SHA-256 SPKI pins for attestation.app) rather than a generic HTTPS-only base config with no pinning. Positive evidence of enforced certificate pinning for this domain.",STRONG,2026-09-02,"GitHub REST API / raw.githubusercontent.com fetch, manually reviewed against project evidence rules",,"Not Java/Kotlin code, but explicitly permitted by the task brief ('Android Network Security Configuration that demonstrably preserves proper certificate validation' is listed as a good-candidate category in its own right)."
+cwe295safe_0024,CWE-295,v1,"private void checkPins(List<X509Certificate> chain) throws CertificateException {
+    PinSet pinSet = mNetworkSecurityConfig.getPins();
+    if (pinSet.pins.isEmpty()
+            || System.currentTimeMillis() > pinSet.expirationTime
+            || !isPinningEnforced(chain)) {
+        return;
+    }
+    Set<String> pinAlgorithms = pinSet.getPinAlgorithms();
+    Map<String, MessageDigest> digestMap = new ArrayMap<String, MessageDigest>(
+            pinAlgorithms.size());
+    for (int i = chain.size() - 1; i >= 0 ; i--) {
+        X509Certificate cert = chain.get(i);
+        byte[] encodedSPKI = cert.getPublicKey().getEncoded();
+        for (String algorithm : pinAlgorithms) {
+            MessageDigest md = digestMap.get(algorithm);
+            if (md == null) {
+                try {
+                    md = MessageDigest.getInstance(algorithm);
+                } catch (GeneralSecurityException e) {
+                    throw new RuntimeException(e);
+                }
+                digestMap.put(algorithm, md);
+            }
+            if (pinSet.pins.contains(new Pin(algorithm, md.digest(encodedSPKI)))) {
+                return;
+            }
+        }
+    }
+    throw new CertificateException(""Pin verification failed"");
+}",Java,aosp-mirror/platform_frameworks_base,"master (HEAD at collection time, mirror of AOSP)",core/java/android/security/net/config/NetworkSecurityTrustManager.java,https://raw.githubusercontent.com/aosp-mirror/platform_frameworks_base/master/core/java/android/security/net/config/NetworkSecurityTrustManager.java,real_platform_current_file,"This IS the actual Android platform implementation that enforces network_security_config.xml pin-sets for every app on the device (including the GrapheneOS Auditor sample above) - computes the real SPKI hash of each certificate in the chain and requires a match against the configured pin-set, throwing on failure. The single most authoritative possible source for 'Android Network Security Configuration that demonstrably preserves proper certificate validation.'",STRONG,2026-09-02,"GitHub REST API / raw.githubusercontent.com fetch, manually reviewed against project evidence rules",,
+cwe295safe_0025,CWE-295,v1,"private boolean isPinningEnforced(List<X509Certificate> chain) throws CertificateException {
+    if (chain.isEmpty()) {
+        return false;
+    }
+    X509Certificate anchorCert = chain.get(chain.size() - 1);
+    TrustAnchor chainAnchor =
+            mNetworkSecurityConfig.findTrustAnchorBySubjectAndPublicKey(anchorCert);
+    if (chainAnchor == null) {
+        throw new CertificateException(""Trusted chain does not end in a TrustAnchor"");
+    }
+    return !chainAnchor.overridesPins;
+}",Java,aosp-mirror/platform_frameworks_base,"master (HEAD at collection time, mirror of AOSP)",core/java/android/security/net/config/NetworkSecurityTrustManager.java,https://raw.githubusercontent.com/aosp-mirror/platform_frameworks_base/master/core/java/android/security/net/config/NetworkSecurityTrustManager.java,real_platform_current_file,Real platform logic determining whether pinning applies for a given resolved trust anchor - fails closed (throws) if the chain doesn't resolve to a genuine trust anchor.,STRONG,2026-09-02,"GitHub REST API / raw.githubusercontent.com fetch, manually reviewed against project evidence rules",,
+cwe295safe_0026,CWE-295,v1,"public List<X509Certificate> checkServerTrusted(X509Certificate[] certs, String authType,
+        String host) throws CertificateException {
+    List<X509Certificate> trustedChain = mDelegate.checkServerTrusted(certs, authType, host);
+    checkPins(trustedChain);
+    return trustedChain;
+}",Java,aosp-mirror/platform_frameworks_base,"master (HEAD at collection time, mirror of AOSP)",core/java/android/security/net/config/NetworkSecurityTrustManager.java,https://raw.githubusercontent.com/aosp-mirror/platform_frameworks_base/master/core/java/android/security/net/config/NetworkSecurityTrustManager.java,real_platform_current_file,"Wiring showing pin checks are applied AFTER, not instead of, full delegated chain validation (mDelegate.checkServerTrusted performs the real PKIX validation via TrustManagerImpl) - the two controls compose rather than one silently replacing the other.",STRONG,2026-09-02,"GitHub REST API / raw.githubusercontent.com fetch, manually reviewed against project evidence rules",,
+cwe295safe_0027,CWE-295,v1,"public void checkServerTrusted(X509Certificate[] certificates, String authType) throws CertificateException {
+    if (!isKnownServer(certificates[0])) {
+        certificates[0].checkValidity();
+        standardTrustManager.checkServerTrusted(certificates, authType);
+    }
+}",Java,mendhak/gpslogger,b64616fd3727c8b8255d2e1111d54a6aaf634bb5,gpslogger/src/main/java/com/mendhak/gpslogger/loggers/customurl/LocalX509TrustManager.java,https://raw.githubusercontent.com/mendhak/gpslogger/b64616fd3727c8b8255d2e1111d54a6aaf634bb5/gpslogger/src/main/java/com/mendhak/gpslogger/loggers/customurl/LocalX509TrustManager.java,real_app_fix_commit,"Real fix committed in direct response to a Google Play security-policy takedown notice for this exact class (GitHub issue #481, 'Incorrect implementation of the HostnameVerifier'). Trust-On-First-Use pattern: certificates NOT already in the user's explicitly-approved local keystore get a real date-validity check AND full delegated chain validation via the platform's standard trust manager - this is a materially different, and safe, construct from an isolated checkValidity()-only line (contrast with the CWE-295 VULNERABLE sample already in the frozen dataset from job4chris/EasyX509TrustManager.java, where checkValidity() alone, with no chain delegation, was the entire check for the single-certificate case). try/catch exception handling and logging present in the original file were omitted here for brevity; the statements and their order are verbatim and unmodified.",STRONG,2026-09-02,"GitHub REST API / raw.githubusercontent.com fetch, manually reviewed against project evidence rules",pair_gpslogger_local_trust_manager,"This class's authorship (@author David A. Velasco) traces to the same developer behind ownCloud's Android self-signed-certificate handling - a real, independently documented cross-project pattern, not a coincidence worth treating as a duplicate (different file, different repository, different exact code)."
+cwe295safe_0028,CWE-295,v1,"public void checkClientTrusted(X509Certificate[] chain, String authType) throws CertificateException {
+    throw new CertificateException(""Client certificates not supported!"");
+}",Java,moxie0/AndroidPinning,master (HEAD at collection time),src/org/thoughtcrime/ssl/pinning/PinningTrustManager.java,https://raw.githubusercontent.com/moxie0/AndroidPinning/master/src/org/thoughtcrime/ssl/pinning/PinningTrustManager.java,real_library_current_file,"Fail-closed rejection of client certificates entirely, rather than silently accepting them with an empty method body - the opposite pattern from the empty-body vulnerable checkClientTrusted samples already in the frozen dataset. From AndroidPinning, one of the earliest standalone Android certificate-pinning libraries (Moxie Marlinspike, who later founded Signal).",STRONG,2026-09-02,"GitHub REST API / raw.githubusercontent.com fetch, manually reviewed against project evidence rules",,
+cwe295safe_0029,CWE-295,v1,"if (systemTrustManager != null) {
+    ((X509TrustManager) systemTrustManager).checkServerTrusted(chain, authType);
+}",Java,moxie0/AndroidPinning,master (HEAD at collection time),src/org/thoughtcrime/ssl/pinning/PinningTrustManager.java,https://raw.githubusercontent.com/moxie0/AndroidPinning/master/src/org/thoughtcrime/ssl/pinning/PinningTrustManager.java,real_library_current_file,"Delegates to a real system trust manager for standard chain validation BEFORE the library's own pin check runs (composition of the two controls, not a replacement of one by the other).",STRONG,2026-09-02,"GitHub REST API / raw.githubusercontent.com fetch, manually reviewed against project evidence rules",,
+cwe295safe_0030,CWE-295,v1,"for (X509Certificate certificate : chain) {
+    if (isValidPin(certificate)) {
+        return;
+    }
+}
+throw new CertificateException(""No valid pins found in chain!"");",Java,moxie0/AndroidPinning,master (HEAD at collection time),src/org/thoughtcrime/ssl/pinning/PinningTrustManager.java,https://raw.githubusercontent.com/moxie0/AndroidPinning/master/src/org/thoughtcrime/ssl/pinning/PinningTrustManager.java,real_library_current_file,Real pin-matching loop across the whole certificate chain with a fail-closed throw if no certificate in the chain matches any configured pin.,STRONG,2026-09-02,"GitHub REST API / raw.githubusercontent.com fetch, manually reviewed against project evidence rules",,
+cwe295safe_0031,CWE-295,v1,"private boolean isValidPin(X509Certificate certificate) throws CertificateException {
+    try {
+        final MessageDigest digest = MessageDigest.getInstance(""SHA1"");
+        final byte[] spki          = certificate.getPublicKey().getEncoded();
+        final byte[] pin           = digest.digest(spki);
+        for (byte[] validPin : this.pins) {
+            if (MessageDigest.isEqual(pin, validPin)) return true;
+        }
+        return false;
+    } catch (NoSuchAlgorithmException nsae) {
+        throw new CertificateException(nsae);
+    }
+}",Java,moxie0/AndroidPinning,master (HEAD at collection time),src/org/thoughtcrime/ssl/pinning/PinningTrustManager.java,https://raw.githubusercontent.com/moxie0/AndroidPinning/master/src/org/thoughtcrime/ssl/pinning/PinningTrustManager.java,real_library_current_file,"Real SPKI-hash computation and constant-comparison (MessageDigest.isEqual) against each configured pin - genuine cryptographic comparison, not a string/reference-equality shortcut.",STRONG,2026-09-02,"GitHub REST API / raw.githubusercontent.com fetch, manually reviewed against project evidence rules",,
+cwe295safe_0032,CWE-295,v1,"private TrustManager[] getTrustManagers(KeyStore store) throws GeneralSecurityException {
+    String tmfAlgorithm = TrustManagerFactory.getDefaultAlgorithm();
+    TrustManagerFactory tmf = TrustManagerFactory.getInstance(tmfAlgorithm);
+    tmf.init(store);
+    return tmf.getTrustManagers();
+}",Java,silkimen/cordova-plugin-advanced-http,master (HEAD at collection time),src/android/com/silkimen/cordovahttp/CordovaServerTrust.java,https://raw.githubusercontent.com/silkimen/cordova-plugin-advanced-http/master/src/android/com/silkimen/cordovahttp/CordovaServerTrust.java,real_library_current_file,"Builds a real platform TrustManagerFactory-backed TrustManager from an explicit KeyStore - used by this plugin's 'pinned' mode (a bundled CA/cert KeyStore) and its default mode (the real AndroidCAStore system trust store). This is a real, actively-maintained successor plugin in the same Cordova ecosystem as the CWE-89-vulnerable phonegap-plugin-contentsync already in the frozen dataset, showing the safe way to configure TLS trust in that same ecosystem. Note: this same file also defines an opt-in 'nocheck' developer mode with a no-op TrustManager/HostnameVerifier - that mode was deliberately NOT collected here since this task's scope is expanding the SAFE class only.",STRONG,2026-09-02,"GitHub REST API / raw.githubusercontent.com fetch, manually reviewed against project evidence rules",,

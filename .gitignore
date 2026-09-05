@@ -90,6 +90,7 @@ Thumbs.db
 # the repo root for exactly what each one is and how to obtain/regenerate it.
 backend/research_eval_artifacts/codebert_model_state_dict.pt
 backend/research_eval_artifacts/codebert_final_artifacts/codebert_model_state_dict.pt
+research_experiments_v3/models/**/codebert_state_dict.pt
 backend/research_eval_artifacts/codebert/model/model.safetensors
 
 # ---- Android emulator / AVD artifacts (should never live in the repo) -----
@@ -107,3 +108,12 @@ backend/research_eval_artifacts/codebert/model/model.safetensors
 # Full-folder backup zips of research_eval_artifacts; far over GitHub's
 # 100MB/file limit. Kept on local disk only.
 backend/research_eval_artifacts.zip
+
+# ---- Local training scratch (contains a 477MB model checkpoint, far over
+# GitHub's 100MB/file limit) - kept on local disk only.
+training_project/
+
+# ---- Stray Windows/Office artifacts ---------------------------------------
+/nul
+**/~$*.docx
+**/~$*.doc

@@ -17,6 +17,24 @@ import java.util.concurrent.ConcurrentHashMap
 private fun String.escapeHtml(): String =
     this.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;")
 
+// UI-presentation task, items 1/10: the exact inline annotation message -
+// a distinct "CodeSentinel —" branded prefix (never just re-using
+// IntelliJ's own error/warning wording) so it is visually AND textually
+// unmistakable as a CodeSentinel security finding rather than a compiler
+// diagnostic. Top-level (not private) so tests can assert against the
+// REAL message-building logic instead of a separately-maintained
+// duplicate of the format, which is exactly how that duplicate silently
+// went stale once before (see FindingModelTest's "stays short" test).
+fun buildAnnotationMessage(result: LineScanResult): String {
+    val cwe = canonicalVulnerability(result.vulnerabilityType)?.second
+    val cwePrefix = cwe?.let { "$it " } ?: ""
+    return if (result.isReviewLevel) {
+        "CodeSentinel — $cwePrefix${result.vulnerabilityType} (needs review, confidence: ${"%.0f".format(result.confidence)}%)"
+    } else {
+        "CodeSentinel — $cwePrefix${result.vulnerabilityType} detected (confidence: ${"%.0f".format(result.confidence)}%)"
+    }
+}
+
 // 1. collectInformation එකෙන් doAnnotate එකට Data පාස් කරන්න හදන Class එක
 data class FileScanData(
     val path: String,
@@ -55,14 +73,71 @@ data class LineScanResult(
     // with the same richness as project-scan findings.
     val lineNumber: Int? = null,
     val securityFeatures: Map<String, Double>? = null,
-    val shapTopFeatures: List<ShapFeature>? = null
+    val shapTopFeatures: List<ShapFeature>? = null,
+    // UI-presentation task: true for a finding surfaced from a
+    // SUSPICIOUS_REVIEW-level response with real corroborating evidence
+    // (see doAnnotate()'s classification below), false for a confirmed
+    // decision=="VULNERABLE" (response.vulnerable==true) finding.
+    val isReviewLevel: Boolean = false
 )
 
 class CodeSentinelAnnotator : ExternalAnnotator<FileScanData, List<LineScanResult>>() {
 
     companion object {
+        // Bug fix (real-time annotation debugging task): `cache` used to be
+        // keyed on path alone, and a separate `scanning: Set<String>` guard
+        // made doAnnotate() return the (possibly-null, possibly-stale) cached
+        // result whenever ANY request for this path was still in flight -
+        // including one started for OLDER text. IntelliJ's daemon restarts
+        // highlighting on every edit, often faster than a round trip to the
+        // backend completes, so while actively typing a multi-line snippet
+        // the LATEST keystroke's pass would frequently lose this race: it
+        // would see `scanning.add(path) == false` (an earlier pass's request
+        // for the previous, already-superseded text was still in flight) and
+        // return early with that earlier pass's (or, on a brand-new file,
+        // simply no) cached results - showing stale or empty annotations for
+        // the CURRENT, correct code until a further, unrelated edit happened
+        // to land while no request was in flight. Keying both the cache and
+        // the in-flight guard on (path, exact file text) fixes this: a scan
+        // for genuinely new text is never suppressed by an older in-flight
+        // request for different text, while a redundant re-invocation for
+        // text that is already cached, or already being fetched, still avoids
+        // an unnecessary duplicate backend call.
         private val cache = ConcurrentHashMap<String, List<LineScanResult>>()
         private val scanning = ConcurrentHashMap.newKeySet<String>()
+
+        private fun cacheKey(path: String, fileText: String): String = "$path::${fileText.hashCode()}"
+
+        // Plugin-fix task, STEP 4/12: the single source of truth for
+        // "what is the MOST RECENT edit's key for this path" - updated at
+        // the top of every doAnnotate() call (the daemon invokes
+        // collectInformation()/doAnnotate() again on every keystroke, so
+        // whichever call started last holds the truly current text).
+        // Anything that later notices its own key no longer matches this
+        // map's entry for its path knows a newer edit has superseded it,
+        // and bails out rather than caching or returning a stale result.
+        private val latestKeyForPath = ConcurrentHashMap<String, String>()
+
+        // STEP 4: 400-700ms debounce window. A pass that gets superseded
+        // while still inside this sleep aborts BEFORE ever making a
+        // network call, so a burst of keystrokes collapses into one real
+        // backend request for the text the user actually settles on,
+        // instead of one request per keystroke queuing up server-side.
+        private const val DEBOUNCE_MS = 500L
+
+        /**
+         * STEP 8/9: manual "Rescan Current File" must never be short-
+         * circuited by a stale cached result for this path - clears every
+         * cache/in-flight/latest-key entry belonging to `path` so the next
+         * real-time pass (and any concurrently-running manual rescan) is
+         * guaranteed to hit the backend fresh.
+         */
+        fun forceRescan(path: String) {
+            val prefix = "$path::"
+            cache.keys.removeIf { it.startsWith(prefix) }
+            scanning.removeIf { it.startsWith(prefix) }
+            latestKeyForPath.remove(path)
+        }
     }
 
     override fun collectInformation(
@@ -101,13 +176,36 @@ class CodeSentinelAnnotator : ExternalAnnotator<FileScanData, List<LineScanResul
         if (collectedData == null) return null
 
         val path = collectedData.path
-        if (!scanning.add(path)) return cache[path]
+        val key = cacheKey(path, collectedData.fileText)
+        latestKeyForPath[path] = key
+
+        // Only skip if THIS EXACT text is already cached or already being
+        // fetched - never suppress a scan just because a request for some
+        // OLDER text on the same path is still in flight (see the fix note
+        // on `cache`/`scanning` above).
+        cache[key]?.let { return it }
+
+        // STEP 4 debounce: wait briefly before ever touching the network.
+        // If a newer edit lands on this same path during the wait, this
+        // pass is now for stale text - abort without making a request at
+        // all, rather than adding to the backend's queue for a result
+        // nobody will see.
+        Thread.sleep(DEBOUNCE_MS)
+        if (latestKeyForPath[path] != key) return null
+
+        if (!scanning.add(key)) return cache[key]
 
         val api = APIClient()
         val results = mutableListOf<LineScanResult>()
 
         try {
             val response = api.scanCode(collectedData.fileText, collectedData.path.substringAfterLast('/'))
+
+            // STEP 12: a slow request for now-superseded text must never
+            // overwrite (via `cache[key] = results` below, or by being
+            // returned to apply()) whatever a newer, faster pass already
+            // produced or is about to produce.
+            if (latestKeyForPath[path] != key) return null
 
             if (response == null) {
                 // Section 12: never crash or go silent - log a specific,
@@ -116,44 +214,59 @@ class CodeSentinelAnnotator : ExternalAnnotator<FileScanData, List<LineScanResul
                 if (api.lastError != null) {
                     println("[CodeSentinel] Scan failed for $path: ${api.lastError}")
                 }
-            } else if (response.vulnerable) {
-                println("Detected: ${response.vulnerabilityType}")
-                response.detections.forEach { detection ->
-                    val line = collectedData.lines.find {
-                        it.index == detection.line
-                    }
-                    if (line != null) {
-                        results.add(
-                            LineScanResult(
-                                lineText = line.text,
-                                vulnerabilityType = detection.type,
-                                confidence = response.confidence,
-                                startOffset = line.startOffset,
-                                endOffset = line.endOffset,
-                                riskWeight = detection.risk_weight,
-                                criticalWords = detection.critical_words,
-                                sourceToSinkPath = detection.source_to_sink_path,
-                                dataflowExplanation = detection.dataflow_explanation,
-                                severity = response.severity,
-                                predictionModel = response.predictionModel,
-                                decision = response.decision,
-                                decisionEvidence = response.decisionEvidence,
-                                lineNumber = detection.line,
-                                securityFeatures = response.securityFeatures,
-                                shapTopFeatures = response.shapTopFeatures
+            } else {
+                // UI-presentation task, item 2: see FindingModel.kt's
+                // classify(ScanResponse) for the full rationale - a plain
+                // response.vulnerable==true check silently dropped every
+                // SUSPICIOUS_REVIEW result (like ss.java's own: decision=
+                // SUSPICIOUS_REVIEW, confidence 60%, WITH real
+                // corroborating evidence), which is why no annotation ever
+                // appeared for it.
+                val classification = classify(response)
+
+                if (classification != FindingClassification.NONE) {
+                    println("Detected: ${response.vulnerabilityType} ($classification)")
+
+                    val relevantDetections = selectRelevantDetections(response.detections, classification)
+
+                    relevantDetections.forEach { detection ->
+                        val line = collectedData.lines.find {
+                            it.index == detection.line
+                        }
+                        if (line != null) {
+                            results.add(
+                                LineScanResult(
+                                    lineText = line.text,
+                                    vulnerabilityType = detection.type,
+                                    confidence = response.confidence,
+                                    startOffset = line.startOffset,
+                                    endOffset = line.endOffset,
+                                    riskWeight = detection.risk_weight,
+                                    criticalWords = detection.critical_words,
+                                    sourceToSinkPath = detection.source_to_sink_path,
+                                    dataflowExplanation = detection.dataflow_explanation,
+                                    severity = response.severity,
+                                    predictionModel = response.predictionModel,
+                                    decision = response.decision,
+                                    decisionEvidence = response.decisionEvidence,
+                                    lineNumber = detection.line,
+                                    securityFeatures = response.securityFeatures,
+                                    shapTopFeatures = response.shapTopFeatures,
+                                    isReviewLevel = classification == FindingClassification.REVIEW
+                                )
                             )
-                        )
+                        }
                     }
                 }
             }
 
-            cache[path] = results
+            cache[key] = results
             return results
         } catch (e: Exception) {
             e.printStackTrace()
-            return cache[path]
+            return cache[key]
         } finally {
-            scanning.remove(path)
+            scanning.remove(key)
         }
     }
 
@@ -163,8 +276,16 @@ class CodeSentinelAnnotator : ExternalAnnotator<FileScanData, List<LineScanResul
         holder: AnnotationHolder
     ) {
         println("========== APPLY START ==========")
-        val path = file.virtualFile?.path ?: return
-        val results = annotationResult ?: cache[path] ?: return
+        file.virtualFile?.path ?: return
+        // `cache` is now keyed by (path, exact text) - not by path alone -
+        // so it can no longer be used here as a plain fallback. That's fine:
+        // doAnnotate() only returns null for a pass whose own request truly
+        // failed or raced with an identical in-flight one, in which case
+        // showing nothing for THIS pass (rather than a possibly-unrelated
+        // cached result for different text) is the correct behavior; the
+        // next highlighting pass will pick up cleanly since it is no longer
+        // blocked by the old (path-only) staleness bug.
+        val results = annotationResult ?: return
 
         for (result in results) {
             if (result.startOffset < 0 || result.endOffset > file.textLength || result.startOffset >= result.endOffset) {
@@ -179,12 +300,9 @@ class CodeSentinelAnnotator : ExternalAnnotator<FileScanData, List<LineScanResul
                 ?: CertificateFixLocator.tryBuildFix(file, result, file.name)
 
             val tooltip = buildTooltip(result, hasAutomaticFix = safeFix != null)
-            val severityPrefix = result.severity?.let { "$it - " } ?: ""
+            val highlightSeverity = if (result.isReviewLevel) HighlightSeverity.WARNING else HighlightSeverity.ERROR
 
-            val builder = holder.newAnnotation(
-                HighlightSeverity.ERROR,
-                "$severityPrefix${result.vulnerabilityType} (${"%.2f".format(result.confidence)}%)"
-            )
+            val builder = holder.newAnnotation(highlightSeverity, buildAnnotationMessage(result))
                 .range(TextRange(result.startOffset, result.endOffset))
                 .tooltip(tooltip)
                 // Phase 5B, section 7: Alt+Enter opens the full detail
@@ -208,7 +326,18 @@ class CodeSentinelAnnotator : ExternalAnnotator<FileScanData, List<LineScanResul
     private fun buildTooltip(result: LineScanResult, hasAutomaticFix: Boolean): String {
         val sb = StringBuilder()
         sb.append("<html>")
-        sb.append("<b>⚠ ${result.vulnerabilityType}</b><br><br>")
+        val cwe = canonicalVulnerability(result.vulnerabilityType)?.second
+        val title = if (cwe != null) "$cwe &mdash; ${result.vulnerabilityType}" else result.vulnerabilityType
+        sb.append("<b>CodeSentinel &mdash; ⚠ ${title.escapeHtml()}</b><br><br>")
+
+        // UI-presentation task, item 2/10: make a review-level finding
+        // (SUSPICIOUS_REVIEW + real corroborating evidence, see
+        // doAnnotate()) visually and textually distinct from a confirmed
+        // one right at the top of the tooltip, not just via color.
+        if (result.isReviewLevel) {
+            sb.append("<b><font color=\"#B08800\">NEEDS REVIEW</font></b> - flagged by the Hybrid Decision " +
+                "Engine as SUSPICIOUS_REVIEW with corroborating evidence below, not an auto-confirmed vulnerability.<br><br>")
+        }
 
         val severity = result.severity ?: "UNKNOWN"
         sb.append("<b>Severity:</b> $severity &nbsp;&nbsp; <b>Confidence:</b> ${"%.0f".format(result.confidence)}%<br>")

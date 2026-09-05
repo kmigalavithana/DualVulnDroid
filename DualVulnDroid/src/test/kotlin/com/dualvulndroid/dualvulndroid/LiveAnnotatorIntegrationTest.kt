@@ -159,6 +159,19 @@ class LiveAnnotatorIntegrationTest : BasePlatformTestCase() {
     }
 
     // ---- D. Certificate safe ----
+    // P0 Step 5 finding: this fixture's checkClientTrusted() used to have
+    // an empty body ("{}"). That is independently a real, already-tested
+    // production finding (see backend/tests/test_dataflow.py's
+    // test_cert_empty_trust_manager_is_vulnerable - an empty
+    // check*Trusted() body accepts every certificate chain, regardless of
+    // which of the two methods is empty), unrelated to what this test is
+    // meant to exercise. It only ever produced no finding here because of
+    // a separate real backend bug (dataflow.py's TRUST_MANAGER_RE did not
+    // match a fully package-qualified `implements javax.net.ssl.X509TrustManager`,
+    // so the whole class was invisible to the structural cert analyzer).
+    // Now that the regex bug is fixed, both methods must actually
+    // validate for this to be a genuinely, unambiguously safe example -
+    // matching what this test's name has always claimed.
     fun testDCertificateSafeProducesNoFinding() {
         val code = """
             import java.security.cert.X509Certificate;
@@ -169,7 +182,11 @@ class LiveAnnotatorIntegrationTest : BasePlatformTestCase() {
                         throw new CertificateException("Empty chain");
                     }
                 }
-                public void checkClientTrusted(X509Certificate[] chain, String authType) {}
+                public void checkClientTrusted(X509Certificate[] chain, String authType) throws CertificateException {
+                    if (chain == null || chain.length == 0) {
+                        throw new CertificateException("Empty chain");
+                    }
+                }
                 public X509Certificate[] getAcceptedIssuers() { return new X509Certificate[0]; }
             }
         """.trimIndent()

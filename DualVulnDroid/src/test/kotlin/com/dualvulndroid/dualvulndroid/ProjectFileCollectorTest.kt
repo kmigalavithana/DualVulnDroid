@@ -99,6 +99,51 @@ class ProjectFileCollectorTest {
         assertTrue(result.files[0].relativePath.endsWith("Real.kt"))
     }
 
+    // Plugin-fix task, STEP 6/14 regression test: the reported real-world
+    // failure was a plain, non-Android-Gradle project ("untitled16") with
+    // a bare top-level src/ directory (src/ss.java) - no app/src/main/java
+    // anywhere. MyToolWindow used to hard-require that exact Android path
+    // to exist before ever calling ProjectFileCollector.collect(), so this
+    // layout always failed with "Source folder not found!" no matter what
+    // ProjectFileCollector itself could find. The fix (MyToolWindow.
+    // discoverSourceRoots()) now falls back to collecting straight from
+    // the project base directory - this proves that fallback root
+    // actually finds a bare src/*.java file when called directly, the
+    // same way the fixed production code path does.
+    @Test
+    fun `finds a bare top-level src file with no Android-standard source layout, via the project base directory fallback`() {
+        val plainProjectRoot = Files.createTempDirectory("dualvulndroid-plain-project-test").toFile()
+        try {
+            val srcDir = File(plainProjectRoot, "src")
+            srcDir.mkdirs()
+            File(srcDir, "ss.java").writeText(
+                "public Cursor findUser(SQLiteDatabase db, String username) {\n" +
+                    "    String query = \"SELECT * FROM users WHERE username = '\" + username + \"'\";\n" +
+                    "    return db.rawQuery(query, null);\n}"
+            )
+
+            // No "app/src/main/java" anywhere - this is exactly the
+            // fallback case: collect from the project base dir itself.
+            val result = ProjectFileCollector.collect(plainProjectRoot.absolutePath, plainProjectRoot)
+
+            assertEquals(1, result.files.size)
+            assertEquals("src/ss.java", result.files[0].relativePath)
+        } finally {
+            plainProjectRoot.deleteRecursively()
+        }
+    }
+
+    @Test
+    fun `excludes Maven-style target directories in addition to build, gradle, and IDE metadata`() {
+        writeFile("com/example/Real.kt", "class Real")
+        File(sourceRoot, "target/generated-sources/Fake.kt").apply { parentFile.mkdirs(); writeText("class Fake") }
+
+        val result = ProjectFileCollector.collect(projectRoot.absolutePath, sourceRoot)
+
+        assertEquals(1, result.files.size)
+        assertTrue(result.files[0].relativePath.endsWith("Real.kt"))
+    }
+
     @Test
     fun `chunks files into batches no larger than the backend limit`() {
         val files = (1..450).map {

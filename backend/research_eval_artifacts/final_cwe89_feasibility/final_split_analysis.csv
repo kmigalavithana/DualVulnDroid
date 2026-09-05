@@ -1,0 +1,4 @@
+split,num_projects,num_vulnerable_projects,num_safe_only_projects,num_samples,num_vulnerable_samples,num_safe_samples,vulnerable_sample_ids,vulnerable_project_ids,statistical_power_note
+train,7,1,6,15,1,14,as-001,andstatus-andstatus,n=1 vulnerable sample: any point-estimate metric (precision/recall/F1) on this split's vulnerable class is degenerate (0% or 100% only) and cannot support a confidence interval or a generalization claim.
+validation,5,1,4,11,1,10,ts-001,tasks-tasks,n=1 vulnerable sample: any point-estimate metric (precision/recall/F1) on this split's vulnerable class is degenerate (0% or 100% only) and cannot support a confidence interval or a generalization claim.
+test,6,1,5,8,1,7,os-001,openintents-safe,n=1 vulnerable sample: any point-estimate metric (precision/recall/F1) on this split's vulnerable class is degenerate (0% or 100% only) and cannot support a confidence interval or a generalization claim.

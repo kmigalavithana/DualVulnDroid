@@ -34,4 +34,14 @@
     <extensions defaultExtensionNs="org.jetbrains.kotlin">
         <supportsKotlinPluginMode supportsK2="true" />
     </extensions>
+
+    <actions>
+        <action id="DualVulnDroid.RescanCurrentFile"
+                class="com.dualvulndroid.dualvulndroid.RescanCurrentFileAction"
+                text="DualVulnDroid: Rescan Current File"
+                description="Re-scan this file's current editor content against the DualVulnDroid backend">
+            <add-to-group group-id="EditorPopupMenu" anchor="last"/>
+            <add-to-group group-id="ToolsMenu" anchor="last"/>
+        </action>
+    </actions>
 </idea-plugin>

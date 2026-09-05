@@ -1,0 +1,21 @@
+{
+  "source_file": "F:\\vibe cording\\research_dataset_validation\\final_adjudicated_dataset.csv",
+  "total_rows": 1687,
+  "by_cwe_and_status": {
+    "CWE-89": {
+      "CONFIRMED_VULNERABLE": 157,
+      "CONFIRMED_SAFE": 372,
+      "AMBIGUOUS": 105,
+      "EXCLUDE_DUPLICATE_CONFLICT": 200,
+      "EXCLUDE_INSUFFICIENT_CONTEXT": 55
+    },
+    "CWE-295": {
+      "CONFIRMED_VULNERABLE": 57,
+      "CONFIRMED_SAFE": 5,
+      "AMBIGUOUS": 405,
+      "EXCLUDE_DUPLICATE_CONFLICT": 0,
+      "EXCLUDE_INSUFFICIENT_CONTEXT": 331
+    }
+  },
+  "total_confirmed": 591
+}

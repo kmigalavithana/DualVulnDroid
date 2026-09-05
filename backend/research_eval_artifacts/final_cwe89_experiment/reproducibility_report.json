@@ -1,0 +1,97 @@
+{
+  "corpus_path": "backend/research_eval_artifacts/new_cwe89_corpus_final",
+  "corpus_files_hashed": {
+    "final_candidate_cwe89_samples.csv": "65c022a9d58feadb0b18232959c21c8ce9c27d0281d965129a23993fc6b7975d",
+    "final_project_split_manifest.csv": "b258c5cc6560509d7aa0f0491b25b648247ceb85a987560abfe01c558dc68708"
+  },
+  "random_seed": 42,
+  "python_version": "3.11.0",
+  "platform": "Windows-10-10.0.26200-SP0",
+  "library_versions": {
+    "python": "3.11.0",
+    "scikit-learn": "1.9.0",
+    "xgboost": "3.2.0",
+    "numpy": "2.4.6",
+    "pandas": "3.0.3",
+    "matplotlib": "3.11.1"
+  },
+  "project_split": {
+    "train_projects": 7,
+    "validation_projects": 5,
+    "test_projects": 6
+  },
+  "preprocessing": {
+    "source_column": "code_context",
+    "excluded_columns": [
+      "cwe",
+      "dataflow_path",
+      "evidence_type",
+      "label",
+      "label_confidence",
+      "parameterized",
+      "sanitized",
+      "sink",
+      "source",
+      "tainted_variable"
+    ],
+    "vectorizer": "sklearn.feature_extraction.text.TfidfVectorizer",
+    "vectorizer_params": {
+      "lowercase": true,
+      "token_pattern": "(?u)\\b\\w\\w+\\b",
+      "ngram_range": [
+        1,
+        1
+      ],
+      "min_df": 1,
+      "max_features": 1000
+    },
+    "fit_on": "TRAIN split ONLY (15 documents)",
+    "vocab_size": 251,
+    "feature_dims": 251
+  },
+  "model_parameters": {
+    "svm": {
+      "class": "sklearn.svm.LinearSVC",
+      "params": {
+        "class_weight": "balanced",
+        "random_state": 42,
+        "max_iter": 5000
+      }
+    },
+    "rf": {
+      "class": "sklearn.ensemble.RandomForestClassifier",
+      "params": {
+        "n_estimators": 200,
+        "max_depth": 4,
+        "class_weight": "balanced",
+        "random_state": 42
+      }
+    },
+    "xgb": {
+      "class": "xgboost.XGBClassifier",
+      "params": {
+        "n_estimators": 100,
+        "max_depth": 3,
+        "learning_rate": 0.1,
+        "scale_pos_weight": 14.0,
+        "random_state": 42,
+        "eval_metric": "logloss"
+      }
+    }
+  },
+  "threshold_parameters": {
+    "ml_threshold": 0.5,
+    "fusion_threshold": 0.5,
+    "abstention_band": [
+      0.45,
+      0.55
+    ]
+  },
+  "fusion_weights": {
+    "w_ml": 0.5,
+    "w_static": 0.5
+  },
+  "training_timestamp_utc": "2026-08-29T07:07:33.136378+00:00",
+  "test_evaluation_timestamp_utc": "2026-08-29T07:07:33.136378+00:00",
+  "old_artifacts_loaded": "NONE (see experiment_config.json)"
+}

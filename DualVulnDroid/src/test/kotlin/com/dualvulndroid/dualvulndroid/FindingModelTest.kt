@@ -29,7 +29,16 @@ class FindingModelTest {
             evidence = listOf(DecisionReason("dataflow_sql", "traced source-to-sink", 2.0))
         ),
         explanation = listOf("User-controlled input reaches SQL execution."),
-        detections = listOf(Detection(line = 4, code = "db.rawQuery(query, null);", type = "SQL Injection"))
+        detections = listOf(
+            Detection(
+                line = 4, code = "db.rawQuery(query, null);", type = "SQL Injection",
+                source_to_sink_path = listOf("Intent.getStringExtra()", "query", "rawQuery()")
+            )
+        )
+    )
+
+    private fun sqlGroup(result: DeveloperScanResult) = DetectionTypeGroup(
+        vulnerabilityType = "SQL Injection", cwe = "CWE-89", anchorDetections = result.detections!!
     )
 
     private fun sampleLineScanResult() = LineScanResult(
@@ -52,7 +61,8 @@ class FindingModelTest {
     // ---- Project-scan adapter ----
     @Test
     fun `DeveloperScanResult adapts to a fully populated detail view`() {
-        val view = sampleDeveloperResult().toDetailView("Login.kt", line = 4)
+        val result = sampleDeveloperResult()
+        val view = result.toDetailView("Login.kt", sqlGroup(result))
 
         assertEquals("Login.kt", view.fileName)
         assertEquals(4, view.line)
@@ -103,7 +113,8 @@ class FindingModelTest {
     // ---- Section 10: same input, both adapters must agree ----
     @Test
     fun `real-time and project-scan adapters agree on the same underlying finding`() {
-        val fromProjectScan = sampleDeveloperResult().toDetailView("Login.kt", line = 4)
+        val projectScanResult = sampleDeveloperResult()
+        val fromProjectScan = projectScanResult.toDetailView("Login.kt", sqlGroup(projectScanResult))
         val fromRealTime = sampleLineScanResult().toDetailView("Login.kt")
 
         assertEquals(fromProjectScan.vulnerabilityType, fromRealTime.vulnerabilityType)
@@ -113,14 +124,26 @@ class FindingModelTest {
         assertEquals(fromProjectScan.location, fromRealTime.location)
     }
 
-    // ---- Section 6: the editor annotation stays lightweight regardless
-    // of how rich the underlying finding is ----
+    // ---- Section 6 / UI-presentation task items 1,10,11.5: the editor
+    // annotation stays lightweight regardless of how rich the underlying
+    // finding is, AND is branded distinctly from an IntelliJ compiler
+    // diagnostic. Calls the REAL buildAnnotationMessage() (CodeSentinelAnnotator.kt)
+    // rather than a separately-maintained copy of the format - a prior
+    // version of this test built its own local copy of the format string,
+    // which silently drifted out of sync with the real one when the
+    // message was rebranded and is exactly the kind of staleness this
+    // rewrite avoids.
     @Test
-    fun `LineScanResult toString-equivalent annotation message stays short`() {
-        val result = sampleLineScanResult()
-        val severityPrefix = result.severity?.let { "$it - " } ?: ""
-        val annotationMessage = "$severityPrefix${result.vulnerabilityType} (${"%.2f".format(result.confidence)}%)"
+    fun `annotation message is CodeSentinel-branded and stays reasonably short`() {
+        val definite = buildAnnotationMessage(sampleLineScanResult())
+        assertTrue("Must be branded so it's never confused with a compiler diagnostic: $definite",
+            definite.startsWith("CodeSentinel — "))
+        assertTrue("Must name the CWE when known: $definite", definite.contains("CWE-89"))
+        assertTrue("Annotation message should stay reasonably short: $definite", definite.length < 90)
 
-        assertTrue("Annotation message should stay short: $annotationMessage", annotationMessage.length < 60)
+        val review = buildAnnotationMessage(sampleLineScanResult().copy(isReviewLevel = true))
+        assertTrue("A review-level finding's message must say so, distinct from a confirmed one: $review",
+            review.contains("needs review"))
+        assertTrue("Review-level message should also stay reasonably short: $review", review.length < 90)
     }
 }

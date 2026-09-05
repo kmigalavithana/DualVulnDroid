@@ -1,0 +1,4 @@
+config,predeclared_objective,validation_band,validation_coverage,test_coverage_frozen_band
+E_late_fusion_with_abstention,maximize coverage s.t. FNR<=0 on validation,"(0.05,0.50)",0.0,0.0
+F_ml_only_selective,maximize coverage s.t. FNR<=0 on validation,"(0.05,0.50)",see F row in model_results.csv,0.0
+G_rule_only_selective,maximize coverage s.t. FNR<=0 on validation,"(0.10,0.50)",see G row in model_results.csv,1.0

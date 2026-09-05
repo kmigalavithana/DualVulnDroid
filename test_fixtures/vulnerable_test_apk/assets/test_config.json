@@ -1,0 +1,9 @@
+{
+  "_comment": "Deliberately insecure test-fixture asset for DualVulnDroid's APK scanner. All hosts use reserved test domains or private-range IPs and do not resolve. No code reads this file - the app has no code.",
+  "telemetry_endpoint": "http://192.168.56.101/ingest",
+  "update_endpoint": "http://update-now.example.invalid/v2/manifest",
+  "mirror": "http://free-download.example.test/pkg",
+  "partner_analytics": "http://metrics.example.ru/collect",
+  "support_portal": "https://support.example.test/help",
+  "note": "The last URL is intentionally benign as a control case."
+}

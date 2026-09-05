@@ -1,0 +1,17 @@
+{
+  "model": "sklearn.linear_model.LogisticRegression(class_weight='balanced', C=1.0)",
+  "features": [
+    "oof_ml_probability_svm",
+    "static_score",
+    "static_completeness"
+  ],
+  "coefficients": {
+    "oof_ml_probability_svm": -1.1468,
+    "static_score": 0.1798,
+    "static_completeness": -0.0006
+  },
+  "intercept": 0.0402,
+  "trained_on": "TRAIN split (15 samples, 1 positive), using leave-one-out OUT-OF-FOLD ML probabilities (never in-sample)",
+  "critical_finding": "The coefficient on oof_ml_probability_svm is NEGATIVE (-1.1468), i.e. inverted relative to the intuitive expectation that a higher ML score should increase fused vulnerability probability. Root cause: leave-one-out CV on a training set with exactly 1 positive example produces a STRUCTURALLY DEGENERATE out-of-fold value for that one positive (its held-out fold contains zero positives to train on, so its OOF score is fixed at the negative-class floor, 0.0) -- the lowest ML score in the entire training set is attached to the only positive label. A logistic regression fit on this single, structurally-forced data point learns an inverted coefficient. This is reported as direct evidence that OOF-based fusion training is not statistically meaningful with only 1 positive training example, not as a defect in the fusion methodology itself.",
+  "degenerate_oof_folds": 1
+}

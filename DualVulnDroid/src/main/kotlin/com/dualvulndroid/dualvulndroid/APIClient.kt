@@ -158,11 +158,97 @@ class APIClient {
 
         // Matches backend/app.py's BatchScanRequest(files: ..., max_length=200) exactly.
         const val MAX_FILES_PER_BATCH = 200
+
+        // Plugin-fix task, STEP 3's exact spec: connect=5s, write=10s,
+        // read=30s, call=35s for the single-file /predict path.
+        const val CONNECT_TIMEOUT_S = 5L
+        const val WRITE_TIMEOUT_S = 10L
+        const val READ_TIMEOUT_S = 30L
+        const val CALL_TIMEOUT_S = 35L
+        const val HEALTH_CHECK_TIMEOUT_S = 3L
+
+        // STEP 3: "bounded retry only for transient connection
+        // failures/timeouts (max 1 retry, small delay, never repeatedly
+        // retry every keystroke)". Never applied to HTTP 4xx/5xx - those
+        // are real backend answers, not transport failures.
+        const val MAX_TRANSIENT_RETRIES = 1
+        const val RETRY_DELAY_MS = 300L
+
+        val BASE_URL: String = BACKEND_URL.removeSuffix("/predict").trimEnd('/')
     }
 
+    enum class BackendAvailability { AVAILABLE, CONNECTION_REFUSED, TIMEOUT, HTTP_ERROR, UNKNOWN }
+
+    data class BackendAvailabilityResult(val status: BackendAvailability, val detail: String)
+
+    /**
+     * STEP 2: a fast, cheap liveness probe against the backend's own "/"
+     * route (returns {"message": "DualVulnDroid XGBoost Backend Running"})
+     * so the plugin can tell a developer "the backend isn't running" in a
+     * couple of seconds, distinctly from "the backend is running but this
+     * particular request was slow" - the two symptoms the original single
+     * generic timeout message conflated.
+     */
+    fun checkBackendAvailability(url: String = BASE_URL): BackendAvailabilityResult {
+        val request = Request.Builder().url(url).get().build()
+        return try {
+            healthCheckClient.newCall(request).execute().use { response ->
+                if (response.isSuccessful) {
+                    BackendAvailabilityResult(BackendAvailability.AVAILABLE, "Backend reachable at $url")
+                } else {
+                    BackendAvailabilityResult(
+                        BackendAvailability.HTTP_ERROR,
+                        "Backend at $url responded with HTTP ${response.code}"
+                    )
+                }
+            }
+        } catch (e: java.net.SocketTimeoutException) {
+            BackendAvailabilityResult(
+                BackendAvailability.TIMEOUT,
+                "Backend at $url did not respond within ${HEALTH_CHECK_TIMEOUT_S}s"
+            )
+        } catch (e: java.net.ConnectException) {
+            BackendAvailabilityResult(
+                BackendAvailability.CONNECTION_REFUSED,
+                "Could not connect to $url - start the DualVulnDroid FastAPI backend (see backend/app.py)"
+            )
+        } catch (e: Exception) {
+            BackendAvailabilityResult(BackendAvailability.UNKNOWN, "Unexpected error checking backend: ${e.message}")
+        }
+    }
+
+    // Plugin-fix task, root cause #1: this client backs scanCode() - the
+    // single-file POST /predict call used by BOTH the real-time
+    // ExternalAnnotator on every edit AND "Rescan Current File". A real
+    // /predict call runs feature extraction, XGBoost, a SHAP
+    // TreeExplainer pass, and data-flow analysis server-side
+    // (backend/predictor.py) - measured in the 70-300ms range when the
+    // backend is idle, but predict() is a synchronous FastAPI route
+    // (backend/app.py) served from Starlette's finite threadpool with a
+    // single uvicorn worker, so a burst of near-simultaneous requests
+    // (e.g. every keystroke, before debouncing was added below) queues up
+    // and can easily push an individual request's real latency past a
+    // couple of seconds even though the backend is healthy. The previous
+    // connectTimeout=2s/readTimeout=2s (with no callTimeout, so a slow
+    // response could also hang past both individually) turned that
+    // ordinary queuing delay into a hard, misleading "Backend did not
+    // respond in time (timeout)" failure. Widened to the same order of
+    // magnitude as scanProjectBatch's already-correct batchClient below,
+    // scaled down for a single file.
     private val client = OkHttpClient.Builder()
-        .connectTimeout(2, TimeUnit.SECONDS)
-        .readTimeout(2, TimeUnit.SECONDS)
+        .connectTimeout(CONNECT_TIMEOUT_S, TimeUnit.SECONDS)
+        .writeTimeout(WRITE_TIMEOUT_S, TimeUnit.SECONDS)
+        .readTimeout(READ_TIMEOUT_S, TimeUnit.SECONDS)
+        .callTimeout(CALL_TIMEOUT_S, TimeUnit.SECONDS)
+        .build()
+
+    // Short-lived client for checkBackendAvailability()'s liveness probe -
+    // deliberately much shorter than `client` above since it exists only
+    // to answer "is anything listening at all," not to wait out a real
+    // prediction.
+    private val healthCheckClient = OkHttpClient.Builder()
+        .connectTimeout(HEALTH_CHECK_TIMEOUT_S, TimeUnit.SECONDS)
+        .readTimeout(HEALTH_CHECK_TIMEOUT_S, TimeUnit.SECONDS)
         .build()
 
     // A batch of up to 200 files each running XGBoost+SHAP+data-flow
@@ -188,7 +274,20 @@ class APIClient {
      * /predict - this method only serializes the request and parses the
      * response, per Phase 5A section 4.
      */
-    fun scanProjectBatch(files: List<BatchScanFileRequest>): BatchScanResponse? {
+    // P0 Step 6: without `isCancelled`, the IDE's own progress-indicator
+    // Cancel button is powerless once this call starts - OkHttp's
+    // synchronous execute() only returns when the call finishes or is
+    // explicitly cancelled from another thread, and MyToolWindow.runScan()
+    // only checks indicator.checkCanceled() BETWEEN batches, never during
+    // one. If the backend disappears (killed/restarted) or hangs mid-
+    // request, the "Scan Project" button stays disabled for up to the full
+    // readTimeout (120s) with no way for the user to unstick it early -
+    // this reads as "the button is broken" even though it silently
+    // recovers on its own once the timeout elapses. Passing a cancellation
+    // check here lets the caller's Cancel button abort the in-flight call
+    // immediately instead. Default preserves the exact previous behavior
+    // for any other caller.
+    fun scanProjectBatch(files: List<BatchScanFileRequest>, isCancelled: () -> Boolean = { false }): BatchScanResponse? {
         lastBatchError = null
 
         if (files.isEmpty()) {
@@ -207,8 +306,23 @@ class APIClient {
             .post(body)
             .build()
 
+        val call = batchClient.newCall(request)
+        val cancelWatcher = Thread {
+            try {
+                while (!call.isCanceled()) {
+                    if (isCancelled()) {
+                        call.cancel()
+                        break
+                    }
+                    Thread.sleep(150)
+                }
+            } catch (_: InterruptedException) {
+                // Normal shutdown path once the call below completes.
+            }
+        }.apply { isDaemon = true; name = "DualVulnDroid-batch-cancel-watcher"; start() }
+
         return try {
-            batchClient.newCall(request).execute().use { response ->
+            call.execute().use { response ->
                 val responseBody = response.body?.string()
 
                 when {
@@ -247,16 +361,27 @@ class APIClient {
                     }
                 }
             }
-        } catch (e: java.net.SocketTimeoutException) {
-            lastBatchError = "Backend did not respond in time (timeout) for a batch of ${files.size} files."
-            null
-        } catch (e: java.net.ConnectException) {
-            lastBatchError = "Unable to connect to DualVulnDroid backend at $DEVELOPER_SCAN_URL."
-            null
+        } catch (e: java.io.IOException) {
+            if (call.isCanceled()) {
+                lastBatchError = "Scan cancelled."
+                null
+            } else if (e is java.net.SocketTimeoutException) {
+                lastBatchError = "Backend did not respond in time (timeout) for a batch of ${files.size} files."
+                null
+            } else if (e is java.net.ConnectException) {
+                lastBatchError = "Unable to connect to DualVulnDroid backend at $DEVELOPER_SCAN_URL."
+                null
+            } else {
+                lastBatchError = "Unexpected error contacting backend: ${e.message}"
+                e.printStackTrace()
+                null
+            }
         } catch (e: Exception) {
             lastBatchError = "Unexpected error contacting backend: ${e.message}"
             e.printStackTrace()
             null
+        } finally {
+            cancelWatcher.interrupt()
         }
     }
 
@@ -270,8 +395,37 @@ class APIClient {
         private set
 
     fun scanCode(code: String, fileName: String = ""): ScanResponse? {
-
         lastError = null
+
+        // STEP 3: bounded single retry, ONLY for transient transport
+        // failures (connect refused / timeout) - never for an HTTP 4xx/5xx,
+        // which is a real answer from the backend, not a dropped request.
+        var attempt = 0
+        while (true) {
+            val outcome = attemptScanCode(code, fileName)
+            if (outcome !is ScanAttemptOutcome.TransientFailure || attempt >= MAX_TRANSIENT_RETRIES) {
+                return when (outcome) {
+                    is ScanAttemptOutcome.Success -> outcome.response
+                    is ScanAttemptOutcome.TransientFailure -> null
+                    is ScanAttemptOutcome.PermanentFailure -> null
+                }
+            }
+            attempt++
+            println("[CodeSentinel] Transient failure (${outcome.errorType}), retrying ($attempt/$MAX_TRANSIENT_RETRIES)...")
+            Thread.sleep(RETRY_DELAY_MS)
+        }
+    }
+
+    private sealed class ScanAttemptOutcome {
+        data class Success(val response: ScanResponse) : ScanAttemptOutcome()
+        data class TransientFailure(val errorType: String) : ScanAttemptOutcome()
+        data class PermanentFailure(val errorType: String) : ScanAttemptOutcome()
+    }
+
+    // STEP 5's exact required diagnostic log format. Never logs `code`
+    // itself (the source text) - only the URL, endpoint, status, timing,
+    // and result/error classification.
+    private fun attemptScanCode(code: String, fileName: String): ScanAttemptOutcome {
         val requestData = ScanRequest(code, fileName)
         val json = gson.toJson(requestData)
         val body = json.toRequestBody("application/json".toMediaType())
@@ -281,52 +435,78 @@ class APIClient {
             .post(body)
             .build()
 
+        println("[CodeSentinel] Backend request START")
+        println("[CodeSentinel] Backend URL: $BASE_URL")
+        println("[CodeSentinel] Endpoint: /predict")
+        val start = System.currentTimeMillis()
+
         return try {
             client.newCall(request).execute().use { response ->
+                val elapsedMs = System.currentTimeMillis() - start
+                println("[CodeSentinel] HTTP status: ${response.code}")
+                println("[CodeSentinel] Response received in $elapsedMs ms")
                 val responseBody = response.body?.string()
 
                 when {
                     response.isSuccessful && responseBody != null -> {
                         try {
-                            gson.fromJson(responseBody, ScanResponse::class.java)
+                            val parsed = gson.fromJson(responseBody, ScanResponse::class.java)
+                            println("[CodeSentinel] Result: vulnerable=${parsed.vulnerable} type=${parsed.vulnerabilityType}")
+                            // A retry that succeeds must not leave the FIRST
+                            // (failed) attempt's message sitting in lastError -
+                            // a caller must never see a stale error alongside
+                            // a genuinely successful response.
+                            lastError = null
+                            ScanAttemptOutcome.Success(parsed)
                         } catch (e: com.google.gson.JsonSyntaxException) {
                             lastError = "Backend returned invalid JSON (HTTP ${response.code}): ${e.message}"
-                            null
+                            println("[CodeSentinel] Error type: malformed-response")
+                            ScanAttemptOutcome.PermanentFailure("malformed-response")
                         }
                     }
                     response.code == 400 -> {
                         lastError = "Backend rejected the request (400): $responseBody"
-                        null
+                        println("[CodeSentinel] Error type: http-400")
+                        ScanAttemptOutcome.PermanentFailure("http-400")
                     }
                     response.code == 422 -> {
                         lastError = "Backend could not validate the scan request (422): $responseBody"
-                        null
+                        println("[CodeSentinel] Error type: http-422")
+                        ScanAttemptOutcome.PermanentFailure("http-422")
                     }
                     response.code == 404 -> {
-                        lastError = "Backend endpoint not found (404): $BACKEND_URL"
-                        null
+                        lastError = "Backend endpoint not found (404): $BACKEND_URL - is the plugin pointed at the right backend version?"
+                        println("[CodeSentinel] Error type: http-404")
+                        ScanAttemptOutcome.PermanentFailure("http-404")
                     }
                     response.code >= 500 -> {
                         lastError = "Backend failed to process the scan (HTTP ${response.code}) - " +
                             "this usually means an ML prediction failure. Check backend logs."
-                        null
+                        println("[CodeSentinel] Error type: http-5xx")
+                        ScanAttemptOutcome.PermanentFailure("http-5xx")
                     }
                     else -> {
                         lastError = "Backend returned HTTP ${response.code}: $responseBody"
-                        null
+                        println("[CodeSentinel] Error type: http-other")
+                        ScanAttemptOutcome.PermanentFailure("http-other")
                     }
                 }
             }
         } catch (e: java.net.SocketTimeoutException) {
-            lastError = "Backend did not respond in time (timeout). Is it under heavy load?"
-            null
+            lastError = "Backend did not respond within the ${READ_TIMEOUT_S}s timeout. " +
+                "It may be under heavy load, or a batch/heavier request is still processing - check the backend log."
+            println("[CodeSentinel] Error type: timeout")
+            ScanAttemptOutcome.TransientFailure("timeout")
         } catch (e: java.net.ConnectException) {
-            lastError = "Could not reach the backend at $BACKEND_URL - is it running?"
-            null
+            lastError = "Could not connect to the backend at $BASE_URL - start it with " +
+                "'uvicorn app:app --host 127.0.0.1 --port 8000' from the backend/ directory (see backend/.env.example)."
+            println("[CodeSentinel] Error type: connection-refused")
+            ScanAttemptOutcome.TransientFailure("connection-refused")
         } catch (e: Exception) {
             lastError = "Unexpected error contacting backend: ${e.message}"
+            println("[CodeSentinel] Error type: unexpected (${e.javaClass.simpleName})")
             e.printStackTrace()
-            null
+            ScanAttemptOutcome.PermanentFailure("unexpected")
         }
     }
 

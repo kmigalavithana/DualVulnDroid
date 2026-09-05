@@ -45,6 +45,7 @@ class _FakeAPK:
     def __init__(self, package=None, version_name=None, version_code=None,
                  application=None, permissions=None, min_sdk_version=None,
                  target_sdk_version=None, debuggable_attr=None, allow_backup_attr=None,
+                 uses_cleartext_traffic_attr=None,
                  uses_feature_tags=None, raise_on=None):
         self._package = package
         self._version_name = version_name
@@ -57,6 +58,7 @@ class _FakeAPK:
         self._target_sdk_version = target_sdk_version
         self._debuggable_attr = debuggable_attr
         self._allow_backup_attr = allow_backup_attr
+        self._uses_cleartext_traffic_attr = uses_cleartext_traffic_attr
         # list of dicts like {"name": "android.hardware.camera", "required": "true"}
         # (values None/omitted mean the attribute is absent, exactly
         # like a real manifest with no android:required on that tag)
@@ -112,6 +114,10 @@ class _FakeAPK:
             if "allow_backup" in self._raise_on:
                 raise RuntimeError("simulated manifest read failure (allow_backup)")
             return self._allow_backup_attr
+        if tag_name == "application" and attribute == "usesCleartextTraffic":
+            if "uses_cleartext_traffic" in self._raise_on:
+                raise RuntimeError("simulated manifest read failure (uses_cleartext_traffic)")
+            return self._uses_cleartext_traffic_attr
         return None
 
     def find_tags(self, tag_name, **kwargs):
@@ -597,23 +603,33 @@ def test_scan_apk_file_merges_metadata_into_report(monkeypatch, tmp_path):
     assert report["manifest_parse_error"] is None
 
 
-def test_scan_apk_file_metadata_failure_does_not_block_existing_detection(monkeypatch, tmp_path):
+def test_scan_apk_file_metadata_failure_never_fabricates_a_permission_or_cleartext_finding(monkeypatch, tmp_path):
+    # Flutter APK Scan validation phase, Gap-1 fix: cleartext/dangerous-
+    # permission detection now DERIVES from pyaxmlparser's own parsed
+    # metadata (see apk_scanner.py) instead of an independent raw-byte
+    # search. This test used to assert the opposite - that detection
+    # "still ran" via that independent (but broken-on-every-real-APK)
+    # fallback even when real manifest parsing failed. That was itself
+    # the bug: a manifest that genuinely can't be parsed means dangerous
+    # permissions/cleartext-traffic are UNKNOWN, not a fabricated True -
+    # consistent with this module's own "never fabricate" principle for
+    # every other field here.
     def _raise(path):
         raise ValueError("cannot decode manifest")
     monkeypatch.setattr(apk_scanner.pyaxmlparser, "APK", _raise)
 
-    import zipfile
     apk_path = tmp_path / "sample.apk"
     with zipfile.ZipFile(apk_path, "w") as z:
-        z.writestr("AndroidManifest.xml", 'usesCleartextTraffic="true"')
+        z.writestr("AndroidManifest.xml", "placeholder - pyaxmlparser.APK is mocked to raise for this test")
 
     report = apk_scanner.scan_apk_file(str(apk_path))
 
     # Metadata extraction failed honestly...
     assert report["package_name"] is None
     assert report["manifest_parse_error"] is not None
-    # ...but the existing, unrelated raw-string detection still ran.
-    assert report["vulnerable"] is True
+    # ...and no permission/cleartext-traffic finding is fabricated from it.
+    assert report["dangerous_permissions"] == []
+    assert report["vulnerable"] is False
 
 
 # =====================================================
@@ -668,32 +684,48 @@ def test_real_apk_abi_extraction():
 
 # =====================================================
 # Phase 10B: deterministic, evidence-based explanations for vulnerable
-# APK scans. All fixtures are synthetic zips with a plain-text manifest -
-# fine here since these tests target the raw-string detection + explanation
-# logic (already the established pattern in this file), not AXML decoding.
+# APK scans.
+#
+# Flutter APK Scan validation phase, Gap-1 fix: these fixtures used to be
+# synthetic zips with a PLAIN-TEXT manifest, matched by scan_apk_file()'s
+# old raw-UTF-8-byte search for "usesCleartextTraffic"/
+# "android.permission.XXX". That search was dead code against any real,
+# aapt2-compiled APK (real AXML string pools are UTF-16LE) - confirmed
+# live against this project's own test_fixtures/vulnerable_test_apk
+# fixture, which planted 12 dangerous permissions and got back
+# dangerous_permissions=[] every time. The fix derives both signals from
+# pyaxmlparser's real (correct) parsed data instead, so these fixtures now
+# mock pyaxmlparser.APK via _FakeAPK (the same pattern already used
+# throughout this file for debuggable/allow_backup/features) rather than
+# writing literal manifest text a real parser will never produce.
 # =====================================================
 
-def _make_apk(tmp_path, name, manifest_text, extra_files=None):
+def _scan_with_fake_manifest(monkeypatch, tmp_path, name, permissions=None, cleartext=None, extra_files=None):
+    fake = _FakeAPK(package="com.example.app", permissions=permissions or [],
+                     uses_cleartext_traffic_attr=cleartext)
+    monkeypatch.setattr(apk_scanner.pyaxmlparser, "APK", lambda path: fake)
+
     apk_path = tmp_path / name
     with zipfile.ZipFile(apk_path, "w") as z:
-        z.writestr("AndroidManifest.xml", manifest_text)
+        # scan_apk_file() still extracts the real zip (for its separate
+        # URL-scanning pass) - the manifest's own TEXT is never read
+        # directly anymore, since pyaxmlparser.APK is mocked above.
+        z.writestr("AndroidManifest.xml", "placeholder - pyaxmlparser.APK is mocked for this test")
         for fname, content in (extra_files or {}).items():
             z.writestr(fname, content)
-    return str(apk_path)
+    return apk_scanner.scan_apk_file(str(apk_path))
 
 
 # 1. Safe APK explanation
-def test_safe_apk_explanation_unchanged(tmp_path):
-    path = _make_apk(tmp_path, "safe.apk", 'android.permission.INTERNET')
-    report = apk_scanner.scan_apk_file(path)
+def test_safe_apk_explanation_unchanged(monkeypatch, tmp_path):
+    report = _scan_with_fake_manifest(monkeypatch, tmp_path, "safe.apk", permissions=["android.permission.INTERNET"])
     assert report["vulnerable"] is False
     assert report["explanation"] == "No cleartext traffic, dangerous permissions, or suspicious URLs found in this scan."
 
 
 # 2. Cleartext-only finding
-def test_cleartext_only_explanation(tmp_path):
-    path = _make_apk(tmp_path, "cleartext.apk", 'usesCleartextTraffic="true"')
-    report = apk_scanner.scan_apk_file(path)
+def test_cleartext_only_explanation(monkeypatch, tmp_path):
+    report = _scan_with_fake_manifest(monkeypatch, tmp_path, "cleartext.apk", cleartext="true")
     assert report["vulnerable"] is True
     assert report["explanation"] == (
         "The APK declares cleartext traffic, which may allow network "
@@ -702,57 +734,73 @@ def test_cleartext_only_explanation(tmp_path):
 
 
 # 3. Dangerous-permission-only finding
-def test_dangerous_permission_only_explanation(tmp_path):
-    path = _make_apk(tmp_path, "perms.apk", 'android.permission.CAMERA android.permission.READ_CONTACTS')
-    report = apk_scanner.scan_apk_file(path)
+def test_dangerous_permission_only_explanation(monkeypatch, tmp_path):
+    report = _scan_with_fake_manifest(
+        monkeypatch, tmp_path, "perms.apk",
+        permissions=["android.permission.CAMERA", "android.permission.READ_CONTACTS"],
+    )
     assert report["vulnerable"] is True
     assert report["explanation"] == "The APK requests potentially sensitive Android permissions: CAMERA, READ_CONTACTS."
 
 
 # 4. Suspicious-URL-only finding
-def test_suspicious_url_only_explanation(tmp_path):
+def test_suspicious_url_only_explanation(monkeypatch, tmp_path):
     # No cleartext flag, no dangerous permission - only a malicious-looking
     # URL (IP-literal host) embedded in a non-manifest file.
-    path = _make_apk(tmp_path, "urls.apk", 'android.permission.INTERNET',
-                      extra_files={"assets/config.json": "http://192.168.1.1/payload"})
-    report = apk_scanner.scan_apk_file(path)
+    report = _scan_with_fake_manifest(
+        monkeypatch, tmp_path, "urls.apk", permissions=["android.permission.INTERNET"],
+        extra_files={"assets/config.json": "http://192.168.1.1/payload"},
+    )
     assert report["vulnerable"] is True
     assert report["dangerous_permissions"] == []
     assert report["explanation"] == "The APK contains 1 suspicious URL identified during static analysis."
 
 
 # 5. Multiple findings
-def test_multiple_findings_explanation(tmp_path):
-    path = _make_apk(tmp_path, "multi.apk", 'usesCleartextTraffic="true" android.permission.CAMERA')
-    report = apk_scanner.scan_apk_file(path)
+def test_multiple_findings_explanation(monkeypatch, tmp_path):
+    report = _scan_with_fake_manifest(
+        monkeypatch, tmp_path, "multi.apk", cleartext="true", permissions=["android.permission.CAMERA"],
+    )
     assert report["vulnerable"] is True
     assert report["explanation"] == "The scan identified multiple security concerns: cleartext traffic and sensitive permissions."
 
 
 # 6. Deterministic explanation ordering
-def test_explanation_is_deterministic_across_repeated_scans(tmp_path):
+def test_explanation_is_deterministic_across_repeated_scans(monkeypatch, tmp_path):
     # Multiple category findings - the short-label summary must be
     # byte-identical across repeated scans of the same APK.
-    path = _make_apk(tmp_path, "det.apk", 'usesCleartextTraffic="true" android.permission.CAMERA android.permission.READ_SMS')
-    report_a = apk_scanner.scan_apk_file(path)
-    report_b = apk_scanner.scan_apk_file(path)
+    report_a = _scan_with_fake_manifest(
+        monkeypatch, tmp_path, "det.apk", cleartext="true",
+        permissions=["android.permission.CAMERA", "android.permission.READ_SMS"],
+    )
+    report_b = _scan_with_fake_manifest(
+        monkeypatch, tmp_path, "det.apk", cleartext="true",
+        permissions=["android.permission.CAMERA", "android.permission.READ_SMS"],
+    )
     assert report_a["explanation"] == report_b["explanation"]
     assert report_a["explanation"] == "The scan identified multiple security concerns: cleartext traffic and sensitive permissions."
 
     # Permission ordering within a single-category sentence must also be
     # stable (sorted), independent of the manifest's own declaration order.
-    perms_path = _make_apk(tmp_path, "det_perms.apk", 'android.permission.READ_SMS android.permission.CAMERA')
-    perms_report_a = apk_scanner.scan_apk_file(perms_path)
-    perms_report_b = apk_scanner.scan_apk_file(perms_path)
+    perms_report_a = _scan_with_fake_manifest(
+        monkeypatch, tmp_path, "det_perms_a.apk",
+        permissions=["android.permission.READ_SMS", "android.permission.CAMERA"],
+    )
+    perms_report_b = _scan_with_fake_manifest(
+        monkeypatch, tmp_path, "det_perms_b.apk",
+        permissions=["android.permission.READ_SMS", "android.permission.CAMERA"],
+    )
     assert perms_report_a["explanation"] == perms_report_b["explanation"]
     assert "CAMERA, READ_SMS" in perms_report_a["explanation"]
 
 
 # 7. Vulnerable scan never uses the generic placeholder
-def test_vulnerable_scan_never_uses_generic_placeholder(tmp_path):
-    for manifest in ['usesCleartextTraffic="true"', 'android.permission.CAMERA']:
-        path = _make_apk(tmp_path, f"generic_{hash(manifest) & 0xffff}.apk", manifest)
-        report = apk_scanner.scan_apk_file(path)
+def test_vulnerable_scan_never_uses_generic_placeholder(monkeypatch, tmp_path):
+    for i, kwargs in enumerate([
+        {"cleartext": "true"},
+        {"permissions": ["android.permission.CAMERA"]},
+    ]):
+        report = _scan_with_fake_manifest(monkeypatch, tmp_path, f"generic_{i}.apk", **kwargs)
         assert report["vulnerable"] is True
         assert report["explanation"] != "APK scan completed."
 
@@ -766,9 +814,8 @@ def test_invalid_apk_explanation_unchanged(tmp_path):
 
 
 # 9. Explanation contains only actual detected findings
-def test_explanation_only_mentions_real_findings(tmp_path):
-    path = _make_apk(tmp_path, "cleartext_only.apk", 'usesCleartextTraffic="true"')
-    report = apk_scanner.scan_apk_file(path)
+def test_explanation_only_mentions_real_findings(monkeypatch, tmp_path):
+    report = _scan_with_fake_manifest(monkeypatch, tmp_path, "cleartext_only.apk", cleartext="true")
     assert "permission" not in report["explanation"].lower()
     assert "url" not in report["explanation"].lower()
     assert "sql injection" not in report["explanation"].lower()
@@ -776,11 +823,12 @@ def test_explanation_only_mentions_real_findings(tmp_path):
 
 
 # 10. Sensitive values are not leaked
-def test_sensitive_url_content_is_never_leaked_only_a_count(tmp_path):
+def test_sensitive_url_content_is_never_leaked_only_a_count(monkeypatch, tmp_path):
     sensitive_url = "http://192.168.1.1/api?token=SECRET123&password=hunter2"
-    path = _make_apk(tmp_path, "sensitive.apk", 'android.permission.INTERNET',
-                      extra_files={"assets/config.json": sensitive_url})
-    report = apk_scanner.scan_apk_file(path)
+    report = _scan_with_fake_manifest(
+        monkeypatch, tmp_path, "sensitive.apk", permissions=["android.permission.INTERNET"],
+        extra_files={"assets/config.json": sensitive_url},
+    )
     assert "SECRET123" not in report["explanation"]
     assert "hunter2" not in report["explanation"]
     assert "192.168.1.1" not in report["explanation"]
@@ -788,11 +836,12 @@ def test_sensitive_url_content_is_never_leaked_only_a_count(tmp_path):
 
 
 # 11. Risk level remains unchanged by the explanation-wording fix
-def test_risk_level_and_vulnerable_flag_unaffected_by_explanation_change(tmp_path):
+def test_risk_level_and_vulnerable_flag_unaffected_by_explanation_change(monkeypatch, tmp_path):
     # Same detections as the pre-Phase-10B behavior would have classified -
     # only the explanation TEXT is new, not risk_level/vulnerable/security_score.
-    path = _make_apk(tmp_path, "riskcheck.apk", 'usesCleartextTraffic="true" android.permission.CAMERA')
-    report = apk_scanner.scan_apk_file(path)
+    report = _scan_with_fake_manifest(
+        monkeypatch, tmp_path, "riskcheck.apk", cleartext="true", permissions=["android.permission.CAMERA"],
+    )
     assert report["risk_level"] == "high"
     assert report["vulnerable"] is True
     assert report["security_score"] == 75  # 100 - 5 (1 dangerous perm) - 10*2 (2 detections)

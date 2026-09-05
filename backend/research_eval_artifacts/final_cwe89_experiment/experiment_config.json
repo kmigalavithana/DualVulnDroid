@@ -1,0 +1,102 @@
+{
+  "corpus_path": "backend/research_eval_artifacts/new_cwe89_corpus_final",
+  "corpus_files_used": [
+    "final_candidate_cwe89_samples.csv",
+    "final_project_split_manifest.csv"
+  ],
+  "corpus_totals_independently_reverified": {
+    "total_samples": 34,
+    "vulnerable": 3,
+    "safe": 31,
+    "ambiguous": 0,
+    "projects": 18,
+    "train_projects": 7,
+    "validation_projects": 5,
+    "test_projects": 6
+  },
+  "text_representation": {
+    "source_column": "code_context",
+    "excluded_columns": [
+      "cwe",
+      "dataflow_path",
+      "evidence_type",
+      "label",
+      "label_confidence",
+      "parameterized",
+      "sanitized",
+      "sink",
+      "source",
+      "tainted_variable"
+    ],
+    "vectorizer": "sklearn.feature_extraction.text.TfidfVectorizer",
+    "vectorizer_params": {
+      "lowercase": true,
+      "token_pattern": "(?u)\\b\\w\\w+\\b",
+      "ngram_range": [
+        1,
+        1
+      ],
+      "min_df": 1,
+      "max_features": 1000
+    },
+    "fit_on": "TRAIN split ONLY (15 documents)",
+    "vocab_size": 251,
+    "feature_dims": 251
+  },
+  "models": {
+    "svm": {
+      "class": "sklearn.svm.LinearSVC",
+      "params": {
+        "class_weight": "balanced",
+        "random_state": 42,
+        "max_iter": 5000
+      }
+    },
+    "rf": {
+      "class": "sklearn.ensemble.RandomForestClassifier",
+      "params": {
+        "n_estimators": 200,
+        "max_depth": 4,
+        "class_weight": "balanced",
+        "random_state": 42
+      }
+    },
+    "xgb": {
+      "class": "xgboost.XGBClassifier",
+      "params": {
+        "n_estimators": 100,
+        "max_depth": 3,
+        "learning_rate": 0.1,
+        "scale_pos_weight": 14.0,
+        "random_state": 42,
+        "eval_metric": "logloss"
+      }
+    }
+  },
+  "explicitly_excluded_models": [
+    "LSTM",
+    "CodeBERT",
+    "generic transformer"
+  ],
+  "decision_thresholds": {
+    "ml_threshold": 0.5,
+    "fusion_threshold": 0.5,
+    "abstention_band": [
+      0.45,
+      0.55
+    ]
+  },
+  "fusion": {
+    "w_ml": 0.5,
+    "w_static": 0.5,
+    "primary_ml_model": "svm",
+    "weight_selection_procedure": "predefined, fixed 50/50 weighting; NOT optimized via search on validation or test, per task fallback instruction for small validation sets"
+  },
+  "static_baseline": {
+    "base_tool": "backend/dataflow.py (analyze_sql_dataflow, sql_sink_safety_summary) -- imported read-only, NOT modified",
+    "wrapper_extension": "sink-name list extended (experiment-script-local only) to include .query(/.update(/.delete(/.insert(, matching this corpus's own SQL-candidate-discovery grep pattern; parameterization-check logic reused unchanged from dataflow.py"
+  },
+  "random_seed": 42,
+  "old_artifacts_loaded": "NONE -- no old dataset, old train/val/test CSVs, old XGBoost/SVM/RF/LSTM/CodeBERT checkpoint, old vectorizer, old scaler, or old Decision Engine weights were loaded",
+  "run_timestamp_utc": "2026-08-29T07:07:33.136378+00:00"
+}

@@ -1,0 +1,24 @@
+{
+  "total_collected": 17,
+  "by_cwe_and_label": {
+    "('CWE-295', 'v0')": 6,
+    "('CWE-295', 'v1')": 6,
+    "('CWE-89', 's0')": 2,
+    "('CWE-89', 's1')": 3
+  },
+  "by_evidence_strength": {
+    "('CWE-295', 'MODERATE')": 1,
+    "('CWE-295', 'STRONG')": 11,
+    "('CWE-89', 'STRONG')": 5
+  },
+  "overlaps_original_dataset_normalized_count": 2,
+  "internal_normalized_duplicate_count": 0,
+  "pairs_recorded": 6,
+  "repositories_used": [
+    "datatheorem/TrustKit-Android",
+    "job4chris/Android-Self-Signed-SSL-certificate-example",
+    "owncloud/android",
+    "phonegap/phonegap-plugin-contentsync",
+    "rfreedman/android-ssl"
+  ]
+}

@@ -1,0 +1,110 @@
+sample_id,cwe,label,code,repository,evidence_strength,disposition,exact_dup_vs_v2,normalized_dup_vs_v2,exact_dup_internal,normalized_dup_internal
+cwe295safe105_0001,CWE-295,v1,"public void checkCertTrusted(X509Certificate[] chain, String authType, boolean isServer)
+    throws CertificateException
+{
+    try {
+        if (isServer)
+            appTrustManager.checkServerTrusted(chain, authType);
+        else
+            appTrustManager.checkClientTrusted(chain, authType);
+    } catch (CertificateException ae) {
+        if (isCertKnown(chain[0])) {
+            return;
+        }
+        try {
+            if (isServer)
+                defaultTrustManager.checkServerTrusted(chain, authType);
+            else
+                defaultTrustManager.checkClientTrusted(chain, authType);
+        } catch (CertificateException e) {
+            interactCert(chain, authType, e);
+        }
+    }
+}",ge0rg/MemorizingTrustManager,STRONG,CONFIRMED_SAFE,False,False,False,False
+cwe295safe105_0002,CWE-295,v1,"override fun checkClientTrusted(chain: Array<X509Certificate>?, authType: String?) {
+    throw CertificateException(""cert4android doesn't validate client certificates"")
+}",bitfireAT/cert4android,STRONG,CONFIRMED_SAFE,False,False,False,False
+cwe295safe105_0003,CWE-295,v1,"override fun checkServerTrusted(chain: Array<X509Certificate>, authType: String) {
+    if (!certStore.isTrusted(
+            chain,
+            authType,
+            trustSystemCerts = settings.trustSystemCerts,
+            appInForeground = settings.appInForeground
+        )
+    )
+        throw CertificateException(""Certificate chain not trusted"")
+}",bitfireAT/cert4android,STRONG,CONFIRMED_SAFE,False,False,False,False
+cwe295safe105_0004,CWE-295,v1,"try {
+    systemKeyStore.checkServerTrusted(chain, authType)
+    return true
+} catch (_: CertificateException) {
+}",bitfireAT/cert4android,STRONG,CONFIRMED_SAFE,False,False,False,False
+cwe295safe105_0005,CWE-295,v1,"fun buildPinner(
+    host: String = PROTON_HOST,
+    pins: List<String> = loadFromClasspath()
+): CertificatePinner {
+    val builder = CertificatePinner.Builder()
+    if (pins.isNotEmpty()) {
+        builder.add(host, *pins.toTypedArray())
+    }
+    return builder.build()
+}",andreabenetton/pcontacts,STRONG,CONFIRMED_SAFE,False,False,False,False
+cwe295safe105_0006,CWE-295,v1,"if (!hostnameVerifier.verify(canonicalizeHost(host), sslSocket.getSession())) {
+    throw new SSLPeerUnverifiedException(""Cannot verify hostname: "" + host);
+}",grpc/grpc-java,STRONG,CONFIRMED_SAFE,False,False,False,False
+cwe295safe105_0007,CWE-295,v1,"public void checkServerTrusted(X509Certificate[] chain, String authType)
+    throws CertificateException
+{
+  trustManager.checkServerTrusted(chain, authType);
+
+  for (X509Certificate certificate : chain) {
+    for (Pair<String, BigInteger> blacklistedSerial : BLACKLIST) {
+      if (certificate.getIssuerDN().getName().equals(blacklistedSerial.first()) &&
+          certificate.getSerialNumber().equals(blacklistedSerial.second()))
+      {
+        throw new CertificateException(""Blacklisted Serial: "" + certificate.getSerialNumber());
+      }
+    }
+  }
+}",signalapp/libsignal-service-java,STRONG,CONFIRMED_SAFE,False,False,False,False
+cwe295safe105_0008,CWE-295,v1,"public static TrustManager[] createFor(TrustStore trustStore) {
+  try {
+    InputStream keyStoreInputStream = trustStore.getKeyStoreInputStream();
+    KeyStore    keyStore            = KeyStore.getInstance(""BKS"");
+
+    keyStore.load(keyStoreInputStream, trustStore.getKeyStorePassword().toCharArray());
+
+    TrustManagerFactory trustManagerFactory = TrustManagerFactory.getInstance(""X509"");
+    trustManagerFactory.init(keyStore);
+
+    return BlacklistingTrustManager.createFor(trustManagerFactory.getTrustManagers());
+  } catch (KeyStoreException | CertificateException | IOException | NoSuchAlgorithmException e) {
+    throw new AssertionError(e);
+  }
+}",signalapp/libsignal-service-java,STRONG,CONFIRMED_SAFE,False,False,False,False
+cwe295safe105_0009,CWE-295,v1,"public void checkServerTrusted( X509Certificate[] certificates, String authType )
+        throws CertificateException
+{
+    standardTrustManager.checkServerTrusted( certificates, authType );
+
+    for (X509Certificate cert : certificates) {
+        String issuer_name = cert.getIssuerDN().getName();
+        if (issuer_name.indexOf("",O="" + TRUSTED_CA_AUTHORITY + "","") == -1)
+            throw new CertificateException();
+    }
+}",OWASP/MASTG-Hacking-Playground,STRONG,CONFIRMED_SAFE,False,False,False,False
+cwe295safe105_0010,CWE-295,v1,"InputStream caInput = new BufferedInputStream(getResources().openRawResource(R.raw.certificate));
+Certificate ca = cf.generateCertificate(caInput);
+caInput.close();
+
+String keyStoreType = KeyStore.getDefaultType();
+KeyStore keyStore = KeyStore.getInstance(keyStoreType);
+keyStore.load(null, null);
+keyStore.setCertificateEntry(""ca"", ca);
+
+String tmfAlgorithm = TrustManagerFactory.getDefaultAlgorithm();
+TrustManagerFactory tmf = TrustManagerFactory.getInstance(tmfAlgorithm);
+tmf.init(keyStore);
+
+final SSLContext context = SSLContext.getInstance(""TLS"");
+context.init(null, tmf.getTrustManagers(), null);",OWASP/MASTG-Hacking-Playground,STRONG,CONFIRMED_SAFE,False,False,False,False

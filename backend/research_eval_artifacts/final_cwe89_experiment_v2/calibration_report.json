@@ -1,0 +1,21 @@
+{
+  "method": "Platt scaling (1D logistic regression), fit on VALIDATION ONLY (n=11, 1 positive)",
+  "platt_coefficient": 0.007950974955409092,
+  "platt_intercept": -2.305984300243864,
+  "judged_numerically_stable": true,
+  "brier_score_validation_raw": 0.2138,
+  "brier_score_validation_calibrated": 0.0826,
+  "expected_calibration_error_validation_raw": 0.3637,
+  "expected_calibration_error_validation_calibrated": 0.0,
+  "critical_finding": "The calibrated fusion probability on the TEST split ranges from 0.090920 to 0.090935 across all 8 samples (span < 0.00002) -- the calibrator collapsed to predicting an almost exactly constant value close to the training base rate, regardless of sample content. The near-zero Brier/ECE improvement after calibration reflects the calibrator correctly recognizing that the raw fusion score carries ~no exploitable signal at this validation sample size (n=11, 1 positive), not genuine well-calibrated discrimination. This is reported as a central, honest finding, not as evidence of a working calibrated detector.",
+  "test_calibrated_scores_full_precision": [
+    0.09093393,
+    0.09093309,
+    0.09093277,
+    0.09092002,
+    0.09092843,
+    0.090932,
+    0.0909352,
+    0.09093518
+  ]
+}

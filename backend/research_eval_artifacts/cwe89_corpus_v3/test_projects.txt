@@ -1,0 +1,6 @@
+commons-app-apps-android-commons
+fossifyorg-calendar
+nextcloud-android
+openintents-safe
+owntracks-android
+tuskyapp-tusky

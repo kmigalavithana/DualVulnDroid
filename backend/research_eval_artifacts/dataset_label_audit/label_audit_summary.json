@@ -1,0 +1,98 @@
+{
+  "audit_scope": {
+    "s0_rows_audited": 56,
+    "v0_rows_audited": 23,
+    "total_rows_audited": 79
+  },
+  "ambiguous_policy": "retain_original",
+  "original_clean_dataset": {
+    "total_rows": 1128,
+    "label_counts": {
+      "s0": 196,
+      "s1": 176,
+      "v0": 426,
+      "v1": 330
+    },
+    "cwe_totals": {
+      "CWE-89": 372,
+      "CWE-295": 756
+    }
+  },
+  "s0_audit_result": {
+    "classification_counts": {
+      "DEFINITELY_SAFE": 51,
+      "AMBIGUOUS": 4,
+      "NOT_RELEVANT": 1
+    },
+    "definitely_safe_confidence_breakdown": {
+      "HIGH": 38,
+      "MEDIUM": 13
+    },
+    "split_breakdown_of_audited_rows": {
+      "train": 41,
+      "validation": 8,
+      "test": 7
+    }
+  },
+  "v0_audit_result": {
+    "classification_counts": {
+      "NOT_RELEVANT": 23
+    },
+    "split_breakdown_of_audited_rows": {
+      "train": 18,
+      "validation": 2,
+      "test": 3
+    }
+  },
+  "recommended_actions": {
+    "relabel_s0_to_s1": 51,
+    "remove_s0_not_relevant": 1,
+    "remove_v0_not_relevant": 23,
+    "ambiguous_unresolved_s0": 4,
+    "ambiguous_unresolved_v0": 0
+  },
+  "candidate_corrected_dataset": {
+    "total_rows": 1104,
+    "label_counts": {
+      "s0": 144,
+      "s1": 227,
+      "v0": 403,
+      "v1": 330
+    },
+    "cwe_totals": {
+      "CWE-89": 371,
+      "CWE-295": 733
+    },
+    "rows_removed": 24,
+    "rows_relabeled": 51,
+    "rows_unchanged_from_audit_but_retained": 4
+  },
+  "test_set_impact": {
+    "s0_contradictory_rows_originally_in_test": 7,
+    "of_which_confirmed_definitely_safe": 7,
+    "of_which_ambiguous": 0,
+    "of_which_not_relevant": 0,
+    "v0_import_rows_originally_in_test": 3,
+    "note": "Test set membership is reported only. The frozen test.csv/val.csv/train.csv files were NOT modified by this audit."
+  },
+  "raw_dataset_context": {
+    "raw_row_count": 1687,
+    "raw_label_counts": {
+      "s0": 450,
+      "v0": 448,
+      "s1": 439,
+      "v1": 350
+    }
+  },
+  "files_not_modified": [
+    "dataset .csv",
+    "backend/ml/data/train.csv",
+    "backend/ml/data/val.csv",
+    "backend/ml/data/test.csv",
+    "backend/ml/data/excluded_conflicting_labels.csv",
+    "backend/research_eval_artifacts/clean_dataset.csv",
+    "backend/research_eval_artifacts/train_indices.json",
+    "backend/research_eval_artifacts/validation_indices.json",
+    "backend/research_eval_artifacts/test_indices.json"
+  ]
+}
