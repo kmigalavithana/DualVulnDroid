@@ -8,6 +8,7 @@ Run from backend/:  python -m pytest tests/test_api.py -v
 """
 
 import io
+import os
 import zipfile
 
 import pytest
@@ -294,7 +295,8 @@ class _FakeParsedAPK:
     genuine binary-AXML file (see tests/test_apk_metadata.py for the
     dedicated parser-boundary unit tests, which use the same technique)."""
 
-    def __init__(self, package, min_sdk, target_sdk, debuggable, allow_backup):
+    def __init__(self, package, min_sdk, target_sdk, debuggable, allow_backup,
+                 permissions=None, uses_cleartext_traffic=None):
         self.package = package
         self.version_name = "1.0"
         self.version_code = "1"
@@ -305,11 +307,18 @@ class _FakeParsedAPK:
         # which is real, intended behavior but not what these tests want
         # to exercise against each other.
         self.application = f"Compat Test App ({package})"
-        self.permissions = ["android.permission.INTERNET"]
+        # Real detection (Flutter APK Scan validation phase, Gap-1 fix)
+        # derives dangerous_permissions/cleartext from this parsed list/
+        # attribute, not from the raw manifest bytes in the zip - callers
+        # that want a specific permission/cleartext scenario must set it
+        # here (see tests/test_apk_metadata.py's _FakeAPK for the same
+        # pattern), never by writing literal text into AndroidManifest.xml.
+        self.permissions = permissions if permissions is not None else ["android.permission.INTERNET"]
         self._min_sdk = min_sdk
         self._target_sdk = target_sdk
         self._debuggable = debuggable
         self._allow_backup = allow_backup
+        self._uses_cleartext_traffic = uses_cleartext_traffic
 
     def get_min_sdk_version(self):
         return self._min_sdk
@@ -322,6 +331,8 @@ class _FakeParsedAPK:
             return self._debuggable
         if tag_name == "application" and attribute == "allowBackup":
             return self._allow_backup
+        if tag_name == "application" and attribute == "usesCleartextTraffic":
+            return self._uses_cleartext_traffic
         return None
 
     def find_tags(self, tag_name, **kwargs):
@@ -545,14 +556,12 @@ def test_missing_recommendation_reason_is_null_not_a_generated_sentence(monkeypa
 
 
 def test_evidence_is_returned_from_real_vulnerabilities(monkeypatch):
-    fake = _FakeParsedAPK("com.example.evidencetest", "21", "30", None, None)
+    # Dangerous permission comes from the parsed manifest (pyaxmlparser),
+    # not from literal text in the zip - see _FakeParsedAPK's docstring.
+    fake = _FakeParsedAPK("com.example.evidencetest", "21", "30", None, None,
+                           permissions=["android.permission.READ_SMS"])
     monkeypatch.setattr(apk_scanner.pyaxmlparser, "APK", lambda path: fake)
-    # A manifest with a dangerous permission produces a real Vulnerability row.
-    apk_bytes = io.BytesIO()
-    with zipfile.ZipFile(apk_bytes, "w") as z:
-        z.writestr("AndroidManifest.xml", 'android.permission.READ_SMS')
-    apk_bytes.seek(0)
-    upload = client.post("/upload-apk", files={"file": ("evidencetest.apk", apk_bytes, "application/vnd.android.package-archive")})
+    upload = client.post("/upload-apk", files={"file": ("evidencetest.apk", _fake_apk_zip_bytes(), "application/vnd.android.package-archive")})
     app_id = upload.json()["application"]["id"]
 
     r = client.get(f"/apps/{app_id}/security")
@@ -627,14 +636,13 @@ def test_recommendation_reason_never_alters_risk_calculation(monkeypatch):
 # ---------------------------------------------------------------------
 
 def test_generated_vulnerable_explanation_is_persisted_in_recommendation_reason(monkeypatch):
-    fake = _FakeParsedAPK("com.example.persistedreason", "21", "30", None, None)
+    # Cleartext flag comes from the parsed manifest attribute, not from
+    # literal text in the zip - see _FakeParsedAPK's docstring.
+    fake = _FakeParsedAPK("com.example.persistedreason", "21", "30", None, None,
+                           uses_cleartext_traffic="true")
     monkeypatch.setattr(apk_scanner.pyaxmlparser, "APK", lambda path: fake)
 
-    apk_bytes = io.BytesIO()
-    with zipfile.ZipFile(apk_bytes, "w") as z:
-        z.writestr("AndroidManifest.xml", 'usesCleartextTraffic="true"')
-    apk_bytes.seek(0)
-    upload = client.post("/upload-apk", files={"file": ("persistedreason.apk", apk_bytes, "application/vnd.android.package-archive")})
+    upload = client.post("/upload-apk", files={"file": ("persistedreason.apk", _fake_apk_zip_bytes(), "application/vnd.android.package-archive")})
     upload_body = upload.json()
     app_id = upload_body["application"]["id"]
 
@@ -659,14 +667,13 @@ def test_generated_vulnerable_explanation_is_persisted_in_recommendation_reason(
 
 
 def test_security_endpoint_returns_the_same_stored_reason(monkeypatch):
-    fake = _FakeParsedAPK("com.example.apireason", "21", "30", None, None)
+    # Dangerous permission comes from the parsed manifest, not from
+    # literal text in the zip - see _FakeParsedAPK's docstring.
+    fake = _FakeParsedAPK("com.example.apireason", "21", "30", None, None,
+                           permissions=["android.permission.READ_SMS"])
     monkeypatch.setattr(apk_scanner.pyaxmlparser, "APK", lambda path: fake)
 
-    apk_bytes = io.BytesIO()
-    with zipfile.ZipFile(apk_bytes, "w") as z:
-        z.writestr("AndroidManifest.xml", 'android.permission.READ_SMS')
-    apk_bytes.seek(0)
-    upload = client.post("/upload-apk", files={"file": ("apireason.apk", apk_bytes, "application/vnd.android.package-archive")})
+    upload = client.post("/upload-apk", files={"file": ("apireason.apk", _fake_apk_zip_bytes(), "application/vnd.android.package-archive")})
     app_id = upload.json()["application"]["id"]
 
     from db.session import SessionLocal
@@ -684,3 +691,167 @@ def test_security_endpoint_returns_the_same_stored_reason(monkeypatch):
     assert r.status_code == 200
     assert r.json()["recommendation"]["reason"] == stored_reason
     assert stored_reason == "The APK requests potentially sensitive Android permissions: READ_SMS."
+
+
+# ---------------------------------------------------------------------
+# Flutter APK Scan implementation phase: real, compiled APK fixtures
+# (test_fixtures/apk_code_scan_fixtures/*.apk - see that directory's
+# build_fixtures.py) driven through the ACTUAL /upload-apk HTTP endpoint
+# end-to-end, exercising the real DEX-decompile -> predictor.py/
+# dataflow.py -> persist -> GET /apps/{id}/security round trip. Not
+# source text fed directly to a function - these are real .apk files.
+# ---------------------------------------------------------------------
+
+_APK_CODE_SCAN_FIXTURE_DIR = os.path.join(
+    os.path.dirname(__file__), "..", "..", "test_fixtures", "apk_code_scan_fixtures"
+)
+
+
+def _code_scan_fixture_path(name):
+    return os.path.join(_APK_CODE_SCAN_FIXTURE_DIR, f"{name}.apk")
+
+
+_code_scan_fixtures_present = all(
+    os.path.isfile(_code_scan_fixture_path(n))
+    for n in ["cwe89_vulnerable", "cwe89_safe", "cwe295_vulnerable", "cwe295_safe", "mixed_cwe89_cwe295"]
+)
+
+requires_apk_code_scan_fixtures = pytest.mark.skipif(
+    not _code_scan_fixtures_present,
+    reason="test_fixtures/apk_code_scan_fixtures/*.apk not present - run build_fixtures.py",
+)
+
+
+def _upload_fixture_apk(name):
+    path = _code_scan_fixture_path(name)
+    with open(path, "rb") as f:
+        return client.post(
+            "/upload-apk",
+            files={"file": (f"{name}.apk", f, "application/vnd.android.package-archive")},
+        )
+
+
+@requires_apk_code_scan_fixtures
+def test_real_apk_cwe89_vulnerable_end_to_end():
+    upload = _upload_fixture_apk("cwe89_vulnerable")
+    assert upload.status_code == 200
+    body = upload.json()
+    ca = body["codeAnalysis"]
+    assert ca["cwe89Count"] == 1
+    assert ca["cwe295Count"] == 0
+    assert ca["totalFindings"] == 1
+
+    app_id = body["application"]["id"]
+    security = client.get(f"/apps/{app_id}/security").json()
+    assert security["codeFindingsSummary"] == {"cwe89Count": 1, "cwe295Count": 0, "totalFindings": 1}
+    code_vulns = [v for v in security["vulnerabilities"] if v["cwe"]]
+    assert len(code_vulns) == 1
+    assert code_vulns[0]["cwe"] == "CWE-89"
+    assert code_vulns[0]["fileName"].startswith("decompiled/")
+
+
+@requires_apk_code_scan_fixtures
+def test_real_apk_cwe89_safe_end_to_end_no_findings():
+    upload = _upload_fixture_apk("cwe89_safe")
+    assert upload.status_code == 200
+    ca = upload.json()["codeAnalysis"]
+    assert ca["totalFindings"] == 0
+    assert ca["filesScanned"] >= 1
+
+
+@requires_apk_code_scan_fixtures
+def test_real_apk_cwe295_vulnerable_end_to_end():
+    upload = _upload_fixture_apk("cwe295_vulnerable")
+    assert upload.status_code == 200
+    ca = upload.json()["codeAnalysis"]
+    assert ca["cwe89Count"] == 0
+    assert ca["cwe295Count"] == 1
+    assert ca["totalFindings"] == 1
+
+
+@requires_apk_code_scan_fixtures
+def test_real_apk_cwe295_safe_end_to_end_no_findings():
+    upload = _upload_fixture_apk("cwe295_safe")
+    assert upload.status_code == 200
+    assert upload.json()["codeAnalysis"]["totalFindings"] == 0
+
+
+@requires_apk_code_scan_fixtures
+def test_real_apk_mixed_end_to_end_no_cross_contamination():
+    upload = _upload_fixture_apk("mixed_cwe89_cwe295")
+    assert upload.status_code == 200
+    body = upload.json()
+    ca = body["codeAnalysis"]
+    assert ca["cwe89Count"] == 1
+    assert ca["cwe295Count"] == 1
+    # CRITICAL INVARIANT (Phase 7), verified backend-side
+    assert ca["totalFindings"] == ca["cwe89Count"] + ca["cwe295Count"]
+
+    app_id = body["application"]["id"]
+    security = client.get(f"/apps/{app_id}/security").json()
+    summary = security["codeFindingsSummary"]
+    assert summary["totalFindings"] == summary["cwe89Count"] + summary["cwe295Count"] == 2
+    cwes_seen = sorted(v["cwe"] for v in security["vulnerabilities"] if v["cwe"])
+    assert cwes_seen == ["CWE-295", "CWE-89"]
+
+
+@requires_apk_code_scan_fixtures
+def test_repeated_scan_of_same_apk_does_not_duplicate_or_drop_findings():
+    """Uploading the same APK twice must independently persist two
+    correct scans (Phase 8: 'repeated scans') - the second upload's
+    findings must not merge with, duplicate, or be suppressed by the
+    first scan's already-stored vulnerabilities."""
+    first = _upload_fixture_apk("mixed_cwe89_cwe295").json()
+    second = _upload_fixture_apk("mixed_cwe89_cwe295").json()
+    assert first["scan_id"] != second["scan_id"]
+    assert first["codeAnalysis"]["totalFindings"] == 2
+    assert second["codeAnalysis"]["totalFindings"] == 2
+
+    app_id = second["application"]["id"]
+    security = client.get(f"/apps/{app_id}/security").json()
+    # /apps/{id}/security always reflects the LATEST scan only
+    assert security["codeFindingsSummary"]["totalFindings"] == 2
+
+
+# ---------------------------------------------------------------------
+# Latency-measurement experiment task, Part 3/10: optional backend timing
+# instrumentation on /predict, gated behind the X-Benchmark-Timing header.
+# ---------------------------------------------------------------------
+
+_TIMING_SQL_SNIPPET = 'db.rawQuery("SELECT * FROM users WHERE id=" + userId, null);'
+
+
+def test_predict_without_benchmark_header_never_includes_timing():
+    r = client.post("/predict", json={"code": _TIMING_SQL_SNIPPET, "fileName": "Test.java"})
+    assert r.status_code == 200
+    assert "timing" not in r.json()
+
+
+def test_predict_with_benchmark_header_returns_real_positive_timing_breakdown():
+    r = client.post(
+        "/predict",
+        json={"code": _TIMING_SQL_SNIPPET, "fileName": "Test.java"},
+        headers={"X-Benchmark-Timing": "1"},
+    )
+    assert r.status_code == 200
+    timing = r.json()["timing"]
+    for key in ("backend_total_ms", "prediction_ms", "shap_and_rule_detection_ms", "dataflow_ms", "decision_ms"):
+        assert key in timing, f"missing timing key: {key}"
+        assert isinstance(timing[key], (int, float))
+        assert timing[key] >= 0, f"{key} must never be negative"
+    # The four sub-components must (within floating-point/rounding slack)
+    # account for the whole backend_total_ms - never a silent, unexplained gap.
+    parts_sum = timing["prediction_ms"] + timing["shap_and_rule_detection_ms"] + timing["dataflow_ms"] + timing["decision_ms"]
+    assert abs(parts_sum - timing["backend_total_ms"]) < 5.0
+
+
+def test_benchmark_timing_header_never_changes_the_actual_classification():
+    """Telemetry must be observationally inert to detection results (Part 2:
+    'not change detection results') - same code, same everything except
+    the presence of the timing block itself."""
+    payload = {"code": _TIMING_SQL_SNIPPET, "fileName": "Test.java"}
+    without = client.post("/predict", json=payload).json()
+    with_timing = client.post("/predict", json=payload, headers={"X-Benchmark-Timing": "1"}).json()
+
+    with_timing_stripped = {k: v for k, v in with_timing.items() if k != "timing"}
+    assert without == with_timing_stripped

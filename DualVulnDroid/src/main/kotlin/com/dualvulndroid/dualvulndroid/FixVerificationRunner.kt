@@ -1,6 +1,7 @@
 package com.dualvulndroid.dualvulndroid
 
 import com.intellij.openapi.application.ApplicationManager
+import com.intellij.openapi.application.ModalityState
 import com.intellij.openapi.progress.ProgressIndicator
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.ui.Messages
@@ -40,7 +41,7 @@ object FixVerificationRunner {
                     message = "Could not verify: ${api.lastError ?: "backend unavailable"}"
                 )
             } else {
-                val stillDetected = response.detections.any { it.type == before.vulnerabilityType }
+                val stillDetected = response.vulnerable
                 FixVerification(
                     vulnerabilityType = before.vulnerabilityType,
                     cwe = null,
@@ -67,13 +68,14 @@ object FixVerificationRunner {
                 )
             )
 
-            ApplicationManager.getApplication().invokeLater {
+            ApplicationManager.getApplication().invokeLater({
+                if (project.isDisposed) return@invokeLater
                 if (verification.resolved) {
                     Messages.showInfoMessage(project, verification.toDisplayString(), "DualVulnDroid")
                 } else {
                     Messages.showWarningDialog(project, verification.toDisplayString(), "DualVulnDroid")
                 }
-            }
+            }, ModalityState.NON_MODAL)
         }
     }
 }

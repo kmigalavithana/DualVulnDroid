@@ -1,5 +1,7 @@
 package com.dualvulndroid.dualvulndroid
 
+import com.intellij.openapi.command.WriteCommandAction
+import com.intellij.openapi.fileEditor.FileDocumentManager
 import com.intellij.openapi.fileEditor.FileEditorManager
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.ui.TestDialog
@@ -281,6 +283,93 @@ class ToolWindowPresentationTest : BasePlatformTestCase() {
 
             assertEquals(first, second)
             assertTrue(testButtonOf(toolWindow).isEnabled)
+        } finally {
+            srcDir.deleteRecursively()
+        }
+    }
+
+    // ---- 10. "Scan Project" always performs a FRESH re-scan: clicking it
+    // again must clear the previous findings/counts and reflect the
+    // CURRENT project state, not accumulate or reuse stale results. ----
+    fun testScanProjectClearsPreviousFindingsOnRepeatedClicks() {
+        withScannedProject("LoginActivity.java" to vulnerableSql) { toolWindow ->
+            assertEquals(1, findingsOf(toolWindow).size)
+            assertTrue(summaryTextOf(toolWindow).contains("SQL Injection (CWE-89): 1"))
+
+            // Overwrite the SAME file on disk with safe content and refresh
+            // the VFS - a fresh click must see the NEW state, never the
+            // previous scan's leftover findings/counts.
+            val srcDir = File(project.basePath!!, "src")
+            val file = File(srcDir, "LoginActivity.java")
+            file.writeText(safeSql)
+            com.intellij.openapi.vfs.LocalFileSystem.getInstance().refreshAndFindFileByIoFile(file)
+
+            startScan(toolWindow, project)
+            waitForScanToFinish(toolWindow)
+
+            assertEquals(
+                "A second click must show the CURRENT (now safe) result, not the previous scan's finding",
+                0, findingsOf(toolWindow).size
+            )
+            assertTrue(
+                "The summary must reflect the fresh scan, not stale counts from the first click",
+                summaryTextOf(toolWindow).contains("SQL Injection (CWE-89): 0")
+            )
+        }
+    }
+
+    // ---- 11. The exact Quick-Fix-then-rescan flow (requirement 4): a fix
+    // applied via an in-memory PSI/Document edit - NOT yet saved to disk,
+    // exactly what SafeSqlQuickFixKotlin.invoke() does - must still be
+    // picked up by the very next "Scan Project" click. Before the
+    // saveAllDocuments() fix, ProjectFileCollector's disk read would see
+    // the OLD bytes and still report the finding. ----
+    fun testRescanAfterUnsavedInMemoryEditPicksUpTheFix() {
+        checkBackendReachable()
+        val basePath = project.basePath!!
+        val srcDir = File(basePath, "src")
+        srcDir.mkdirs()
+        // A filename unique to this test (not "LoginActivity.java", reused
+        // by several other tests in this class) so this test can never
+        // collide with a leftover Document/VFS entry from a previously-run
+        // test's own temp fixture.
+        val file = File(srcDir, "RescanQuickFixCandidate.java")
+        file.writeText(vulnerableSql)
+        val virtualFile = com.intellij.openapi.vfs.LocalFileSystem.getInstance().refreshAndFindFileByIoFile(file)!!
+
+        try {
+            val toolWindow = MyToolWindow(project)
+            startScan(toolWindow, project)
+            waitForScanToFinish(toolWindow)
+            assertEquals("Expected the vulnerable finding before any fix", 1, findingsOf(toolWindow).size)
+
+            // Simulate a Quick Fix: mutate the in-memory Document only -
+            // exactly what SafeSqlQuickFixKotlin.invoke()'s PSI replace()
+            // calls do - WITHOUT saving to disk. Opened via the fixture's
+            // own editor-lifecycle API (openFileInEditor) rather than a
+            // raw FileDocumentManager lookup, so the test framework's
+            // document/VFS bookkeeping tracks this edit the same way a
+            // real open editor's edit would be tracked.
+            myFixture.openFileInEditor(virtualFile)
+            val document = myFixture.editor.document
+            WriteCommandAction.runWriteCommandAction(project) {
+                document.setText(safeSql)
+            }
+            com.intellij.psi.PsiDocumentManager.getInstance(project).commitDocument(document)
+            assertFalse(
+                "Sanity check: the in-memory edit must genuinely differ from what's still on disk " +
+                    "(otherwise this test wouldn't be exercising the bug at all)",
+                document.text == file.readText()
+            )
+
+            startScan(toolWindow, project)
+            waitForScanToFinish(toolWindow)
+
+            assertEquals(
+                "Scan Project must flush unsaved documents before collecting files, so an applied-but-" +
+                    "unsaved Quick Fix is reflected on the very next click - not just after a manual save",
+                0, findingsOf(toolWindow).size
+            )
         } finally {
             srcDir.deleteRecursively()
         }

@@ -85,7 +85,7 @@ void main() {
       expect(find.text('Search application'), findsOneWidget);
     });
 
-    testWidgets('Installed Apps and Upload APK are honest, not fabricated results', (tester) async {
+    testWidgets('Installed Apps is honest, not fabricated results', (tester) async {
       await tester.pumpWidget(_wrap(const DashboardScreen()));
       await tester.pumpAndSettle();
 
@@ -96,14 +96,23 @@ void main() {
       for (final fakeName in ['WhatsApp', 'TikTok', 'Chrome', 'Facebook', 'Instagram']) {
         expect(find.textContaining(fakeName), findsNothing);
       }
+    });
 
-      await tester.pageBack();
+    // Flutter APK Scan implementation phase: "Upload APK" used to open the
+    // same honest NotAvailableScreen stub as "Installed Apps" - the
+    // backend now genuinely scans an uploaded APK for CWE-89/CWE-295
+    // (backend/apk_code_scanner.py), so this asserts the real
+    // ApkScanScreen opens instead, starting from its pick-a-file state
+    // (no upload attempted, so no fabricated scan result is possible).
+    testWidgets('Upload APK opens the real ApkScanScreen, not the old stub', (tester) async {
+      await tester.pumpWidget(_wrap(const DashboardScreen()));
       await tester.pumpAndSettle();
 
       await tester.tap(find.text('Upload APK'));
       await tester.pumpAndSettle();
       expect(tester.takeException(), isNull);
-      expect(find.textContaining('not available in this version'), findsOneWidget);
+      expect(find.textContaining('not available in this version'), findsNothing);
+      expect(find.text('Choose APK'), findsOneWidget);
     });
 
     testWidgets('the settings entry point opens SettingsScreen', (tester) async {

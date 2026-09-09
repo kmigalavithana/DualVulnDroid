@@ -1,4 +1,5 @@
 import '../models/alternative_app_model.dart';
+import '../models/apk_scan_result_model.dart';
 import '../models/application_summary.dart';
 import '../models/compatibility_model.dart';
 import '../models/device_profile_model.dart';
@@ -25,4 +26,6 @@ class AppsRepository {
       _api.checkCompatibility(id, device);
 
   Future<(bool, List<AlternativeApp>)> getAlternatives(int id) => _api.getAlternatives(id);
+
+  Future<ApkScanResult> uploadApk(List<int> bytes, String filename) => _api.uploadApk(bytes, filename);
 }

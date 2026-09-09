@@ -1,6 +1,7 @@
 package com.dualvulndroid.dualvulndroid
 
 import com.google.gson.Gson
+import com.google.gson.annotations.SerializedName
 import okhttp3.MediaType.Companion.toMediaType
 import okhttp3.OkHttpClient
 import okhttp3.Request
@@ -134,6 +135,21 @@ data class BatchFileResult(
 data class BatchScanResponse(
     val files: List<BatchFileResult>
 )
+
+// Latency-measurement experiment task: mirrors backend/predictor.py's
+// optional "timing" response block exactly (see app.py's /predict,
+// gated behind the X-Benchmark-Timing header). shapAndRuleDetectionMs is
+// nullable only so an older/mismatched backend response missing that one
+// sub-field still parses instead of failing the whole object.
+data class BenchmarkTiming(
+    @SerializedName("backend_total_ms") val backendTotalMs: Double,
+    @SerializedName("prediction_ms") val predictionMs: Double,
+    @SerializedName("shap_and_rule_detection_ms") val shapAndRuleDetectionMs: Double? = null,
+    @SerializedName("dataflow_ms") val dataflowMs: Double,
+    @SerializedName("decision_ms") val decisionMs: Double,
+)
+
+private data class ScanResponseWithTiming(val timing: BenchmarkTiming?)
 
 class APIClient {
 
@@ -510,4 +526,36 @@ class APIClient {
         }
     }
 
+    /**
+     * Latency-measurement experiment task, Part 3: a SEPARATE, clearly
+     * opt-in-only call used ONLY by LatencyExperimentTest, to fetch the
+     * backend's own internal timing breakdown for a piece of code already
+     * measured (T0-T8) by the real-time pipeline above. scanCode()/
+     * attemptScanCode() - the actual real-time production call path
+     * CodeSentinelAnnotator uses - are completely unmodified and never
+     * send this header, so normal plugin request timing/behavior is
+     * entirely unaffected by this function's existence. Never retried,
+     * never affects `lastError`/`lastBatchError` - a failure here just
+     * means this experiment run's backend_total_ms/prediction_ms are
+     * unavailable, never a fabricated fallback value.
+     */
+    fun fetchBenchmarkTiming(code: String, fileName: String = ""): BenchmarkTiming? {
+        val requestData = ScanRequest(code, fileName)
+        val json = gson.toJson(requestData)
+        val body = json.toRequestBody("application/json".toMediaType())
+        val request = Request.Builder()
+            .url(BACKEND_URL)
+            .header("X-Benchmark-Timing", "1")
+            .post(body)
+            .build()
+        return try {
+            client.newCall(request).execute().use { response ->
+                val responseBody = response.body?.string()
+                if (!response.isSuccessful || responseBody == null) return null
+                gson.fromJson(responseBody, ScanResponseWithTiming::class.java).timing
+            }
+        } catch (e: Exception) {
+            null
+        }
+    }
 }

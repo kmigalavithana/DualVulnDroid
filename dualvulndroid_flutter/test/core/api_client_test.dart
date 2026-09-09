@@ -60,5 +60,40 @@ void main() {
 
       expect(seenAuthHeader, 'Bearer real-jwt-token');
     });
+
+    // Flutter APK Scan implementation phase: multipart upload support.
+    test('a 413 response becomes a PayloadTooLargeException carrying the real backend message', () async {
+      final client = ApiClient(client: MockClient((request) async {
+        return http.Response('{"detail": "APK exceeds the 100MB upload limit."}', 413);
+      }));
+
+      await expectLater(
+        client.postMultipartFile('/upload-apk', bytes: [1, 2, 3], filename: 'x.apk', fileField: 'file'),
+        throwsA(isA<PayloadTooLargeException>().having((e) => e.message, 'message', 'APK exceeds the 100MB upload limit.')),
+      );
+    });
+
+    test('postMultipartFile sends the real file bytes and filename as multipart form data', () async {
+      String? seenFilename;
+      List<int>? seenBytes;
+      final client = ApiClient(client: MockClient.streaming((request, bodyStream) async {
+        final multipart = request as http.MultipartRequest;
+        final file = multipart.files.single;
+        seenFilename = file.filename;
+        seenBytes = await file.finalize().toBytes();
+        return http.StreamedResponse(Stream.value('{"scan_id": 1}'.codeUnits), 200);
+      }));
+
+      final result = await client.postMultipartFile(
+        '/upload-apk',
+        bytes: [10, 20, 30],
+        filename: 'MyApp.apk',
+        fileField: 'file',
+      );
+
+      expect(seenFilename, 'MyApp.apk');
+      expect(seenBytes, [10, 20, 30]);
+      expect(result, {'scan_id': 1});
+    });
   });
 }

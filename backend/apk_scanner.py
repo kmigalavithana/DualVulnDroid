@@ -12,9 +12,13 @@ from predictor import predict_url
 # Scope of what this currently checks (all derived from bytes actually
 # present in the uploaded file):
 #   - AndroidManifest.xml: cleartext-traffic flag + declared permissions,
-#     found via a best-effort raw-string search over the binary AXML.
-#     This is a heuristic, not a full AXML parser, so it can miss things
-#     that a proper binary-XML decoder would catch.
+#     both derived from pyaxmlparser's real binary-AXML-decoded data (see
+#     extract_apk_metadata() below) - not a raw-byte search. An earlier
+#     version of this module searched for these as literal UTF-8
+#     substrings directly in the manifest bytes, which never matches a
+#     real aapt2-compiled APK (its AXML string pool is UTF-16LE); fixed
+#     during the Flutter APK Scan validation phase (see
+#     test_fixtures/vulnerable_test_apk/README.md, "Gap 1").
 #   - AndroidManifest.xml: package name, version name/code, and
 #     application label (Phase 8A), via pyaxmlparser - a real binary-AXML
 #     decoder, not a heuristic. Any field it can't genuinely determine is
@@ -26,9 +30,21 @@ from predictor import predict_url
 # What this does NOT do yet: decompiled Java/Kotlin source-level
 # SQL-Injection / Certificate-Validation analysis. That requires a DEX
 # decompiler (e.g. JADX/Androguard) which is not wired in yet - see the
-# "note" field in the returned report.
+# "note" field in the returned report. CWE-89/CWE-295 findings only ever
+# come from the separate source-code pipeline (predictor.py/
+# decision_engine.py, used by the /developer/* endpoints and the IDE
+# plugin) - db/crud.py's persist_apk_scan() always stores cwe=None for
+# every finding this scanner produces, on purpose.
 
-URL_PATTERN = re.compile(rb'https?://[^\s"\'<>\\]+')
+# Excludes whitespace/quotes/brackets/backslash (as before) plus C0
+# control bytes (\x00-\x1f). Binary resource string pools (resources.arsc,
+# compiled AXML) pack adjacent strings back-to-back separated by NUL and
+# other control bytes with no whitespace - without this exclusion a run of
+# several distinct URLs gets captured as one malformed string (Flutter APK
+# Scan validation phase, "Gap 2" - confirmed live against
+# test_fixtures/vulnerable_test_apk, which planted ~13 distinct URLs that
+# were previously bled together into 7 malformed entries).
+URL_PATTERN = re.compile(rb'https?://[^\s"\'<>\\\x00-\x1f]+')
 MAX_EXTRACTED_URLS = 25
 
 

@@ -98,6 +98,107 @@ public class UserDao {
     assert findings[0]["detection_basis"] == "traced-source-interprocedural"
 
 
+# ---------------------------------------------------------------------
+# Variable-indirected parameterized queries (val sql = "...?..."; then
+# db.rawQuery(sql, args) on a later line) - previously invisible to
+# sql_sink_safety_summary()/analyze_sql_dataflow(), which only recognized
+# a sink call as safely parameterized when the '?' literal was written
+# inline as the sink's own first argument. This is the CodeSentinel
+# false-positive fix: a variable is only resolved as a safe literal when
+# its most recent assignment was a PURE '?'-literal with no concatenation
+# and no tainted source - genuinely unsafe concatenation/interpolation
+# reaching the same sink must still be caught (see the vulnerable cases
+# below).
+# ---------------------------------------------------------------------
+
+def test_sql_safe_inline_parameterized_kotlin_arrayof():
+    """(a) Inline literal, Kotlin arrayOf() args - still safe."""
+    code = '''
+val result = db.rawQuery(
+    "SELECT * FROM users WHERE username = ? AND password = ?",
+    arrayOf(username, password)
+)
+'''
+    assert analyze_sql_dataflow(code) == []
+    safety = sql_sink_safety_summary(code)
+    assert safety["sinks_found"] == 1
+    assert safety["all_parameterized"] is True
+
+
+def test_sql_safe_parameterized_via_local_variable():
+    """(b) The exact SqlInjectionSafe.kt pattern: the '?' literal lives in
+    a separate `val sql = ...` assignment, not inline in the sink call."""
+    code = '''
+class LoginDatabase {
+    fun login(db: SQLiteDatabase, username: String, password: String) {
+        val sql = "SELECT * FROM users WHERE username = ? AND password = ?"
+        val result = db.rawQuery(
+            sql,
+            arrayOf(username, password)
+        )
+    }
+}
+'''
+    assert analyze_sql_dataflow(code) == []
+    safety = sql_sink_safety_summary(code)
+    assert safety["sinks_found"] == 1
+    assert safety["all_parameterized"] is True
+
+
+def test_sql_vulnerable_interpolated_string_via_local_variable():
+    """(c) The SqlInjectionVulnerable.kt pattern: Kotlin string
+    interpolation (not a '?' placeholder) embedded in a variable later
+    passed to the sink. The new variable-resolution logic must NOT
+    mistake this for a safe parameterized literal - there is no '?' in
+    the literal at all, so it must never be credited as confirmed-safe."""
+    code = '''
+class LoginDatabase {
+    fun login(db: SQLiteDatabase, username: String, password: String) {
+        val sql = "SELECT * FROM users WHERE username = '$username' AND password = '$password'"
+        val result = db.rawQuery(sql, null)
+    }
+}
+'''
+    safety = sql_sink_safety_summary(code)
+    assert safety["sinks_found"] == 1
+    assert safety["all_parameterized"] is False
+
+
+def test_sql_vulnerable_concatenation_via_local_variable():
+    """(d) A variable built via string concatenation (not a pure literal)
+    reaching the sink - must still be traced as vulnerable, and must never
+    be resolved as a safe literal by the new variable-indirection logic."""
+    code = '''
+fun search(db: SQLiteDatabase, userId: String) {
+    val sql = "SELECT * FROM users WHERE id=" + userId
+    val result = db.rawQuery(sql, null)
+}
+'''
+    findings = analyze_sql_dataflow(code)
+    assert len(findings) == 1
+    assert findings[0]["detection_basis"] == "unparameterized-concatenation"
+
+    safety = sql_sink_safety_summary(code)
+    assert safety["sinks_found"] == 1
+    assert safety["all_parameterized"] is False
+
+
+def test_sql_reassignment_to_unsafe_is_not_masked_by_earlier_safe_literal():
+    """A variable first bound to a safe literal, then reassigned to a
+    concatenation before reaching the sink, must be flagged - a stale
+    safe-literal binding must never suppress a real finding."""
+    code = '''
+fun search(db: SQLiteDatabase, userId: String) {
+    var sql = "SELECT * FROM users WHERE id = ?"
+    sql = "SELECT * FROM users WHERE id=" + userId
+    val result = db.rawQuery(sql, null)
+}
+'''
+    findings = analyze_sql_dataflow(code)
+    assert len(findings) == 1
+    assert findings[0]["detection_basis"] == "unparameterized-concatenation"
+
+
 def test_sql_unrelated_code_is_clean():
     code = '''
 public class MainActivity extends Activity {

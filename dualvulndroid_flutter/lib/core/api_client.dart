@@ -60,6 +60,29 @@ class ApiClient {
         .timeout(ApiConfig.requestTimeout));
   }
 
+  /// Multipart file upload (currently only /upload-apk). Deliberately
+  /// separate from post() rather than overloading it with an optional
+  /// file param - a multipart request has no JSON Content-Type/body and a
+  /// much longer, upload-specific timeout, so folding it into the same
+  /// method would make post()'s simple JSON contract conditional.
+  Future<dynamic> postMultipartFile(
+    String path, {
+    required List<int> bytes,
+    required String filename,
+    required String fileField,
+    Map<String, String>? fields,
+  }) async {
+    final headers = await _headers(json: false);
+    return _send(() async {
+      final request = http.MultipartRequest('POST', _uri(path))
+        ..headers.addAll(headers)
+        ..files.add(http.MultipartFile.fromBytes(fileField, bytes, filename: filename));
+      if (fields != null) request.fields.addAll(fields);
+      final streamed = await _client.send(request).timeout(ApiConfig.apkUploadTimeout);
+      return http.Response.fromStream(streamed);
+    });
+  }
+
   Future<dynamic> _send(Future<http.Response> Function() request) async {
     http.Response response;
     try {
@@ -94,6 +117,8 @@ class ApiClient {
       case 400:
       case 422:
         throw ValidationException(serverMessage ?? 'The request could not be processed.');
+      case 413:
+        throw PayloadTooLargeException(serverMessage ?? 'This file is too large to scan.');
       default:
         throw const ServerException();
     }

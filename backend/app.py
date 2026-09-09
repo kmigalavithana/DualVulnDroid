@@ -10,12 +10,14 @@ from sqlalchemy.orm import Session
 from predictor import predict_code, to_developer_response, to_explain_response
 from chatbot_logic import analyze_user_query, generate_chat_response
 from apk_scanner import scan_apk_file
+from apk_code_scanner import scan_apk_for_code_vulnerabilities
 import compatibility
 import alternatives
 import database
 import shutil
 import tempfile
 import os
+import time
 
 from db.session import get_db, DatabaseNotConfiguredError, check_connection
 from db import crud, models
@@ -234,7 +236,7 @@ def home():
 
 
 @app.post("/predict")
-def predict(request: CodeRequest):
+def predict(request: CodeRequest, x_benchmark_timing: Optional[str] = Header(default=None)):
     # Kept exactly as-is (same request/response shape) for backward
     # compatibility with the existing Android Studio plugin (APIClient.kt
     # posts here by default). predict_code() itself already returns the
@@ -261,7 +263,25 @@ def predict(request: CodeRequest):
             ),
         )
 
-    result = predict_code(request.code, request.fileName)
+    # Latency-measurement experiment task, Part 3: timing is computed and
+    # returned ONLY when this explicit opt-in header is present - a normal
+    # request (no header) gets exactly the same response as before this
+    # flag existed, and predict_code() itself performs zero extra work
+    # when capture_timing is False (see its docstring). T3 is measured
+    # here, at the earliest point this handler has the parsed request
+    # body - not wall-clock time.time(), a monotonic clock, matching the
+    # experiment's other timestamps.
+    benchmark_timing = bool(x_benchmark_timing)
+    t3 = time.perf_counter() if benchmark_timing else None
+    result = predict_code(request.code, request.fileName, capture_timing=benchmark_timing)
+    t5 = time.perf_counter() if benchmark_timing else None
+
+    if benchmark_timing:
+        inner_timing = result.pop("_timing", {})
+        result["timing"] = {
+            "backend_total_ms": (t5 - t3) * 1000,
+            **inner_timing,
+        }
 
     return result
 
@@ -405,6 +425,21 @@ def apps_get_security(app_id: int, db: Session = Depends(get_db)):
         for v in scan.vulnerabilities
     ]
 
+    # Flutter APK Scan implementation phase: a read-time-derived count over
+    # the same vulnerabilities already fetched above - not a second
+    # decision/score, purely a display convenience so Flutter doesn't have
+    # to recompute it from the full list itself. cwe89Count/cwe295Count
+    # only ever count real, already-stored cwe values (never a manifest/
+    # permission/URL finding, which are always stored with cwe=None - see
+    # db/crud.py's persist_apk_scan).
+    cwe89_count = sum(1 for v in scan.vulnerabilities if v.cwe == "CWE-89")
+    cwe295_count = sum(1 for v in scan.vulnerabilities if v.cwe == "CWE-295")
+    code_findings_summary = {
+        "cwe89Count": cwe89_count,
+        "cwe295Count": cwe295_count,
+        "totalFindings": cwe89_count + cwe295_count,
+    }
+
     # Phase 10A: the real, already-stored explanation for this scan's
     # recommendation (Part 1/2). add_recommendation() is only ever called
     # once per scan today (see persist_apk_scan), but this picks the
@@ -483,6 +518,7 @@ def apps_get_security(app_id: int, db: Session = Depends(get_db)):
             "debuggable": scan.app_version.debuggable if scan.app_version else None,
             "allowBackup": scan.app_version.allow_backup if scan.app_version else None,
         },
+        "codeFindingsSummary": code_findings_summary,
         # No device profile is available on a GET request (Part 17: device
         # data only ever comes from the caller of POST
         # /apps/{id}/compatibility, never guessed here) - so androidVersion/
@@ -651,6 +687,52 @@ async def upload_apk(file: UploadFile = File(...), user_id: int = Form(None), db
         # layer, where the real filename is actually known, without
         # touching the scanner's detection logic at all.
         scan_results["app_name"] = file.filename
+
+        # Flutter APK Scan implementation phase: real CWE-89/CWE-295
+        # source-level findings, bridged from this APK's decompiled DEX
+        # bytecode through the SAME predictor.py/dataflow.py pipeline the
+        # IDE plugin uses (see apk_code_scanner.py's module docstring for
+        # exactly how). Wrapped defensively - a decompilation problem on
+        # some unusual APK must never take down the existing, reliable
+        # manifest/permission/URL scan above; a genuinely empty result
+        # (0 findings, 0 files scanned) is modeled the same way any other
+        # "nothing found" result is modeled elsewhere: honestly, not as an
+        # error.
+        try:
+            code_scan = scan_apk_for_code_vulnerabilities(temp_path)
+        except Exception as e:
+            logger.warning(f"[upload-apk] code-level CWE-89/CWE-295 scan failed: {e}")
+            code_scan = None
+
+        if code_scan is not None:
+            cwe89_count = sum(1 for f in code_scan.findings if f["cwe"] == "CWE-89")
+            cwe295_count = sum(1 for f in code_scan.findings if f["cwe"] == "CWE-295")
+            scan_results["codeAnalysis"] = {
+                "filesScanned": code_scan.files_scanned,
+                "classesTotal": code_scan.classes_total,
+                "filesSkippedThirdParty": code_scan.files_skipped_thirdparty,
+                "truncated": code_scan.truncated,
+                "truncationReason": code_scan.truncation_reason,
+                "totalFindings": len(code_scan.findings),
+                "cwe89Count": cwe89_count,
+                "cwe295Count": cwe295_count,
+                "findings": code_scan.findings,
+                "note": (
+                    "CWE-89/CWE-295 findings here come from decompiling this APK's DEX "
+                    "bytecode back into reconstructed Java-like source (see each finding's "
+                    "\"file\" path, prefixed 'decompiled/') and running it through the same "
+                    "detection pipeline the DualVulnDroid IDE plugin uses. This is "
+                    "decompiled, reconstructed code, not the app's original source."
+                ),
+            }
+        else:
+            scan_results["codeAnalysis"] = {
+                "filesScanned": 0, "classesTotal": 0, "filesSkippedThirdParty": 0,
+                "truncated": False, "truncationReason": None,
+                "totalFindings": 0, "cwe89Count": 0, "cwe295Count": 0, "findings": [],
+                "note": "Code-level CWE-89/CWE-295 analysis could not run for this APK.",
+            }
+
         scan = crud.persist_apk_scan(db, user_id=user_id, scan_report=scan_results)
         scan_results["scan_id"] = scan.id
 

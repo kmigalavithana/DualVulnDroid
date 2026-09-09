@@ -1,0 +1,7 @@
+{"timestampEpochMillis":1788941239954,"vulnerabilityType":"SQL Injection","fixAvailable":true,"fixApplied":true,"beforeDetected":true,"afterDetected":true,"resolved":false}
+{"timestampEpochMillis":1788941619712,"vulnerabilityType":"SQL Injection","fixAvailable":true,"fixApplied":true,"beforeDetected":true,"afterDetected":true,"resolved":false}
+{"timestampEpochMillis":1788942959868,"vulnerabilityType":"SQL Injection","fixAvailable":true,"fixApplied":true,"beforeDetected":true,"afterDetected":true,"resolved":false}
+{"timestampEpochMillis":1788943149800,"vulnerabilityType":"SQL Injection","fixAvailable":true,"fixApplied":true,"beforeDetected":true,"afterDetected":true,"resolved":false}
+{"timestampEpochMillis":1788946204158,"vulnerabilityType":"SQL Injection","fixAvailable":true,"fixApplied":true,"beforeDetected":true,"afterDetected":false,"resolved":true}
+{"timestampEpochMillis":1788946412964,"vulnerabilityType":"SQL Injection","fixAvailable":true,"fixApplied":true,"beforeDetected":true,"afterDetected":false,"resolved":true}
+{"timestampEpochMillis":1788951512522,"vulnerabilityType":"SQL Injection","fixAvailable":true,"fixApplied":true,"beforeDetected":true,"afterDetected":false,"resolved":true}

@@ -341,6 +341,24 @@ def persist_apk_scan(db: Session, user_id: Optional[int], scan_report: dict) -> 
                 status=models.VulnerabilityStatus.OPEN.value,
             )
 
+        # Flutter APK Scan implementation phase: real CWE-89/CWE-295
+        # findings from decompiled DEX code (apk_code_scanner.py), run
+        # through the same predictor.py/dataflow.py pipeline as the IDE
+        # plugin. Unlike the manifest/permission/URL findings above, these
+        # DO carry a real cwe value - they are genuine source-level
+        # findings, not a manifest heuristic.
+        for finding in scan_report.get("codeAnalysis", {}).get("findings", []):
+            explanation = finding.get("explanation")
+            description = " ".join(explanation) if isinstance(explanation, list) else explanation
+            add_vulnerability(
+                db, scan_id=scan.id, cwe=finding.get("cwe"), type_=finding.get("type"),
+                severity=finding.get("severity"),
+                confidence=int(round(finding["confidence"])) if finding.get("confidence") is not None else None,
+                file_name=finding.get("file"), line_number=finding.get("line"),
+                source=None, sink=None, description=description,
+                status=models.VulnerabilityStatus.OPEN.value,
+            )
+
         add_recommendation(
             db, scan_id=scan.id, risk_level=scan.risk_level, recommendation=recommendation,
             reason=scan_report.get("explanation"), confidence=None,

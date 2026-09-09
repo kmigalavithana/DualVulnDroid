@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../models/application_summary.dart';
 import '../models/vulnerability_model.dart';
+import '../screens/apk_scan_screen.dart';
 import '../screens/application_details_screen.dart';
 import '../screens/assessment_history_screen.dart';
 import '../screens/login_screen.dart';
@@ -79,12 +80,11 @@ class AppRouter {
     ));
   }
 
+  // Flutter APK Scan implementation phase: the backend now genuinely
+  // performs CWE-89/CWE-295 analysis on an uploaded APK
+  // (backend/apk_code_scanner.py), so this no longer routes to the
+  // honest "not available" stub - see ApkScanScreen.
   static void toUploadApk(BuildContext context) {
-    Navigator.of(context).push(MaterialPageRoute(
-      builder: (_) => const NotAvailableScreen(
-        title: 'Upload APK',
-        message: 'Uploading an APK for direct analysis is not available in this version. Use Search to look up an already-analyzed application instead.',
-      ),
-    ));
+    Navigator.of(context).push(MaterialPageRoute(builder: (_) => const ApkScanScreen()));
   }
 }

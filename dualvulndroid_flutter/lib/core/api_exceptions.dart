@@ -37,3 +37,8 @@ class ValidationException extends ApiException {
 class ServerException extends ApiException {
   const ServerException([super.message = 'The security service is currently unavailable. Please try again later.']);
 }
+
+/// HTTP 413 - the uploaded file exceeded the backend's size limit.
+class PayloadTooLargeException extends ApiException {
+  const PayloadTooLargeException([super.message = 'This file is too large to scan.']);
+}

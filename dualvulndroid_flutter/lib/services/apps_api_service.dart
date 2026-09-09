@@ -1,5 +1,6 @@
 import '../core/api_client.dart';
 import '../models/alternative_app_model.dart';
+import '../models/apk_scan_result_model.dart';
 import '../models/application_summary.dart';
 import '../models/compatibility_model.dart';
 import '../models/device_profile_model.dart';
@@ -45,5 +46,18 @@ class AppsApiService {
         .map((a) => AlternativeApp.fromJson(a as Map<String, dynamic>))
         .toList();
     return (available, list);
+  }
+
+  /// Uploads a real APK for direct analysis (POST /upload-apk) - the
+  /// backend both persists the scan and returns the full result in one
+  /// response, so no follow-up GET is needed to display it.
+  Future<ApkScanResult> uploadApk(List<int> bytes, String filename) async {
+    final json = await _client.postMultipartFile(
+      '/upload-apk',
+      bytes: bytes,
+      filename: filename,
+      fileField: 'file',
+    ) as Map<String, dynamic>;
+    return ApkScanResult.fromJson(json);
   }
 }

@@ -159,6 +159,17 @@ class CodeSentinelAnnotator : ExternalAnnotator<FileScanData, List<LineScanResul
         val fileText = editor.document.text
         println("Scanning file: $path | Length: ${fileText.length}")
 
+        // Latency-measurement experiment task: T0 = "code edit event
+        // received". This architecture has no separate DocumentListener -
+        // IntelliJ's own daemon detects the edit and re-invokes this
+        // ExternalAnnotator, so collectInformation() entry is the
+        // earliest point OUR code observes it. Guarded so this is the
+        // only extra work done when telemetry is disabled: one boolean
+        // check, nothing else.
+        if (LatencyTelemetry.enabled) {
+            LatencyTelemetry.markT0(cacheKey(path, fileText))
+        }
+
         val linesData = mutableListOf<LineData>()
         val lineCount = editor.document.lineCount
         for (i in 0 until lineCount) {
@@ -193,13 +204,24 @@ class CodeSentinelAnnotator : ExternalAnnotator<FileScanData, List<LineScanResul
         Thread.sleep(DEBOUNCE_MS)
         if (latestKeyForPath[path] != key) return null
 
+        // Latency-measurement experiment task: T1 = "debounce period
+        // completed and scan actually starts" - this pass has survived
+        // the staleness check right above, so it is genuinely proceeding
+        // (a cache hit above never reaches here at all, and correctly
+        // produces no telemetry event for what wasn't a real scan).
+        if (LatencyTelemetry.enabled) LatencyTelemetry.markT1(key)
+
         if (!scanning.add(key)) return cache[key]
 
         val api = APIClient()
         val results = mutableListOf<LineScanResult>()
 
         try {
+            // T2 = "HTTP request sent" / T6 = "HTTP response received by
+            // plugin" - bracket the exact real network call, nothing else.
+            if (LatencyTelemetry.enabled) LatencyTelemetry.markT2(key)
             val response = api.scanCode(collectedData.fileText, collectedData.path.substringAfterLast('/'))
+            if (LatencyTelemetry.enabled) LatencyTelemetry.markT6(key)
 
             // STEP 12: a slow request for now-superseded text must never
             // overwrite (via `cache[key] = results` below, or by being
@@ -227,34 +249,115 @@ class CodeSentinelAnnotator : ExternalAnnotator<FileScanData, List<LineScanResul
                 if (classification != FindingClassification.NONE) {
                     println("Detected: ${response.vulnerabilityType} ($classification)")
 
-                    val relevantDetections = selectRelevantDetections(response.detections, classification)
-
-                    relevantDetections.forEach { detection ->
-                        val line = collectedData.lines.find {
-                            it.index == detection.line
-                        }
-                        if (line != null) {
+                    if (classification == FindingClassification.DEFINITE) {
+                        // Bug fix (duplicate-finding / missing-Quick-Fix task):
+                        // predictor.py's rule/SHAP keyword scan and its
+                        // dataflow analyzer both independently emit their own
+                        // "SQL Injection"/"Certificate Validation" detection
+                        // entries for the SAME underlying vulnerability - e.g.
+                        // one incidental keyword hit on the `val query = ...`
+                        // declaration line (matches "select ") AND a second,
+                        // real traced-dataflow hit on the `db.rawQuery(...)`
+                        // sink line. selectRelevantDetections() never narrows
+                        // a DEFINITE response (by design - "every type
+                        // actually detected is surfaced", see FindingModel.kt),
+                        // so the OLD one-annotation-per-raw-detection loop
+                        // below created a SEPARATE, real annotation for each
+                        // of those - including one anchored on the
+                        // declaration line, where SqlFixLocator's sink search
+                        // (restricted to that ONE annotation's own text
+                        // range) can never find the rawQuery(...) call that
+                        // lives on a different line, so Alt+Enter on THAT
+                        // annotation legitimately never offered a fix.
+                        //
+                        // groupDetectionsByType() already exists precisely
+                        // for this - it's the SAME consolidation MyToolWindow
+                        // uses for its one-row-per-type findings list - and
+                        // reusing it here gives exactly ONE annotation per
+                        // vulnerability TYPE actually detected (SQL and Cert
+                        // both still surfaced if both are present - nothing
+                        // is suppressed), anchored on the group's own
+                        // strongest/last-line detection - the SAME "anchor on
+                        // max line" convention DeveloperScanResult.toDetailView
+                        // already uses (and existing tests already depend on:
+                        // a keyword hit on a real sink/pattern line is always
+                        // the LAST line in these detection groups, e.g.
+                        // "db.rawQuery(...)" or "return true;"), so a Quick
+                        // Fix locator's exact-range search now always has a
+                        // real chance to find its target.
+                        val typeGroups = groupDetectionsByType(response.detections, classification)
+                        typeGroups.forEach { group ->
+                            val anchorDetection = group.anchorDetections.maxByOrNull { it.line } ?: return@forEach
+                            val line = collectedData.lines.find { it.index == anchorDetection.line } ?: return@forEach
+                            // The richest dataflow evidence isn't always on
+                            // the anchor line itself (e.g. a HostnameVerifier
+                            // is traced at its declaration, not its "return
+                            // true;" statement) - pulled in separately here
+                            // so the tooltip stays as informative as before,
+                            // independent of which line the annotation itself
+                            // is anchored on.
+                            val dataflowDetection = group.anchorDetections.firstOrNull { !it.source_to_sink_path.isNullOrEmpty() }
+                            val criticalWords = group.anchorDetections.flatMap { it.critical_words ?: emptyList() }.distinct()
                             results.add(
                                 LineScanResult(
                                     lineText = line.text,
-                                    vulnerabilityType = detection.type,
+                                    vulnerabilityType = group.vulnerabilityType,
                                     confidence = response.confidence,
                                     startOffset = line.startOffset,
                                     endOffset = line.endOffset,
-                                    riskWeight = detection.risk_weight,
-                                    criticalWords = detection.critical_words,
-                                    sourceToSinkPath = detection.source_to_sink_path,
-                                    dataflowExplanation = detection.dataflow_explanation,
+                                    riskWeight = anchorDetection.risk_weight,
+                                    criticalWords = criticalWords,
+                                    sourceToSinkPath = dataflowDetection?.source_to_sink_path,
+                                    dataflowExplanation = dataflowDetection?.dataflow_explanation,
                                     severity = response.severity,
                                     predictionModel = response.predictionModel,
                                     decision = response.decision,
                                     decisionEvidence = response.decisionEvidence,
-                                    lineNumber = detection.line,
+                                    lineNumber = anchorDetection.line,
                                     securityFeatures = response.securityFeatures,
                                     shapTopFeatures = response.shapTopFeatures,
-                                    isReviewLevel = classification == FindingClassification.REVIEW
+                                    isReviewLevel = false
                                 )
                             )
+                        }
+                    } else {
+                        // REVIEW: unchanged - selectRelevantDetections()
+                        // already narrows a SUSPICIOUS_REVIEW response down
+                        // to just its strongest-evidence detection(s), which
+                        // can legitimately still be more than one distinct
+                        // line (see FinalUIStateVerificationTest's real
+                        // ss.java case, lines 6 and 8 both survive on merit) -
+                        // every surviving detection keeps its own annotation
+                        // exactly as before.
+                        val relevantDetections = selectRelevantDetections(response.detections, classification)
+
+                        relevantDetections.forEach { detection ->
+                            val line = collectedData.lines.find {
+                                it.index == detection.line
+                            }
+                            if (line != null) {
+                                results.add(
+                                    LineScanResult(
+                                        lineText = line.text,
+                                        vulnerabilityType = detection.type,
+                                        confidence = response.confidence,
+                                        startOffset = line.startOffset,
+                                        endOffset = line.endOffset,
+                                        riskWeight = detection.risk_weight,
+                                        criticalWords = detection.critical_words,
+                                        sourceToSinkPath = detection.source_to_sink_path,
+                                        dataflowExplanation = detection.dataflow_explanation,
+                                        severity = response.severity,
+                                        predictionModel = response.predictionModel,
+                                        decision = response.decision,
+                                        decisionEvidence = response.decisionEvidence,
+                                        lineNumber = detection.line,
+                                        securityFeatures = response.securityFeatures,
+                                        shapTopFeatures = response.shapTopFeatures,
+                                        isReviewLevel = true
+                                    )
+                                )
+                            }
                         }
                     }
                 }
@@ -276,7 +379,7 @@ class CodeSentinelAnnotator : ExternalAnnotator<FileScanData, List<LineScanResul
         holder: AnnotationHolder
     ) {
         println("========== APPLY START ==========")
-        file.virtualFile?.path ?: return
+        val path = file.virtualFile?.path ?: return
         // `cache` is now keyed by (path, exact text) - not by path alone -
         // so it can no longer be used here as a plain fallback. That's fine:
         // doAnnotate() only returns null for a pass whose own request truly
@@ -285,6 +388,22 @@ class CodeSentinelAnnotator : ExternalAnnotator<FileScanData, List<LineScanResul
         // cached result for different text) is the correct behavior; the
         // next highlighting pass will pick up cleanly since it is no longer
         // blocked by the old (path-only) staleness bug.
+
+        // Latency-measurement experiment task: T7 = "IDE annotation
+        // processing starts". apply() only receives (file, result) - not
+        // the FileScanData/key doAnnotate() used - so the same cacheKey()
+        // is recomputed from file.text here. The IntelliJ platform only
+        // calls apply() with a result that is still current for `file`'s
+        // present text (a superseded pass is cancelled by the platform
+        // before apply() runs), so this recomputed key is expected to
+        // match the one T0/T1/T2/T6 were recorded under; if it doesn't
+        // (e.g. a very fast subsequent edit raced apply() itself), T8
+        // below simply never finds a matching in-progress entry and no
+        // event is recorded for this pass - never a mismatched/corrupted
+        // measurement.
+        val telemetryKey = if (LatencyTelemetry.enabled) cacheKey(path, file.text) else null
+        if (telemetryKey != null) LatencyTelemetry.markT7(telemetryKey)
+
         val results = annotationResult ?: return
 
         for (result in results) {
@@ -316,6 +435,12 @@ class CodeSentinelAnnotator : ExternalAnnotator<FileScanData, List<LineScanResul
             }
             builder.create()
         }
+
+        // T8 = "IDE annotation/finding creation completes" - marked here
+        // regardless of whether `results` was empty (a genuine safe/
+        // no-finding scan still completes real apply() processing and is
+        // a valid, real measurement, not a failure).
+        if (telemetryKey != null) LatencyTelemetry.markT8(telemetryKey)
     }
 
     // Phase 4, section 8: a more informative but still readable tooltip -

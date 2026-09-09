@@ -43,4 +43,12 @@ class ApiConfig {
   }
 
   static const Duration requestTimeout = Duration(seconds: 20);
+
+  /// APK upload + real decompile/scan (backend/apk_code_scanner.py) can
+  /// genuinely take longer than an ordinary JSON request - this is
+  /// slower static analysis over a whole app's bytecode, not a "real-time"
+  /// operation (see that module's MAX_SCAN_SECONDS budget on the backend
+  /// side). A generous client-side timeout avoids cutting off a scan that
+  /// the backend is still honestly working on.
+  static const Duration apkUploadTimeout = Duration(seconds: 90);
 }

@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  DELIBERATELY MINIMAL TEST FIXTURE - NOT A REAL APPLICATION.
+
+  Built solely to exercise backend/apk_code_scanner.py's real DEX
+  decompilation + CWE-89/CWE-295 detection bridge end-to-end (APK file ->
+  extraction -> decompilation -> the existing predictor.py/dataflow.py
+  pipeline -> result). No Activity/component is declared - these fixtures
+  are never installed or launched, only statically analyzed.
+-->
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    package="com.dualvulndroid.fixture.cwe295vuln"
+    android:versionCode="1"
+    android:versionName="1.0-fixture">
+
+    <uses-sdk android:minSdkVersion="24" android:targetSdkVersion="34" />
+
+    <application android:label="DualVulnDroid APK Code-Scan Fixture (com.dualvulndroid.fixture.cwe295vuln)" />
+
+</manifest>

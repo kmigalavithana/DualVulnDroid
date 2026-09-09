@@ -9,6 +9,7 @@ import com.intellij.psi.PsiMethodCallExpression
 import com.intellij.psi.PsiReturnStatement
 import com.intellij.psi.util.PsiTreeUtil
 import com.intellij.testFramework.fixtures.BasePlatformTestCase
+import org.jetbrains.kotlin.psi.KtCallExpression
 
 /**
  * P0 Step 7: end-to-end Quick-Fix validation against the REAL registered
@@ -289,5 +290,80 @@ class QuickFixEndToEndTest : BasePlatformTestCase() {
             afterFirstApply, afterSecondApply
         )
         assertNoSyntaxErrors(file)
+    }
+
+    // ---- Duplicate-finding / missing-Quick-Fix regression (live sandbox
+    // bug report): a Kotlin sink whose query is built on an EARLIER `val`
+    // line (not inline) used to produce TWO separate real-time annotations
+    // for the exact same vulnerability - one on the `val query = ...`
+    // declaration line (an incidental rule/SHAP keyword hit on "select ",
+    // carrying no Quick Fix since SqlFixLocator's sink search never finds
+    // a rawQuery(...) call on that line) and one on the actual
+    // `db.rawQuery(...)` sink line. Alt+Enter on the declaration line's
+    // annotation offered only "Show finding details", never the Quick Fix,
+    // exactly as reported. This reproduces the EXACT live file content of
+    // SqlInjectionQuickFixCandidate.kt's vulnerable BEFORE state. ----
+    fun testKotlinVariableIndirectedSqlProducesOneAnnotationWithAWorkingQuickFix() {
+        checkBackendReachable()
+        val code = """
+            package com.example.securitytest
+
+            import android.database.Cursor
+            import android.database.sqlite.SQLiteDatabase
+
+            class UserDatabase {
+
+                fun findUser(db: SQLiteDatabase, userId: String): Cursor {
+
+                    val query = "SELECT * FROM users WHERE id=" + userId
+
+                    return db.rawQuery(query, null)
+                }
+            }
+        """.trimIndent()
+        val (file, results) = scanRealFile("SqlInjectionQuickFixCandidate.kt", code)
+
+        val sqlResults = results.filter { it.vulnerabilityType == "SQL Injection" }
+        println("[QUICKFIX][dedup] SQL Injection annotation count = ${sqlResults.size}, lines = ${sqlResults.map { it.lineNumber }}")
+        assertEquals(
+            "The same rawQuery/concatenation vulnerability must be surfaced as exactly ONE real-time " +
+                "annotation, not one per incidental keyword/dataflow detection sharing the same finding",
+            1, sqlResults.size
+        )
+
+        val finding = sqlResults.single()
+        assertTrue(
+            "The single consolidated annotation must be anchored on the actual sink line - not the " +
+                "`val query = ...` declaration line - so SqlFixLocator's sink search can find it",
+            finding.lineText.contains("rawQuery")
+        )
+
+        val fix = SqlFixLocator.tryBuildFix(file, finding, "SqlInjectionQuickFixCandidate.kt")
+        assertNotNull(
+            "DualVulnDroid: Use parameterized query (rawQuery) must be available on this finding - " +
+                "this is the exact fix that was reported missing",
+            fix
+        )
+
+        val callElement = PsiTreeUtil.findChildrenOfType(file, KtCallExpression::class.java)
+            .first { it.text.contains("rawQuery") }
+        val before = file.text
+        WriteCommandAction.runWriteCommandAction(project) {
+            fix!!.invoke(project, file, myFixture.editor, callElement, callElement)
+        }
+        val after = file.text
+        assertNotSame("The fix must actually change the file", before, after)
+        assertFalse(
+            "The old vulnerable concatenation must be gone",
+            after.contains("\"SELECT * FROM users WHERE id=\" + userId")
+        )
+        assertNoSyntaxErrors(file)
+
+        val rescan = APIClient().scanCode(after, "SqlInjectionQuickFixCandidate.kt")
+        assertNotNull("Real re-scan must succeed", rescan)
+        assertFalse(
+            "The real backend must confirm the SQL Injection finding is gone after the fix",
+            rescan!!.vulnerable && rescan.vulnerabilityType == "SQL Injection"
+        )
     }
 }

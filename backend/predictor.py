@@ -2,6 +2,7 @@ import hashlib
 import os
 import re
 import json
+import time
 import joblib
 import numpy as np
 import xgboost as xgb
@@ -165,7 +166,21 @@ def _severity_from_decision(decision: str, evidence_score: float) -> str:
 # =====================================================
 
 
-def predict_code(code: str, file_name: str = ""):
+def predict_code(code: str, file_name: str = "", capture_timing: bool = False):
+    """
+    capture_timing (latency-measurement experiment task, Part 3): when
+    True, attaches an internal "_timing" dict (prediction_ms/dataflow_ms/
+    decision_ms) to the returned result, using time.perf_counter() (a
+    monotonic, high-resolution clock - never wall-clock time.time()).
+    Default False, and every timing call site below is gated behind this
+    flag, so a normal call (capture_timing omitted) performs exactly zero
+    additional perf_counter() calls or dict work versus before this
+    parameter existed - detection logic/values are completely unchanged
+    either way. app.py strips "_timing" back out before deciding whether
+    to expose a "timing" block in the HTTP response (only when the
+    caller's own explicit debug/benchmark header was set), so this is
+    never present in a normal production response.
+    """
 
     # ----------------------------------
     # Guard: empty / whitespace-only input
@@ -235,12 +250,14 @@ def predict_code(code: str, file_name: str = ""):
     # ----------------------------------
     # ML prediction (shared feature pipeline - identical construction to training)
     # ----------------------------------
+    _t_prediction_start = time.perf_counter() if capture_timing else None
     features = build_feature_matrix(
         [code], word_vectorizer, char_vectorizer, count_vectorizer,
         include_security=INCLUDE_SECURITY_FEATURES, security_feature_subset=SECURITY_FEATURE_SUBSET
     )
     dmatrix = xgb.DMatrix(features)
     probabilities = model.predict(dmatrix)
+    _t_prediction_end = time.perf_counter() if capture_timing else None
 
     prediction = int(np.argmax(probabilities))
     confidence = float(np.max(probabilities) * 100)
@@ -279,6 +296,13 @@ def predict_code(code: str, file_name: str = ""):
     detections = []
     lines = code.splitlines()
     probs_array = probabilities[0] if len(probabilities.shape) > 1 else probabilities
+
+    # Hoisted above the line-localization loop below (it used to only be
+    # computed after it, for decision_engine.evaluate()) so the loop's own
+    # placeholder suppression can reuse this already-multi-line-aware
+    # analysis instead of only ever checking the single keyword line - see
+    # the loop's use of it just below.
+    sink_safety = sql_sink_safety_summary(code)
 
     for i, prob in enumerate(probs_array):
         class_prob = float(prob * 100)
@@ -319,7 +343,18 @@ def predict_code(code: str, file_name: str = ""):
                 if label_key == "s0" and any(k in lower for k in keywords):
                     line_has_placeholder = "?" in line
                     line_has_concat = "+" in line or "concat(" in lower
-                    if line_has_placeholder and not line_has_concat:
+                    # The '?' placeholder and the sink call it belongs to
+                    # are often on different lines (e.g. `val sql = "...?"`
+                    # followed later by `db.rawQuery(sql, args)`) - the
+                    # single-line check above misses that entirely.
+                    # sink_safety already resolves that multi-line/
+                    # variable-indirected case (dataflow.py's
+                    # sql_sink_safety_summary), so trust it whenever every
+                    # SQL sink call in the file was confirmed parameterized.
+                    confirmed_safe_by_dataflow = (
+                        sink_safety.get("sinks_found", 0) > 0 and sink_safety.get("all_parameterized")
+                    )
+                    if (line_has_placeholder and not line_has_concat) or confirmed_safe_by_dataflow:
                         continue
 
                 line_risk_weight = 0.0
@@ -345,6 +380,7 @@ def predict_code(code: str, file_name: str = ""):
     # ----------------------------------
     data_flow_findings = []
 
+    _t_dataflow_start = time.perf_counter() if capture_timing else None
     sql_flow = analyze_sql_dataflow(code)
     for f in sql_flow:
         detections.append({
@@ -368,15 +404,21 @@ def predict_code(code: str, file_name: str = ""):
         })
         data_flow_findings.append({**f, "vulnerabilityType": "Certificate Validation"})
 
+    # sink_safety was already computed above (hoisted for the
+    # line-localization loop's placeholder suppression) - reused here
+    # as-is, not recomputed, so both call sites always see the same value.
+    _t_dataflow_end = time.perf_counter() if capture_timing else None
+
     # ----------------------------------
     # Hybrid Decision Engine: combines ML probability + static rule +
     # data-flow evidence into one documented decision (see
     # decision_engine.py for the exact weights/thresholds).
     # ----------------------------------
-    sink_safety = sql_sink_safety_summary(code)
+    _t_decision_start = time.perf_counter() if capture_timing else None
     decision_result = decision_engine.evaluate(
         label, confidence, sql_flow, cert_flow, sink_safety, rule_keyword_hit
     )
+    _t_decision_end = time.perf_counter() if capture_timing else None
     decision = decision_result["decision"]
     is_vulnerable = decision_result["vulnerable"]
 
@@ -391,7 +433,7 @@ def predict_code(code: str, file_name: str = ""):
             "an automatic verdict. See 'reasons' for the individual signals considered."
         )
 
-    return {
+    result = {
         "prediction": label,
         "vulnerable": is_vulnerable,
         "vulnerabilityType": info["type"],
@@ -406,6 +448,27 @@ def predict_code(code: str, file_name: str = ""):
         "severity": _severity_from_decision(decision, decision_result["evidence_score"]),
         "shapTopFeatures": shap_top_features,
     }
+    if capture_timing:
+        # Internal only - see this function's docstring. app.py reads
+        # this key and decides whether to surface it as the response's
+        # public "timing" block; it is never returned to a caller that
+        # didn't explicitly ask for it.
+        #
+        # prediction_ms/dataflow_ms/decision_ms do NOT sum to
+        # backend_total_ms (added by app.py) - the gap between
+        # prediction_ms ending and dataflow_ms starting is real,
+        # unlabeled-here time: the SHAP explainer run (both the
+        # unconditional top-class pass and the per-class loop above,
+        # lines ~257-340) plus the rule-keyword line-localization it
+        # drives. Reported explicitly as shap_and_rule_detection_ms
+        # rather than left as a silent, unexplained remainder.
+        result["_timing"] = {
+            "prediction_ms": (_t_prediction_end - _t_prediction_start) * 1000,
+            "shap_and_rule_detection_ms": (_t_dataflow_start - _t_prediction_end) * 1000,
+            "dataflow_ms": (_t_dataflow_end - _t_dataflow_start) * 1000,
+            "decision_ms": (_t_decision_end - _t_decision_start) * 1000,
+        }
+    return result
 
 # =====================================================
 # RESPONSE ADAPTERS (Phase 4)

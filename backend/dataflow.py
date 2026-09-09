@@ -165,6 +165,56 @@ def _has_placeholder(expr: str) -> bool:
     return False
 
 
+_PURE_STRING_LITERAL_RE = re.compile(r'^\s*"(?:[^"\\]|\\.)*"\s*$')
+
+
+def _is_pure_string_literal(expr: str) -> bool:
+    """True if expr is (after surrounding whitespace) exactly one quoted
+    string literal and nothing else - no concatenation, no trailing/leading
+    identifiers. Shared by the inline-literal sink check and the
+    variable-indirection resolution below, so both agree on what counts
+    as "just a literal"."""
+    return bool(_PURE_STRING_LITERAL_RE.match(expr))
+
+
+_BARE_IDENTIFIER_RE = re.compile(r'^[A-Za-z_]\w*$')
+
+
+def _resolve_safe_literal_var(query_arg: str, safe_literal_vars: dict, taint: dict) -> bool:
+    """
+    True if query_arg is a bare identifier that - at this point in the
+    file - refers to a local val/var whose most recent assignment was a
+    pure SQL string literal containing a '?' placeholder (e.g.
+    `val sql = "SELECT ... WHERE id = ?"` followed later by
+    `db.rawQuery(sql, args)`), and that identifier isn't also currently
+    flagged as tainted (a variable can't be both; `taint` is checked
+    defensively so a stale safe-literal entry can never suppress a real
+    finding).
+    """
+    name = query_arg.strip()
+    return (
+        bool(_BARE_IDENTIFIER_RE.match(name))
+        and name in safe_literal_vars
+        and name not in taint
+    )
+
+
+def _track_safe_literal_assignment(var_name: str, rhs: str, safe_literal_vars: dict) -> None:
+    """
+    Updates `safe_literal_vars` in place for one assignment line: a fresh
+    assignment of a pure '?'-containing string literal marks the variable
+    safe; any other reassignment of the same name (concatenation, a
+    function call, a tainted source, ...) clears it, so a later reuse of
+    the same variable name for something unsafe is never mistaken for the
+    earlier safe binding.
+    """
+    rhs_stripped = rhs.strip()
+    if _is_pure_string_literal(rhs_stripped) and _has_placeholder(rhs_stripped):
+        safe_literal_vars[var_name] = True
+    else:
+        safe_literal_vars.pop(var_name, None)
+
+
 def _has_concatenation(expr: str) -> bool:
     stripped = _strip_quoted_strings(expr)
     return '+' in stripped or '.plus(' in stripped or re.search(r'\bconcat\s*\(', stripped, re.I) is not None
@@ -263,6 +313,12 @@ def analyze_sql_dataflow(code: str) -> list:
 
     # taint[varname] = {"path": [...], "kind": "traced"|"unparameterized"}
     taint = {}
+    # safe_literal_vars[varname] = True when varname's most recent
+    # assignment was a pure '?'-containing SQL literal (see
+    # _track_safe_literal_assignment) - lets a sink call further down
+    # resolve `db.rawQuery(sql, args)` back to `val sql = "...?..."`
+    # exactly as `taint` already resolves unsafe variables.
+    safe_literal_vars = {}
     methods = _extract_methods(code)
     method_param_taint = {}  # method_name -> {param_name: path}
 
@@ -289,6 +345,7 @@ def analyze_sql_dataflow(code: str) -> list:
                     'path': [found_source_kind, f'{var_name} (line {idx})'],
                     'basis': 'traced-source',
                 }
+                safe_literal_vars.pop(var_name, None)
             else:
                 # propagate taint from any tainted identifier used on the RHS
                 contributing = [v for v in rhs_ids if v in taint]
@@ -297,6 +354,7 @@ def analyze_sql_dataflow(code: str) -> list:
                     base_path = list(taint[contributing[0]]['path'])
                     base_path.append(f'{var_name} (line {idx})')
                     taint[var_name] = {'path': base_path, 'basis': taint[contributing[0]]['basis']}
+                    safe_literal_vars.pop(var_name, None)
                 elif _has_concatenation(rhs):
                     # Built via concatenation with something we can't trace to a
                     # named source (e.g. a bare method parameter) - still an
@@ -305,6 +363,13 @@ def analyze_sql_dataflow(code: str) -> list:
                         'path': ['(unconfirmed external input)', f'{var_name} built via concatenation (line {idx})'],
                         'basis': 'unparameterized-concatenation',
                     }
+                    safe_literal_vars.pop(var_name, None)
+                else:
+                    # Neither a source nor a concatenation - if it's a clean
+                    # parameterized literal, remember it so a sink call that
+                    # references this variable by name (rather than inlining
+                    # the literal) can still be resolved as safe below.
+                    _track_safe_literal_assignment(var_name, rhs, safe_literal_vars)
 
         # ---- One-hop interprocedural: tainted arg passed into a same-file method ----
         call_match = re.search(r'\b(\w+)\s*\(', line)
@@ -337,11 +402,14 @@ def analyze_sql_dataflow(code: str) -> list:
 
             query_arg = args[0]
             has_concat = _has_concatenation(query_arg)
-            query_is_pure_literal = bool(re.match(r'^\s*"(?:[^"\\]|\\.)*"\s*$', query_arg))
+            query_is_pure_literal = _is_pure_string_literal(query_arg)
             placeholder_only = query_is_pure_literal and _has_placeholder(query_arg)
+            resolved_safe_var = _resolve_safe_literal_var(query_arg, safe_literal_vars, taint)
 
-            if placeholder_only:
-                # Properly parameterized literal - safe regardless of args[1].
+            if placeholder_only or resolved_safe_var:
+                # Properly parameterized literal (inline, or via a local
+                # variable assigned one - see safe_literal_vars above) -
+                # safe regardless of args[1].
                 continue
 
             query_ids = _identifiers_in(query_arg)
@@ -446,7 +514,18 @@ def sql_sink_safety_summary(code: str) -> dict:
     sinks_found = 0
     all_safe = True
     lines = code.splitlines()
+    # Mirrors analyze_sql_dataflow's safe_literal_vars tracking (this
+    # function has no taint dict of its own, since it only ever needs to
+    # know "was this identifier's last assignment a safe literal", not
+    # trace unsafe flows) so a sink call like `db.rawQuery(sql, args)`
+    # resolves back to an earlier `val sql = "...?..."` here too.
+    safe_literal_vars = {}
     for idx, line in enumerate(lines):
+        assign_match = ASSIGN_RE.match(line)
+        if assign_match:
+            var_name, rhs = assign_match.group(1), assign_match.group(2)
+            _track_safe_literal_assignment(var_name, rhs, safe_literal_vars)
+
         for pattern, sink_name in SQL_SINK_NAMES:
             sink_match = pattern.search(line)
             if not sink_match:
@@ -456,8 +535,9 @@ def sql_sink_safety_summary(code: str) -> dict:
                 continue
             sinks_found += 1
             query_arg = args[0]
-            query_is_pure_literal = bool(re.match(r'^\s*"(?:[^"\\]|\\.)*"\s*$', query_arg))
-            if not (query_is_pure_literal and _has_placeholder(query_arg)):
+            query_is_pure_literal = _is_pure_string_literal(query_arg)
+            resolved_safe_var = _resolve_safe_literal_var(query_arg, safe_literal_vars, {})
+            if not ((query_is_pure_literal and _has_placeholder(query_arg)) or resolved_safe_var):
                 all_safe = False
     return {'sinks_found': sinks_found, 'all_parameterized': all_safe if sinks_found else False}
 

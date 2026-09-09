@@ -1,6 +1,7 @@
 package com.dualvulndroid.dualvulndroid
 
 import com.intellij.openapi.application.ApplicationManager
+import com.intellij.openapi.fileEditor.FileDocumentManager
 import com.intellij.openapi.fileEditor.FileEditorManager
 import com.intellij.openapi.fileEditor.OpenFileDescriptor
 import com.intellij.openapi.progress.ProcessCanceledException
@@ -236,6 +237,20 @@ class MyToolWindow(
                 setStatus("Ready", STATUS_ERROR, "Project path not found")
                 return
             }
+
+            // Refresh/re-scan fix: a Quick Fix (SafeSqlQuickFixKotlin/Java,
+            // SafeHostnameVerifierQuickFixKotlin/Java) mutates the PSI/
+            // Document in memory but never writes to disk itself -
+            // ProjectFileCollector.collect() (via mergeCollect below) reads
+            // file.readText() straight off disk, so clicking "Scan Project"
+            // again right after applying a fix would otherwise still
+            // upload the OLD vulnerable bytes until the file happened to
+            // be saved some other way. Flushing every open document here -
+            // synchronously, on the EDT, before any work is queued -
+            // guarantees each click's fresh scan reflects the CURRENT
+            // editor content, exactly like the real-time annotator already
+            // does (it reads editor.document.text directly, never disk).
+            FileDocumentManager.getInstance().saveAllDocuments()
 
             // Plugin-fix task, root cause #2 (STEP 6): used to hard-require
             // "$basePath/app/src/main/java" to exist before even attempting
