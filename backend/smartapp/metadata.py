@@ -292,12 +292,26 @@ def play_store_facts(raw_details: dict[str, Any]) -> PlayStoreFacts:
 
     permissions = about.get("permissions")
     if isinstance(permissions, list):
-        names = []
+        # Google Play groups permissions: {"type": "Contacts", "details":
+        # ["read your contacts", ...]}. The same permission can appear in
+        # several groups, so individual entries are de-duplicated.
+        names: list[str] = []
         for p in permissions:
-            name = p.get("name") if isinstance(p, dict) else p
-            if name:
-                names.append(str(name))
-        facts.permissions = names
+            if isinstance(p, dict):
+                details = p.get("details")
+                if isinstance(details, list) and details:
+                    entries = details
+                else:
+                    entries = [p.get("name") or p.get("type")]
+            else:
+                entries = [p]
+            for entry in entries:
+                if entry and str(entry) not in names:
+                    names.append(str(entry))
+        # An empty result from a non-empty list means the format wasn't
+        # understood - that's unknown, never "0 permissions".
+        if names or not permissions:
+            facts.permissions = names
 
     for item in raw_details.get("data_safety") or []:
         if isinstance(item, dict) and item.get("text"):

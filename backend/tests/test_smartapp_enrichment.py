@@ -222,6 +222,26 @@ def test_store_facts_free_paid_and_labels():
     assert unknown.is_free is None
 
 
+def test_store_facts_read_grouped_play_permissions():
+    # The real Google Play shape (seen for Microsoft Word): groups with a
+    # "type" and "details", no "name" key. It used to parse as [] - shown
+    # in the app as "0 permissions".
+    facts = play_store_facts({"about_this_app": {"permissions": [
+        {"type": "Identity", "details": ["find accounts on the device", "add or remove accounts"]},
+        {"type": "Contacts", "details": ["find accounts on the device", "read your contacts"]},
+        {"type": "Other"},
+    ]}})
+    assert facts.permissions == [
+        "find accounts on the device", "add or remove accounts", "read your contacts", "Other",
+    ]
+
+
+def test_store_facts_unreadable_permissions_are_unknown_not_zero():
+    facts = play_store_facts({"about_this_app": {"permissions": [{"unexpected": 1}, {}]}})
+    assert facts.permissions is None
+    assert play_store_facts({"about_this_app": {}}).permissions is None
+
+
 # 11 ------------------------------------------------------------------------
 
 def test_metadata_coverage_counts_only_verified_attributes():

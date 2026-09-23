@@ -20,10 +20,14 @@ import 'package:flutter/foundation.dart' show kIsWeb;
 class ApiConfig {
   ApiConfig._();
 
-  /// Set this to your host machine's LAN IP (e.g. "192.168.1.23") to run
-  /// against a physical device. Left null, the platform-appropriate
-  /// loopback address is used instead (emulator/simulator/desktop/web).
-  static String? physicalDeviceHost;
+  /// Host for a physical device, set at build time:
+  ///   flutter build apk --dart-define=SMARTAPP_API_HOST=192.168.1.23
+  /// (the host machine's LAN IP), or 127.0.0.1 together with
+  /// `adb reverse tcp:8000 tcp:8000` over USB. Left empty, the
+  /// platform-appropriate loopback address is used instead
+  /// (emulator/simulator/desktop/web).
+  static String? physicalDeviceHost =
+      const String.fromEnvironment('SMARTAPP_API_HOST');
 
   static const int _port = 8000;
 

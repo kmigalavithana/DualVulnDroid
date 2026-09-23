@@ -20,6 +20,7 @@ import '../widgets/category_icons.dart';
 import '../widgets/context_banner.dart';
 import '../widgets/smartapp_ui.dart';
 import '../widgets/state_views.dart';
+import '../utils/ranking_views.dart';
 
 /// "Your Matches". Ranks either every REAL app returned
 /// for [category] (fetched live via [AppRepository] - SmartApp's backend,
@@ -37,13 +38,18 @@ class RecommendationResultsScreen extends StatefulWidget {
   final String? searchLabel;
 
   const RecommendationResultsScreen({super.key, this.category, this.candidates, this.searchLabel})
-      : assert(category != null || candidates != null, 'Either a category or a candidate list must be provided.');
+    : assert(category != null || candidates != null, 'Either a category or a candidate list must be provided.');
 
   @override
   State<RecommendationResultsScreen> createState() => _RecommendationResultsScreenState();
 }
 
 enum _Status { loading, success, error }
+
+/// "For you" = SmartApp's ranking; "Popular" = the same apps by Google Play
+/// rating only - shown side by side so the effect of personalization is
+/// visible.
+enum ResultsView { forYou, popular }
 
 class _RecommendationResultsScreenState extends State<RecommendationResultsScreen> {
   static const _historyTopN = 5;
@@ -53,6 +59,7 @@ class _RecommendationResultsScreenState extends State<RecommendationResultsScree
   List<ContextEffect> _contextEffects = const [];
   String _errorMessage = '';
   bool _historyRecorded = false;
+  ResultsView _view = ResultsView.forYou;
 
   @override
   void didChangeDependencies() {
@@ -97,21 +104,23 @@ class _RecommendationResultsScreenState extends State<RecommendationResultsScree
     if (!_historyRecorded) {
       _historyRecorded = true;
       context.read<HistoryRepository>().recordDiscovery(
-            category: widget.category,
-            preferences: preferences.selectedPreferences,
-            resultCount: ranked.length,
-            recommendedApps: ranked
-                .take(_historyTopN)
-                .map((r) => RecommendedAppEntry(
-                      packageName: r.app.packageName ?? r.app.id,
-                      name: r.app.name,
-                      score: r.matchPercent,
-                      dataSource: r.app.dataSource,
-                      metadataCoverage: r.app.metadataCoverage,
-                    ))
-                .toList(),
-            deviceContext: DeviceContextSummary.fromDevice(device),
-          );
+        category: widget.category,
+        preferences: preferences.selectedPreferences,
+        resultCount: ranked.length,
+        recommendedApps: ranked
+            .take(_historyTopN)
+            .map(
+              (r) => RecommendedAppEntry(
+                packageName: r.app.packageName ?? r.app.id,
+                name: r.app.name,
+                score: r.matchPercent,
+                dataSource: r.app.dataSource,
+                metadataCoverage: r.app.metadataCoverage,
+              ),
+            )
+            .toList(),
+        deviceContext: DeviceContextSummary.fromDevice(device),
+      );
     }
   }
 
@@ -124,64 +133,113 @@ class _RecommendationResultsScreenState extends State<RecommendationResultsScree
       appBar: AppBar(title: const Text('Your Matches')),
       body: switch (_status) {
         _Status.loading => const Padding(
-            padding: EdgeInsets.fromLTRB(AppSpacing.page, AppSpacing.lg, AppSpacing.page, 0),
-            child: SkeletonList(semanticLabel: 'Finding real apps for you'),
-          ),
+          padding: EdgeInsets.fromLTRB(AppSpacing.page, AppSpacing.lg, AppSpacing.page, 0),
+          child: SkeletonList(semanticLabel: 'Finding real apps for you'),
+        ),
         _Status.error => ErrorStateView(
-            title: _errorMessage,
-            message: 'Live Google Play data could not be reached. Check your connection and try again.',
-            onRetry: _load,
-          ),
-        _Status.success => _results.isEmpty
-            ? EmptyStateView(
-                icon: Icons.search_off_rounded,
-                title: 'No matches found',
-                message: 'We couldn\'t find any apps for $title. Try a different category or search term.',
-                actionLabel: 'Back to Discover',
-                actionIcon: AppIcons.discover,
-                onAction: () => AppRouter.toDiscover(context),
-              )
-            : ListView.builder(
-                padding: const EdgeInsets.fromLTRB(AppSpacing.page, AppSpacing.xs, AppSpacing.page, AppSpacing.section),
-                itemCount: _results.length + 1,
-                itemBuilder: (context, index) {
-                  if (index == 0) {
-                    return Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text('Based on your preferences and device.', style: theme.textTheme.bodyMedium?.copyWith(color: AppColors.textSecondary)),
-                        const SizedBox(height: AppSpacing.md),
-                        Wrap(
-                          spacing: AppSpacing.sm,
-                          runSpacing: AppSpacing.sm,
-                          children: [
-                            InfoPill(
-                              label: '${_results.length} match${_results.length == 1 ? '' : 'es'} for $title',
-                              icon: widget.category != null ? resolveIconKey(widget.category!.iconKey) : AppIcons.search,
-                            ),
-                            if (_results.any((r) => r.app.isLiveData))
-                              const InfoPill(label: 'Live Google Play data', icon: AppIcons.liveData, color: AppColors.accentCyan),
-                          ],
-                        ),
-                        const SizedBox(height: AppSpacing.lg),
-                        if (_contextEffects.isNotEmpty) ...[
-                          ContextBanner(effects: _contextEffects),
-                          const SizedBox(height: AppSpacing.lg),
-                        ],
-                      ],
-                    );
-                  }
-                  final result = _results[index - 1];
-                  return Padding(
-                    padding: const EdgeInsets.only(bottom: AppSpacing.md),
-                    child: AppResultCard(
-                      result: result,
-                      isBestMatch: index == 1,
-                      onTap: () => AppRouter.toAppDetail(context, result.app),
-                    ),
-                  );
-                },
+          title: _errorMessage,
+          message: 'Live Google Play data could not be reached. Check your connection and try again.',
+          onRetry: _load,
+        ),
+        _Status.success =>
+          _results.isEmpty
+              ? EmptyStateView(
+                  icon: Icons.search_off_rounded,
+                  title: 'No matches found',
+                  message: 'We couldn\'t find any apps for $title. Try a different category or search term.',
+                  actionLabel: 'Back to Discover',
+                  actionIcon: AppIcons.discover,
+                  onAction: () => AppRouter.toDiscover(context),
+                )
+              : _buildList(context, title, theme),
+      },
+    );
+  }
+
+  Widget _buildList(BuildContext context, String title, ThemeData theme) {
+    final forYou = _results;
+    final popular = popularOrder(forYou);
+    final shifts = positionShifts(forYou);
+    final moved = shifts.values.where((s) => s != 0).length;
+    final isForYou = _view == ResultsView.forYou;
+    final ordered = isForYou ? forYou : popular;
+
+    return ListView.builder(
+      padding: const EdgeInsets.fromLTRB(AppSpacing.page, AppSpacing.xs, AppSpacing.page, AppSpacing.section),
+      itemCount: ordered.length + 1,
+      itemBuilder: (context, index) {
+        if (index == 0) {
+          return Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text('Based on your preferences and device.', style: theme.textTheme.bodyMedium?.copyWith(color: AppColors.textSecondary)),
+              const SizedBox(height: AppSpacing.md),
+              SizedBox(
+                width: double.infinity,
+                child: SegmentedButton<ResultsView>(
+                  segments: const [
+                    ButtonSegment(value: ResultsView.forYou, label: Text('For you'), icon: Icon(AppIcons.recommendations)),
+                    ButtonSegment(value: ResultsView.popular, label: Text('Popular'), icon: Icon(AppIcons.rating)),
+                  ],
+                  selected: {_view},
+                  showSelectedIcon: false,
+                  onSelectionChanged: (s) => setState(() => _view = s.first),
+                ),
               ),
+              const SizedBox(height: AppSpacing.sm),
+              Text(
+                isForYou ? 'Ranked by your preferences and your device.' : 'The generic view: ranked by Google Play rating only - no personalization.',
+                style: theme.textTheme.bodySmall,
+              ),
+              if (forYou.length > 1) ...[
+                const SizedBox(height: AppSpacing.md),
+                InsightBanner(
+                  title: moved == 0 ? 'Same order as Popular' : '$moved of ${forYou.length} apps moved when ranked for you',
+                  icon: AppIcons.whatIf,
+                  messages: [
+                    moved == 0
+                        ? 'For these apps, your preferences and device didn\'t change the order compared with Google Play ratings.'
+                        : 'Switch between For you and Popular to see how your preferences and device change the order.',
+                  ],
+                ),
+              ],
+              const SizedBox(height: AppSpacing.md),
+              Wrap(
+                spacing: AppSpacing.sm,
+                runSpacing: AppSpacing.sm,
+                children: [
+                  InfoPill(
+                    label: '${_results.length} match${_results.length == 1 ? '' : 'es'} for $title',
+                    icon: widget.category != null ? resolveIconKey(widget.category!.iconKey) : AppIcons.search,
+                  ),
+                  if (_results.any((r) => r.app.isLiveData))
+                    const InfoPill(label: 'Live Google Play data', icon: AppIcons.liveData, color: AppColors.accentCyan),
+                ],
+              ),
+              const SizedBox(height: AppSpacing.lg),
+              if (_contextEffects.isNotEmpty) ...[ContextBanner(effects: _contextEffects), const SizedBox(height: AppSpacing.lg)],
+            ],
+          );
+        }
+        final result = ordered[index - 1];
+        final shift = shifts[shiftKey(result)] ?? 0;
+        return Padding(
+          padding: const EdgeInsets.only(bottom: AppSpacing.md),
+          child: AppResultCard(
+            result: result,
+            isBestMatch: index == 1 && (isForYou || result.app.rating != null),
+            topBadgeLabel: isForYou ? 'Best match for you' : 'Highest rated on Google Play',
+            positionShift: isForYou ? shift : 0,
+            positionNote: isForYou
+                ? (shift > 0
+                      ? 'Up $shift place${shift == 1 ? '' : 's'} vs Popular'
+                      : shift < 0
+                      ? 'Down ${-shift} place${shift == -1 ? '' : 's'} vs Popular'
+                      : 'Same place as Popular')
+                : '#${positionIn(forYou, result)} for you',
+            onTap: () => AppRouter.toAppDetail(context, result.app),
+          ),
+        );
       },
     );
   }

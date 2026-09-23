@@ -130,6 +130,45 @@ class QuickFixEndToEndTest : BasePlatformTestCase() {
         }
     }
 
+    // ---- SQL with the value inside SQL quotes: the fix must drop the quotes
+    // (name=?), never produce name='?' (a literal "?", not a parameter) ----
+    fun testQuotedSqlValueQuickFixProducesARealParameter() {
+        checkBackendReachable()
+        val fileName = "QuotedSql.java"
+        val code = """
+            public class QuotedSql {
+                public void onCreate() {
+                    String username = getIntent().getStringExtra("username");
+                    String query = "SELECT * FROM users WHERE name='" + username + "'";
+                    db.rawQuery(query, null);
+                }
+            }
+        """.trimIndent()
+        val (file, results) = scanRealFile(fileName, code)
+        val finding = results.first { it.lineText.contains("rawQuery") }
+        val fix = SqlFixLocator.tryBuildFix(file, finding, fileName)
+        assertNotNull("expected a real Quick Fix for the quoted value", fix)
+
+        val callElement = PsiTreeUtil.findChildrenOfType(file, PsiMethodCallExpression::class.java)
+            .first { it.text.contains("rawQuery") }
+        WriteCommandAction.runWriteCommandAction(project) {
+            fix!!.invoke(project, file, myFixture.editor, callElement, callElement)
+        }
+        val after = file.text
+
+        assertTrue("placeholder must be a real parameter: $after", after.contains("\"SELECT * FROM users WHERE name=?\""))
+        assertFalse("must never produce a quoted placeholder", after.contains("'?'"))
+        assertTrue("the value must be bound as an argument", after.contains("new String[]{username}"))
+        assertNoSyntaxErrors(file)
+
+        val rescan = APIClient().scanCode(after, fileName)
+        assertNotNull(rescan)
+        assertFalse(
+            "real backend must confirm the SQL Injection finding is gone",
+            rescan!!.vulnerable && rescan.vulnerabilityType == "SQL Injection"
+        )
+    }
+
     // ---- Certificate: detect -> fix -> syntax valid -> real rescan ->
     // resolved, repeated twice with a FRESH fixture each time (item 8) ----
     fun testCertificateQuickFixEndToEndRepeatedWithFreshFixtures() {
@@ -366,4 +405,5 @@ class QuickFixEndToEndTest : BasePlatformTestCase() {
             rescan!!.vulnerable && rescan.vulnerabilityType == "SQL Injection"
         )
     }
+
 }

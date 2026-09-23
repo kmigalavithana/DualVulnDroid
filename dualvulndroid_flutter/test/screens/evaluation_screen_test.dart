@@ -49,6 +49,43 @@ void main() {
     expect(runButton.onPressed, isNull, reason: 'nothing to run without tasks');
   });
 
+  testWidgets('a partly labeled task keeps Run A / B / C disabled and says why', (tester) async {
+    final repo = await _loadedRepo(tester);
+    final snapshot = CandidateSnapshot(
+      snapshotId: 's',
+      collectedAt: DateTime.utc(2026, 9, 24),
+      category: 'Notes',
+      apps: [
+        for (final pkg in ['a', 'b'])
+          {'id': pkg, 'name': pkg, 'packageName': pkg, 'category': 'Productivity', 'rating': 4.5, 'realData': true, 'source': 'google_play'},
+      ],
+    );
+    await tester.runAsync(() => repo.importDataset(EvaluationDataset(
+          snapshots: [snapshot],
+          tasks: [
+            EvaluationTask(
+              taskId: 't',
+              participantId: 'P01',
+              preferences: const {},
+              deviceSnapshot: const DeviceProfileModel(ramTotalMb: 4096),
+              category: 'Notes',
+              snapshotId: 's',
+              candidateAppIds: snapshot.packageNames,
+              createdAt: DateTime.utc(2026, 9, 24),
+            ),
+          ],
+          labels: [RelevanceLabel(taskId: 't', participantId: 'P01', packageName: 'a', grade: 2, labeledAt: DateTime.utc(2026, 9, 24))],
+        )));
+
+    await tester.pumpWidget(_wrap(repo));
+    await tester.pumpAndSettle();
+
+    expect(find.text('0 of 1 tasks fully labeled'), findsOneWidget);
+    expect(find.text('Rate every app in a task (tap it below) to enable Run A / B / C.'), findsOneWidget);
+    final runButton = tester.widget<OutlinedButton>(find.ancestor(of: find.text('Run A / B / C'), matching: find.byWidgetPredicate((w) => w is OutlinedButton)));
+    expect(runButton.onPressed, isNull, reason: 'running would only report "no data"');
+  });
+
   testWidgets('with real labels + runs the screen shows the measured A/B/C values side by side', (tester) async {
     final repo = await _loadedRepo(tester);
     final snapshot = CandidateSnapshot(

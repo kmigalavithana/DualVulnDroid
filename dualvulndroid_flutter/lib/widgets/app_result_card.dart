@@ -25,12 +25,24 @@ class AppResultCard extends StatelessWidget {
   /// Extra "why it's here" tags (e.g. Alternative Finder comparisons).
   final List<String> highlights;
 
+  /// Text of the top badge when [isBestMatch] (e.g. "Highest rated" in the
+  /// Popular view).
+  final String topBadgeLabel;
+
+  /// Optional note on where this app sits in the other ranking view
+  /// ("For you" vs "Popular"), with an arrow for [positionShift] > 0 / < 0.
+  final String? positionNote;
+  final int positionShift;
+
   const AppResultCard({
     super.key,
     required this.result,
     required this.onTap,
     this.isBestMatch = false,
     this.highlights = const [],
+    this.topBadgeLabel = 'Best match for you',
+    this.positionNote,
+    this.positionShift = 0,
   });
 
   @override
@@ -49,7 +61,7 @@ class AppResultCard extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           if (isBestMatch) ...[
-            const InfoPill(label: 'Best match for you', icon: AppIcons.recommendations, color: AppColors.accent),
+            InfoPill(label: topBadgeLabel, icon: AppIcons.recommendations, color: AppColors.accent),
             const SizedBox(height: AppSpacing.md),
           ],
           Row(
@@ -90,6 +102,16 @@ class AppResultCard extends StatelessWidget {
             overflow: TextOverflow.ellipsis,
             style: theme.textTheme.bodySmall?.copyWith(color: AppColors.textPrimary.withValues(alpha: 0.86)),
           ),
+          if (positionNote != null) ...[
+            const SizedBox(height: AppSpacing.md),
+            InfoPill(
+              label: positionNote!,
+              icon: positionShift > 0
+                  ? Icons.arrow_upward_rounded
+                  : (positionShift < 0 ? Icons.arrow_downward_rounded : Icons.drag_handle_rounded),
+              color: positionShift > 0 ? AppColors.accent : AppColors.textSecondary,
+            ),
+          ],
           if (result.unverifiedConstraints.isNotEmpty) ...[
             const SizedBox(height: AppSpacing.md),
             Wrap(

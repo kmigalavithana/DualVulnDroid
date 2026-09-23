@@ -77,12 +77,16 @@ class EvaluationScreen extends StatelessWidget {
                 label: const Text('New task'),
               ),
               OutlinedButton.icon(
-                onPressed: data.tasks.isEmpty
+                // Metrics only use fully labeled tasks, so running earlier
+                // would "succeed" and still show no results.
+                onPressed: analysis.evaluableTaskCount == 0
                     ? null
                     : () async {
                         final id = await context.read<EvaluationRepository>().runEvaluation();
                         if (context.mounted) {
-                          ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Ran A, B and C on ${data.tasks.length} task(s) · $id')));
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(content: Text('Ran A, B and C on ${analysis.evaluableTaskCount} fully labeled task(s) · $id')),
+                          );
                         }
                       },
                 icon: const Icon(Icons.play_arrow_rounded),
@@ -95,6 +99,13 @@ class EvaluationScreen extends StatelessWidget {
               ),
             ],
           ),
+          if (data.tasks.isNotEmpty && analysis.evaluableTaskCount == 0) ...[
+            const SizedBox(height: AppSpacing.sm),
+            Text(
+              'Rate every app in a task (tap it below) to enable Run A / B / C.',
+              style: theme.textTheme.bodySmall?.copyWith(color: AppColors.warning),
+            ),
+          ],
           if (data.tasks.isNotEmpty) ...[
             const SizedBox(height: AppSpacing.lg),
             SmartAppCard(

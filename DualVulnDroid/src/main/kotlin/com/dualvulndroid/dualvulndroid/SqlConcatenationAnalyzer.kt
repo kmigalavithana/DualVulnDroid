@@ -29,7 +29,7 @@ object SqlConcatenationAnalyzer {
 
     data class Match(
         val prefixLiteral: String,   // the literal SQL text before the placeholder, WITHOUT surrounding quotes
-        val suffixLiteral: String?,  // optional literal SQL text after the placeholder (e.g. a closing quote), WITHOUT surrounding quotes
+        val suffixLiteral: String?,  // optional literal SQL text after the placeholder, WITHOUT surrounding quotes (SQL quotes around the value are removed - see withoutQuotesAroundPlaceholder)
         val identifier: String,      // the exact bare identifier token supplying the dynamic value
         val language: FixLanguage
     ) {
@@ -83,7 +83,40 @@ object SqlConcatenationAnalyzer {
             matchConcatenation(trimmed, language)
         } ?: return null
 
-        return if (isPlausibleAndSafeSql(match)) match else null
+        val normalized = withoutQuotesAroundPlaceholder(match) ?: return null
+        return if (isPlausibleAndSafeSql(normalized)) normalized else null
+    }
+
+    /**
+     * A value concatenated inside an SQL string literal - `name='" + x + "'"`
+     * or Kotlin `name='$x'` - must lose those quotes when it becomes a bound
+     * parameter: `name='?'` would compare against the literal text "?"
+     * instead of binding the value. Returns the match with the quotes
+     * removed, the match unchanged when there are none, or null (no
+     * automatic fix) when the quoting can't be converted safely:
+     *   - only one side is quoted (unbalanced),
+     *   - the quote is itself escaped (`''`),
+     *   - the value is only PART of a quoted literal, e.g. a LIKE pattern
+     *     (`'%" + x + "%'`), which would need the bound VALUE changed, not
+     *     just the SQL text.
+     */
+    private fun withoutQuotesAroundPlaceholder(match: Match): Match? {
+        val prefix = match.prefixLiteral
+        val suffix = match.suffixLiteral ?: ""
+        // An odd number of single quotes before the value means it sits
+        // INSIDE an SQL string literal (a doubled '' escape adds two, so it
+        // doesn't change the parity).
+        val insideLiteral = prefix.count { it == '\'' } % 2 == 1
+        if (!insideLiteral) {
+            // Outside any literal, a quote right after the value would be unbalanced.
+            return if (suffix.startsWith("'")) null else match
+        }
+        // Inside a literal the value must be the WHOLE literal: '<value>'.
+        // Anything else ('%<value>%', 'x<value>', escaped '') would need
+        // the bound value itself changed - no automatic fix.
+        if (!prefix.endsWith("'") || !suffix.startsWith("'")) return null
+        if (prefix.endsWith("''") || suffix.startsWith("''")) return null
+        return match.copy(prefixLiteral = prefix.dropLast(1), suffixLiteral = suffix.drop(1).ifEmpty { null })
     }
 
     private fun matchConcatenation(trimmed: String, language: FixLanguage): Match? {
