@@ -1,28 +1,38 @@
 import 'package:flutter/material.dart';
 
-import '../screens/assessment_history_screen.dart';
-import '../screens/dashboard_screen.dart';
-import '../screens/search_application_screen.dart';
-import '../screens/security_chat_screen.dart';
+import '../screens/discover_screen.dart';
+import '../screens/history_screen.dart';
+import '../screens/home_screen.dart';
+import '../screens/profile_screen.dart';
+import '../theme/app_colors.dart';
+import '../theme/app_icons.dart';
 
-/// The design's persistent bottom navigation (Home/Search/History/Chat -
-/// reduced from the design's original 5-tab set: no "Installed Apps" or
-/// "Profile" tab, since neither has any real capability behind it).
+/// The four top-level destinations, in bottom-navigation order.
+enum ShellTab { home, discover, history, profile }
+
+/// SmartApp's persistent bottom navigation: Home / Discover / History /
+/// Profile. Alternatives, Favorites, Installed Apps, What-If and
+/// Evaluation are pushed on top of it as normal routes.
 ///
-/// Each of the 4 tab screens keeps its own Scaffold/AppBar/state exactly
-/// as it already had before this shell existed (nested Scaffolds) - this
-/// widget only supplies the outer bottomNavigationBar and switches which
-/// tab's full screen is visible.
-///
-/// Tabs are built lazily: only the first-visited tab's widget is created,
-/// so opening the shell fires exactly the one real network call Dashboard
-/// already made before this shell existed, not the 3 extra real calls
-/// (History's own getHistory(), Chat's own chat-history fetch) that a
-/// naive eagerly-built IndexedStack would trigger on every app launch.
-/// Once a tab has been built its State stays alive across further
-/// switches (no re-fetch flash when tapping back to it).
+/// Back behaves like a real Android app: the shell remembers which tabs
+/// you came through (no duplicates), so system back / the app-bar back
+/// arrow returns to the previous tab - ultimately Home - and only Back on
+/// Home leaves the app. Tabs are built lazily and kept alive
+/// (IndexedStack), so returning to a tab never resets it.
 class AppShell extends StatefulWidget {
   const AppShell({super.key});
+
+  static _AppShellState? _mounted;
+
+  /// Switches to [tab] if the shell is on screen (recorded in the tab
+  /// history, so Back returns to where the user was). Returns false when
+  /// there is no shell (e.g. a screen shown on its own in a test).
+  static bool select(ShellTab tab) {
+    final shell = _mounted;
+    if (shell == null || !shell.mounted) return false;
+    shell._select(tab.index);
+    return true;
+  }
 
   @override
   State<AppShell> createState() => _AppShellState();
@@ -30,50 +40,122 @@ class AppShell extends StatefulWidget {
 
 class _AppShellState extends State<AppShell> {
   int _index = 0;
-  final List<Widget?> _tabs = List<Widget?>.filled(4, null);
+  final List<int> _history = [];
+  final List<Widget?> _tabs = List<Widget?>.filled(ShellTab.values.length, null);
 
-  static const _icons = [Icons.dashboard_outlined, Icons.search, Icons.history, Icons.smart_toy_outlined];
-  static const _selectedIcons = [Icons.dashboard, Icons.search, Icons.history, Icons.smart_toy];
-  static const _labels = ['Home', 'Search', 'History', 'Chat'];
+  static const _icons = [AppIcons.home, AppIcons.discover, AppIcons.history, AppIcons.profile];
+  static const _selectedIcons = [AppIcons.homeFilled, AppIcons.discoverFilled, AppIcons.history, AppIcons.profileFilled];
+  static const _labels = ['Home', 'Discover', 'History', 'Profile'];
 
   Widget _buildTab(int index) {
-    switch (index) {
-      case 0:
-        return const DashboardScreen();
-      case 1:
-        return const SearchApplicationScreen();
-      case 2:
-        return const AssessmentHistoryScreen();
-      case 3:
-      default:
-        return const SecurityChatScreen();
+    switch (ShellTab.values[index]) {
+      case ShellTab.home:
+        return const HomeScreen();
+      case ShellTab.discover:
+        return const DiscoverScreen();
+      case ShellTab.history:
+        return const HistoryScreen();
+      case ShellTab.profile:
+        return const ProfileScreen();
     }
+  }
+
+  bool get _canGoBack => _index != ShellTab.home.index || _history.isNotEmpty;
+
+  void _select(int index) {
+    if (index == _index) return;
+    setState(() {
+      _history
+        ..remove(index)
+        ..remove(_index)
+        ..add(_index);
+      _tabs[index] ??= _buildTab(index);
+      _index = index;
+    });
+  }
+
+  void _goBack() {
+    setState(() {
+      final target = _history.isNotEmpty ? _history.removeLast() : ShellTab.home.index;
+      _tabs[target] ??= _buildTab(target);
+      _index = target;
+    });
   }
 
   @override
   void initState() {
     super.initState();
+    AppShell._mounted = this;
     _tabs[0] = _buildTab(0);
   }
 
   @override
+  void dispose() {
+    if (AppShell._mounted == this) AppShell._mounted = null;
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      body: IndexedStack(
+    return PopScope(
+      canPop: !_canGoBack,
+      onPopInvokedWithResult: (didPop, _) {
+        if (!didPop) _goBack();
+      },
+      child: ShellScope(
         index: _index,
-        children: List.generate(4, (i) => _tabs[i] ?? const SizedBox.shrink()),
-      ),
-      bottomNavigationBar: NavigationBar(
-        selectedIndex: _index,
-        onDestinationSelected: (i) => setState(() {
-          _tabs[i] ??= _buildTab(i);
-          _index = i;
-        }),
-        destinations: List.generate(
-          4,
-          (i) => NavigationDestination(icon: Icon(_icons[i]), selectedIcon: Icon(_selectedIcons[i]), label: _labels[i]),
+        canGoBack: _canGoBack,
+        goBack: _goBack,
+        child: Scaffold(
+          body: IndexedStack(
+            index: _index,
+            children: List.generate(_tabs.length, (i) => _tabs[i] ?? const SizedBox.shrink()),
+          ),
+          bottomNavigationBar: DecoratedBox(
+            decoration: const BoxDecoration(
+              border: Border(top: BorderSide(color: AppColors.border)),
+            ),
+            child: NavigationBar(
+              selectedIndex: _index,
+              onDestinationSelected: _select,
+              destinations: List.generate(
+                _tabs.length,
+                (i) => NavigationDestination(
+                  icon: Icon(_icons[i]),
+                  selectedIcon: Icon(_selectedIcons[i]),
+                  label: _labels[i],
+                  tooltip: _labels[i],
+                ),
+              ),
+            ),
+          ),
         ),
       ),
     );
   }
+}
+
+/// Lets a tab screen show an app-bar back arrow that returns to the
+/// previous tab (the same action as the Android system back button).
+class ShellScope extends InheritedWidget {
+  final int index;
+  final bool canGoBack;
+  final VoidCallback goBack;
+
+  const ShellScope({super.key, required this.index, required this.canGoBack, required this.goBack, required super.child});
+
+  static ShellScope? maybeOf(BuildContext context) => context.dependOnInheritedWidgetOfExactType<ShellScope>();
+
+  /// A back button for [tab]'s app bar - or null when [tab] isn't the
+  /// visible shell tab or there is nowhere to go back to (Home at the
+  /// root). Outside the shell (a pushed copy) Flutter's own automatic
+  /// back button applies.
+  static Widget? backButtonFor(BuildContext context, ShellTab tab) {
+    final scope = maybeOf(context);
+    if (scope == null || scope.index != tab.index || !scope.canGoBack) return null;
+    return BackButton(onPressed: scope.goBack);
+  }
+
+  @override
+  bool updateShouldNotify(ShellScope oldWidget) => oldWidget.index != index || oldWidget.canGoBack != canGoBack;
 }

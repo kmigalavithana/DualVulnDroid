@@ -119,12 +119,21 @@ class FinalBehavioralVerificationTest : BasePlatformTestCase() {
         // (MyToolWindow's old hardcoded Android path check) failed on.
         val srcDir = File(basePath, "src")
         srcDir.mkdirs()
-        val ssFile = File(srcDir, "ss.java")
+        // A filename unique to this test - several other test classes in
+        // this suite also write a real disk "src/ss.java"; reusing that
+        // exact relative path risks a stale FileDocumentManager Document
+        // from an earlier test's use of the same path, now that
+        // MyToolWindow's scan reads the live Document rather than disk.
+        val ssFile = File(srcDir, "FinalBehavioralEF.java")
         ssFile.writeText(unsafeSs)
-        com.intellij.openapi.vfs.LocalFileSystem.getInstance().refreshAndFindFileByIoFile(srcDir)
+        val vFile = com.intellij.openapi.vfs.LocalFileSystem.getInstance().refreshAndFindFileByIoFile(ssFile)!!
+        // "Scan Current File" now scans ONLY the active editor file - it
+        // must be opened for startScan() to find it via
+        // FileEditorManager.selectedFiles.
+        myFixture.openFileInEditor(vFile)
 
         val toolWindow = MyToolWindow(project)
-        val startScan = MyToolWindow::class.java.getDeclaredMethod("startScan", com.intellij.openapi.project.Project::class.java)
+        val startScan = MyToolWindow::class.java.getDeclaredMethod("startScanOfFile", com.intellij.openapi.project.Project::class.java, com.intellij.openapi.vfs.VirtualFile::class.java)
         startScan.isAccessible = true
         val isScanningField = MyToolWindow::class.java.getDeclaredField("isScanning")
         isScanningField.isAccessible = true
@@ -146,7 +155,7 @@ class FinalBehavioralVerificationTest : BasePlatformTestCase() {
         try {
             // E: first Scan Project - must succeed via the project-root
             // fallback (no Android-standard source layout exists here at all).
-            startScan.invoke(toolWindow, project)
+            startScan.invoke(toolWindow, project, com.intellij.openapi.fileEditor.FileEditorManager.getInstance(project).selectedFiles.firstOrNull())
             waitForScanToFinish()
             assertFalse("First scan must complete (isScanning back to false)", isScanningField.getBoolean(toolWindow))
             val firstCount = currentFindingCount()
@@ -154,7 +163,7 @@ class FinalBehavioralVerificationTest : BasePlatformTestCase() {
 
             // F: second, consecutive Scan Project - the button must be
             // clickable again and perform an independent fresh request.
-            startScan.invoke(toolWindow, project)
+            startScan.invoke(toolWindow, project, com.intellij.openapi.fileEditor.FileEditorManager.getInstance(project).selectedFiles.firstOrNull())
             waitForScanToFinish()
             assertFalse("Second scan must also complete (isScanning back to false)", isScanningField.getBoolean(toolWindow))
             val secondCount = currentFindingCount()

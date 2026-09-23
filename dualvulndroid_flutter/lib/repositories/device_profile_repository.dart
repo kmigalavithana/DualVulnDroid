@@ -1,79 +1,60 @@
 import 'package:flutter/foundation.dart';
-import 'package:device_info_plus/device_info_plus.dart';
 
 import '../models/device_profile_model.dart';
+import '../services/battery_service.dart';
+import '../services/connectivity_service.dart';
+import '../services/device_info_service.dart';
 
-/// Holds the user's device profile for the current session (Part 13).
-/// Held in memory only, scoped to the app's lifetime - this phase does
-/// not add persistent local storage for it (no strong requirement for
-/// it to survive an app restart yet, and adding a storage dependency
-/// for that is left for a later phase rather than done speculatively).
+/// Holds the current device's real profile for the app's lifetime (Home's
+/// device status card + the "My Device" screen + the recommendation
+/// engine's context-aware adjustments all read this same instance, so
+/// they can never disagree). Detection is attempted once, automatically,
+/// on construction - the user is never asked to type in values the
+/// platform can report itself (Part 6).
 ///
-/// androidVersion/abis MAY be pre-filled from a real platform API
-/// (device_info_plus's Build.VERSION.SDK_INT / Build.SUPPORTED_ABIS) on
-/// an actual Android device - both are genuine values the OS reports,
-/// never guessed. features is NEVER auto-detected: there is no simple,
-/// reliable Flutter API surfacing PackageManager.hasSystemFeature()
-/// results, so auto-filling it would mean guessing, which Part 13
-/// explicitly forbids ("Do not guess unsupported feature information").
-/// The user always CAN edit every field manually regardless of whether
-/// auto-detection ran.
+/// Composes three independent, single-purpose services (hardware/OS,
+/// battery, connectivity) into one [DeviceProfileModel] snapshot rather
+/// than duplicating any of their platform-channel logic here.
 class DeviceProfileRepository extends ChangeNotifier {
+  final DeviceInfoService _service;
+  final BatteryService _batteryService;
+  final ConnectivityService _connectivityService;
+
   DeviceProfileModel _profile = const DeviceProfileModel();
-  bool _autoDetected = false;
+  bool _loading = true;
 
-  final DeviceInfoPlugin _deviceInfo;
-
-  DeviceProfileRepository({DeviceInfoPlugin? deviceInfo}) : _deviceInfo = deviceInfo ?? DeviceInfoPlugin();
+  DeviceProfileRepository({
+    DeviceInfoService? service,
+    BatteryService? batteryService,
+    ConnectivityService? connectivityService,
+  })  : _service = service ?? DeviceInfoService(),
+        _batteryService = batteryService ?? BatteryService(),
+        _connectivityService = connectivityService ?? ConnectivityService() {
+    _detect();
+  }
 
   DeviceProfileModel get profile => _profile;
-  bool get wasAutoDetected => _autoDetected;
+  bool get isLoading => _loading;
 
-  /// Attempts real device detection. Silently does nothing (leaves the
-  /// profile exactly as it was) if not running on a real Android device,
-  /// or if the plugin call fails for any reason - never falls back to a
-  /// fabricated value.
-  Future<void> tryAutoDetect() async {
-    if (kIsWeb) return;
-    try {
-      final androidInfo = await _deviceInfo.androidInfo;
-      _profile = _profile.copyWith(
-        androidVersion: androidInfo.version.sdkInt,
-        abis: androidInfo.supportedAbis,
-      );
-      _autoDetected = true;
-      notifyListeners();
-    } catch (_) {
-      // Not an Android device, or the platform channel isn't available
-      // (e.g. running as a desktop/web build) - leave the profile as-is
-      // rather than guessing.
-    }
-  }
-
-  void updateAndroidVersion(int? version) {
-    _profile = _profile.copyWith(androidVersion: version);
+  Future<void> _detect() async {
+    _loading = true;
+    notifyListeners();
+    // Each service never throws - a failed/unsupported platform simply
+    // yields a null/"unavailable" value for that one signal, rendered
+    // honestly by the UI rather than crashing this repository or
+    // inventing a fallback.
+    final results = await Future.wait([
+      _service.readProfile(),
+      _batteryService.readLevel(),
+      _connectivityService.readStatus(),
+    ]);
+    final hardware = results[0] as DeviceProfileModel;
+    final batteryLevel = results[1] as int?;
+    final connectivityStatus = results[2] as ConnectivityStatus;
+    _profile = hardware.copyWith(batteryLevel: batteryLevel, connectivityStatus: connectivityStatus);
+    _loading = false;
     notifyListeners();
   }
 
-  void toggleFeature(String feature, bool enabled) {
-    final updated = List<String>.from(_profile.features);
-    if (enabled && !updated.contains(feature)) {
-      updated.add(feature);
-    } else if (!enabled) {
-      updated.remove(feature);
-    }
-    _profile = _profile.copyWith(features: updated);
-    notifyListeners();
-  }
-
-  void toggleAbi(String abi, bool enabled) {
-    final updated = List<String>.from(_profile.abis);
-    if (enabled && !updated.contains(abi)) {
-      updated.add(abi);
-    } else if (!enabled) {
-      updated.remove(abi);
-    }
-    _profile = _profile.copyWith(abis: updated);
-    notifyListeners();
-  }
+  Future<void> refresh() => _detect();
 }

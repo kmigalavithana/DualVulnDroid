@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- SmartApp background (AppColors.background) - the launch window uses it
+         so the launch window matches the light Flutter UI. -->
+    <color name="smartapp_background">#F7F9FC</color>
+</resources>

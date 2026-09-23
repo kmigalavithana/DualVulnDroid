@@ -12,6 +12,7 @@ import com.intellij.openapi.application.ReadAction
 import com.intellij.openapi.roots.ProjectRootManager
 import com.intellij.openapi.ui.Messages
 import com.intellij.openapi.vfs.LocalFileSystem
+import com.intellij.openapi.vfs.VirtualFile
 import com.intellij.openapi.wm.ToolWindow
 import com.intellij.openapi.wm.ToolWindowFactory
 import com.intellij.openapi.wm.ToolWindowManager
@@ -64,12 +65,37 @@ class MyToolWindowFactory : ToolWindowFactory {
     }
 }
 
-// Phase 5A: "Scan Project" now sends ONE batch request to
-// POST /developer/scan instead of one /predict call per file (see
-// APIClient.scanProjectBatch). This tool window remains the existing
-// details-panel architecture from Phase 4, extended with a findings
-// list so a project-level scan (many findings) is browsable, not just
-// "stop at the first vulnerable file" like the old per-file loop did.
+// Phase 5A: sends ONE batch request to POST /developer/scan (see
+// APIClient.scanProjectBatch) rather than one /predict call per file. This
+// tool window remains the existing details-panel architecture from Phase 4,
+// extended with a findings list so multiple findings are browsable, not
+// just "stop at the first vulnerable line" like the old flow did.
+//
+// Scan-scope task: "Scan Project" was renamed to "Scan Current File" and
+// now sends ONLY the file currently open/selected in the editor
+// (FileEditorManager.selectedFiles) as a batch of one - never
+// ProjectFileCollector's whole-project walk. Every click clears listModel
+// first (see startScan()), so the list and summary counters only ever
+// reflect the CURRENT file's latest scan, never a previous file's leftover
+// findings. The underlying /developer/scan endpoint, classification
+// (classify()), per-detection-type grouping (groupDetectionsByType()), and
+// finding presentation (toDetailView()/renderDetailHtml()) are unchanged -
+// only the scan's file scope changed.
+//
+// Two-mode task: the tool window now has BOTH buttons. "Scan File"
+// (testButton/startScan/runScan - the current-file implementation above,
+// kept as-is) scans only the active editor file; "Scan Project"
+// (scanProjectButton/startProjectScan/runProjectScan) is the original
+// whole-project scan restored from the pre-rename code - ProjectFileCollector
+// walk, chunked /developer/scan batches, same classification/grouping. Both
+// share one isScanning guard and one findings list, and each clears the list
+// before it starts so the two modes never mix stale findings.
+//
+// Scan-target prompt: clicking "Scan File" no longer scans immediately - it
+// opens ScanFileDialog (Scan Current File / Choose Another File / Cancel; the
+// current open file is shown only there - never in the tool window). The
+// current file, or the file the user chooses (opened and made active), is
+// passed to the SAME file-scan path (startScanOfFile -> runScan).
 //
 // Phase 5B: also the single "detail view" surface for the real-time
 // /predict path - ShowFindingDetailsIntention (attached to editor
@@ -108,6 +134,11 @@ class MyToolWindow(
             private val STATUS_SCANNING = JBColor(0x3592C4, 0x548AF7)
             private val STATUS_COMPLETE = JBColor(0x369650, 0x59A869)
             private val STATUS_ERROR = JBColor(0xC1282D, 0xFF6B68)
+
+            const val SCAN_FILE_LABEL = "Scan File"
+            const val SCAN_PROJECT_LABEL = "Scan Project"
+            const val NO_FILE_OPEN_MESSAGE = "No file is currently open."
+            const val UNSUPPORTED_FILE_MESSAGE = "Only Kotlin (.kt) and Java (.java) files can be scanned."
         }
 
         private val titleLabel = JBLabel("DualVulnDroid").apply {
@@ -122,7 +153,11 @@ class MyToolWindow(
             foreground = JBColor.namedColor("Label.infoForeground", JBColor.GRAY)
         }
 
-        private val testButton = JButton("Scan Project")
+        // "Scan File": the existing current-file scan (startScan/runScan).
+        private val testButton = JButton(SCAN_FILE_LABEL)
+
+        // "Scan Project": the restored whole-project scan.
+        private val scanProjectButton = JButton(SCAN_PROJECT_LABEL)
 
         // Item 1: a concise "● <state>" status row instead of long
         // technical progress text - the dot's color also carries the
@@ -163,7 +198,7 @@ class MyToolWindow(
         }.apply {
             selectionMode = javax.swing.ListSelectionModel.SINGLE_SELECTION
             cellRenderer = FindingListCellRenderer()
-            emptyText.text = "Click “Scan Project” to begin"
+            emptyText.text = "Click “Scan Project” or “Scan File” to begin"
             addMouseListener(object : MouseAdapter() {
                 override fun mouseClicked(e: MouseEvent) {
                     val index = locationToIndex(e.point)
@@ -187,8 +222,14 @@ class MyToolWindow(
             add(subtitleLabel.alignLeft())
             add(captionLabel.alignLeft())
             add(javax.swing.Box.createVerticalStrut(6))
-            add(testButton.alignLeft())
-            add(javax.swing.Box.createVerticalStrut(4))
+            add(JBPanel<JBPanel<*>>().apply {
+                layout = BoxLayout(this, BoxLayout.X_AXIS)
+                alignmentX = Component.LEFT_ALIGNMENT
+                add(scanProjectButton)
+                add(javax.swing.Box.createHorizontalStrut(6))
+                add(testButton)
+            })
+            add(javax.swing.Box.createVerticalStrut(8))
             add(JBPanel<JBPanel<*>>().apply {
                 layout = BoxLayout(this, BoxLayout.X_AXIS)
                 alignmentX = Component.LEFT_ALIGNMENT
@@ -211,10 +252,25 @@ class MyToolWindow(
                 // (title/button/status/summary cards) stays visible.
                 add(JBScrollPane(findingsList), BorderLayout.CENTER)
 
-                testButton.addActionListener { startScan(project) }
+                testButton.addActionListener { onScanFileClicked(project) }
+                scanProjectButton.addActionListener { startProjectScan(project) }
             }
 
+        // "Scan File" never scans straight away - it first asks which file
+        // (ScanFileDialog). Both hooks are swappable so tests can answer
+        // the dialog/chooser without a real modal.
+        internal var scanFilePrompt: (ScanFilePromptInfo) -> ScanFileChoice = { showScanFileDialog(project, it) }
+        internal var sourceFileChooser: () -> VirtualFile? = { chooseSourceFileToScan(project) }
+
         fun getContent(): JBPanel<JBPanel<*>> = content
+
+        private fun activeEditorFile(): VirtualFile? =
+            FileEditorManager.getInstance(project).selectedFiles.firstOrNull()
+
+        private fun setScanButtonsEnabled(enabled: Boolean) {
+            testButton.isEnabled = enabled
+            scanProjectButton.isEnabled = enabled
+        }
 
         // Phase 5B, section 7: entry point used by ShowFindingDetailsIntention
         // (attached to real-time editor annotations) - adds this ONE
@@ -228,9 +284,278 @@ class MyToolWindow(
             }
         }
 
-        private fun startScan(project: Project) {
+        // REQUIRED BEHAVIOR item 2/10: the ONLY source of "what to scan" is
+        // the file currently open/selected in the editor - FileEditorManager's
+        // own selectedFiles, never ProjectFileCollector's whole-project walk.
+        private sealed class CurrentFileSelection {
+            object NoFileSelected : CurrentFileSelection()
+            object UnsupportedFile : CurrentFileSelection()
+            data class Supported(
+                val virtualFile: VirtualFile,
+                val relativePath: String,
+                val fileText: String
+            ) : CurrentFileSelection()
+        }
+
+        // Resolves the file to scan straight from the live in-memory
+        // Document (never disk) - so an unsaved Quick Fix edit
+        // (SafeSqlQuickFixKotlin/Java, SafeHostnameVerifierQuickFixKotlin/
+        // Java mutate the PSI/Document in memory but never write to disk
+        // themselves) is picked up on the very next click, exactly like the
+        // real-time annotator already does (item 7).
+        private fun resolveFileSelection(project: Project, target: VirtualFile?): CurrentFileSelection {
+            val virtualFile = target ?: return CurrentFileSelection.NoFileSelected
+
+            if (!isScannableSourceFile(virtualFile)) {
+                return CurrentFileSelection.UnsupportedFile
+            }
+
+            val fileText = FileDocumentManager.getInstance().getDocument(virtualFile)?.text
+                ?: return CurrentFileSelection.UnsupportedFile
+
+            return CurrentFileSelection.Supported(
+                virtualFile = virtualFile,
+                relativePath = relativeFilePath(project.basePath, virtualFile.path),
+                fileText = fileText
+            )
+        }
+
+        // "Scan File" click: shows the dialog, then either
+        // [Scan Current File] -> scan exactly the active editor VirtualFile, or
+        // [Choose Another File]/[Choose File] -> native chooser -> open the
+        // chosen file as the active tab -> scan exactly that VirtualFile.
+        // Nothing is scanned without one of those explicit clicks. Cancel - of
+        // the dialog or of the chooser - changes nothing: no scan, no editor
+        // switch, findings and status left exactly as they were.
+        private fun onScanFileClicked(project: Project) {
+            if (isScanning) return
+
+            val editorFile = activeEditorFile()
+            val info = when {
+                editorFile == null -> ScanFilePromptInfo(null, null, CurrentFileStatus.NONE)
+                else -> ScanFilePromptInfo(
+                    editorFile.name,
+                    relativeFilePath(project.basePath, editorFile.path),
+                    if (isScannableSourceFile(editorFile)) CurrentFileStatus.SUPPORTED else CurrentFileStatus.UNSUPPORTED
+                )
+            }
+
+            when (scanFilePrompt(info)) {
+                ScanFileChoice.CANCEL -> return
+                // The active editor VirtualFile, straight into the SAME
+                // file-scan path - no chooser, never the whole project.
+                ScanFileChoice.SCAN_CURRENT_FILE -> {
+                    if (!info.canScanCurrentFile) return // not offered for unsupported/no file
+                    startScanOfFile(project, editorFile)
+                }
+                ScanFileChoice.CHOOSE_FILE -> chooseAndScanFile(project)
+            }
+        }
+
+        // The file-selection step of Scan File -> [Choose (Another) File]: native
+        // chooser (.kt/.java) -> open + activate -> scan exactly that
+        // VirtualFile. Cancelling the chooser changes nothing.
+        private fun chooseAndScanFile(project: Project) {
+            if (isScanning) return
+            val chosen = sourceFileChooser() ?: return
+            // Open the chosen file the normal IntelliJ way (reuses its tab if
+            // already open) and make it the active editor - the scan uses
+            // this same `chosen` file, never whatever tab was active before.
+            FileEditorManager.getInstance(project).openFile(chosen, true)
+            startScanOfFile(project, chosen)
+        }
+
+        private fun startScanOfFile(project: Project, target: VirtualFile?) {
             if (isScanning) {
                 return // section 15: prevent duplicate simultaneous scans
+            }
+
+            // REQUIRED BEHAVIOR item 10: the ONE chosen file -> read its
+            // current Document -> scan ONLY this file -> existing backend
+            // -> existing finding parser -> Tool Window results.
+            val selection = ReadAction.compute<CurrentFileSelection, Exception> {
+                resolveFileSelection(project, target)
+            }
+
+            when (selection) {
+                is CurrentFileSelection.NoFileSelected -> {
+                    listModel.clear()
+                    setStatus("Ready", STATUS_ERROR)
+                    setEmptyText(NO_FILE_OPEN_MESSAGE, null, null)
+                    setSummary(readySummaryHtml())
+                }
+                is CurrentFileSelection.UnsupportedFile -> {
+                    listModel.clear()
+                    setStatus("Ready", STATUS_ERROR)
+                    setEmptyText(UNSUPPORTED_FILE_MESSAGE, null, null)
+                    setSummary(readySummaryHtml())
+                }
+                is CurrentFileSelection.Supported -> {
+                    isScanning = true
+                    setScanButtonsEnabled(false)
+                    testButton.text = "Scanning..."
+                    listModel.clear()
+                    findingsList.emptyText.text = "Scanning..."
+                    setStatus("Scanning...", STATUS_SCANNING)
+                    setSummary(readySummaryHtml())
+
+                    ProgressManagerCompat.runBackgroundable(project, "DualVulnDroid: Scanning ${selection.relativePath}") { indicator ->
+                        runScan(project, selection, indicator)
+                    }
+                }
+            }
+        }
+
+        // REQUIRED BEHAVIOR item 4: sends ONLY the current file's source to
+        // the EXISTING /developer/scan endpoint (APIClient.scanProjectBatch,
+        // as a batch of exactly one file) and reuses the EXACT SAME
+        // classification/grouping/finding-parsing logic project-wide
+        // scanning already used (classify(), groupDetectionsByType(),
+        // toDetailView()) - no second, parallel scanning architecture, and
+        // no change to the backend contract itself.
+        private fun runScan(project: Project, selection: CurrentFileSelection.Supported, indicator: ProgressIndicator) {
+            try {
+                indicator.text = "Checking backend availability..."
+                val availability = APIClient().checkBackendAvailability()
+                if (availability.status != APIClient.BackendAvailability.AVAILABLE) {
+                    println("[CodeSentinel] Backend not available: ${availability.detail}")
+                    setStatus("Backend unavailable", STATUS_ERROR)
+                    setEmptyText("Backend unavailable", availability.detail, null)
+                    setSummary(errorSummaryHtml(availability.detail))
+                    return
+                }
+
+                indicator.text = "Analyzing ${selection.relativePath}..."
+                val api = APIClient()
+                val request = listOf(BatchScanFileRequest(selection.fileText, selection.relativePath))
+                // P0 Step 6: lets the IDE's own progress-bar Cancel button
+                // actually abort a hung/in-flight request immediately - see
+                // APIClient.scanProjectBatch's own comment for the full
+                // investigation.
+                val response = api.scanProjectBatch(request) { indicator.isCanceled }
+
+                if (response == null) {
+                    val message = api.lastBatchError ?: "Unknown error contacting backend."
+                    println("[CodeSentinel] Scan failed: $message")
+                    setStatus("Scan failed", STATUS_ERROR)
+                    setEmptyText("Scan failed", message, null)
+                    setSummary(errorSummaryHtml(message))
+                    return
+                }
+
+                indicator.text = "Analyzing results..."
+                val fileResult = response.files.firstOrNull()
+                if (fileResult?.error != null) {
+                    println("[CodeSentinel] ${fileResult.fileName}: ${fileResult.error}")
+                    setStatus("Scan failed", STATUS_ERROR)
+                    setEmptyText("Scan failed", fileResult.error, null)
+                    setSummary(errorSummaryHtml(fileResult.error))
+                    return
+                }
+
+                // REQUIRED BEHAVIOR item 5: previous findings were already
+                // cleared in startScan() before this background task was
+                // queued - listModel only ever holds THIS file's findings.
+                val findings = mutableListOf<FindingEntry>()
+                // STEP 9/item 10 (of the UI task): a stable finding identity
+                // - normalized relative path + canonical CWE + line - so a
+                // detection that legitimately appears more than once (e.g.
+                // present in overlapping evidence) is never listed twice.
+                val seenFindingKeys = HashSet<String>()
+                var sqlCount = 0
+                var certCount = 0
+                var reviewCount = 0
+
+                val result = fileResult?.result
+                if (result != null) {
+                    // UI-presentation task, item 2: the SAME shared
+                    // classification rule the real-time annotator uses (see
+                    // FindingModel.kt's classify(DeveloperScanResult) for
+                    // the full rationale).
+                    val classification = classify(result)
+                    if (classification != FindingClassification.NONE) {
+                        // Critical bug fix: a single response describes ONE
+                        // file's fused, file-level verdict, but predict_code()
+                        // always runs BOTH the SQL and certificate analyzers,
+                        // so `detections` can legitimately contain BOTH
+                        // types even though the response's own
+                        // vulnerabilityType/cwe names only one (confirmed
+                        // against a real live /developer/scan response - see
+                        // FindingModel.kt's groupDetectionsByType() comment).
+                        // Grouping by each DETECTION's own type - never the
+                        // response-level one - is what keeps a CWE-295
+                        // detection from ever being mislabeled CWE-89 (or
+                        // vice versa) merely because the OTHER type was also
+                        // present in this same file's response.
+                        val typeGroups = groupDetectionsByType(result.detections, classification)
+                        for (group in typeGroups) {
+                            if (classification == FindingClassification.REVIEW) reviewCount++
+                            val canonicalType = canonicalVulnerability(group.vulnerabilityType)?.first ?: group.vulnerabilityType
+                            if (canonicalType == "SQL Injection") sqlCount++
+                            if (canonicalType == "Certificate Validation") certCount++
+
+                            val anchorLine = group.anchorDetections.maxByOrNull { it.line }?.line
+                            val key = findingKey(selection.relativePath, canonicalType, anchorLine)
+                            if (seenFindingKeys.add(key)) {
+                                findings.add(
+                                    FindingEntry(
+                                        result.toDetailView(selection.relativePath, group, classification == FindingClassification.REVIEW),
+                                        File(selection.virtualFile.path)
+                                    )
+                                )
+                            }
+                        }
+                    }
+                }
+
+                println("[CodeSentinel] Receiving security results... done.")
+                // UI task, item 5: group findings by CWE type, then line, so
+                // related findings read together rather than in arbitrary
+                // detection-arrival order.
+                findings
+                    .sortedWith(compareBy({ it.view.cwe ?: it.view.vulnerabilityType }, { it.view.line ?: -1 }))
+                    .forEach { listModel.addElement(it) }
+
+                if (findings.isEmpty()) {
+                    setEmptyText("No security findings detected", "${selection.relativePath} scanned successfully.", 1)
+                }
+
+                setStatus("Scan complete", STATUS_COMPLETE)
+                setSummary(
+                    projectSummaryHtml(
+                        filesScanned = 1,
+                        filesFailed = 0,
+                        sqlCount = sqlCount,
+                        certCount = certCount,
+                        reviewCount = reviewCount,
+                        totalFindings = findings.size
+                    )
+                )
+            } catch (e: ProcessCanceledException) {
+                setStatus("Scan cancelled", STATUS_ERROR)
+                throw e
+            } catch (e: Exception) {
+                setStatus("Scan failed", STATUS_ERROR)
+                println("[CodeSentinel] Scan failed: ${e.message}")
+                e.printStackTrace()
+            } finally {
+                ApplicationManager.getApplication().invokeLater {
+                    isScanning = false
+                    setScanButtonsEnabled(true)
+                    testButton.text = SCAN_FILE_LABEL
+                }
+            }
+        }
+
+        // ---- Scan Project: the original whole-project scan, restored from
+        // the pre-rename implementation. Same backend contract
+        // (/developer/scan via APIClient.scanProjectBatch), same
+        // ProjectFileCollector walk/chunking, same classify()/
+        // groupDetectionsByType()/toDetailView() - only the entry point
+        // and final status text ("Project scan complete") are new. ----
+        private fun startProjectScan(project: Project) {
+            if (isScanning) {
+                return // shared guard: never a project scan and a file scan at once
             }
             val basePath = project.basePath
             if (basePath == null) {
@@ -238,42 +563,25 @@ class MyToolWindow(
                 return
             }
 
-            // Refresh/re-scan fix: a Quick Fix (SafeSqlQuickFixKotlin/Java,
-            // SafeHostnameVerifierQuickFixKotlin/Java) mutates the PSI/
-            // Document in memory but never writes to disk itself -
-            // ProjectFileCollector.collect() (via mergeCollect below) reads
-            // file.readText() straight off disk, so clicking "Scan Project"
-            // again right after applying a fix would otherwise still
-            // upload the OLD vulnerable bytes until the file happened to
-            // be saved some other way. Flushing every open document here -
-            // synchronously, on the EDT, before any work is queued -
-            // guarantees each click's fresh scan reflects the CURRENT
-            // editor content, exactly like the real-time annotator already
-            // does (it reads editor.document.text directly, never disk).
+            // ProjectFileCollector reads file contents from disk, so flush
+            // every open document first - an applied-but-unsaved Quick Fix
+            // is then scanned as the CURRENT editor content.
             FileDocumentManager.getInstance().saveAllDocuments()
 
-            // Plugin-fix task, root cause #2 (STEP 6): used to hard-require
-            // "$basePath/app/src/main/java" to exist before even attempting
-            // to collect files - failing with "Source folder not found!"
-            // for any project that isn't laid out like a standard Android
-            // Gradle module. Whether any usable source exists is now
-            // determined by actually trying to collect files
-            // (discoverSourceRoots()/mergeCollect() below), never by
-            // checking one hardcoded path in advance.
             isScanning = true
-            testButton.isEnabled = false
-            testButton.text = "Scanning..."
+            setScanButtonsEnabled(false)
+            scanProjectButton.text = "Scanning..."
             listModel.clear()
-            findingsList.emptyText.text = "Scanning..."
-            setStatus("Scanning...", STATUS_SCANNING)
+            findingsList.emptyText.text = "Scanning project..."
+            setStatus("Scanning project...", STATUS_SCANNING)
             setSummary(readySummaryHtml())
 
             ProgressManagerCompat.runBackgroundable(project, "DualVulnDroid: Scanning Project") { indicator ->
-                runScan(project, basePath, indicator)
+                runProjectScan(project, basePath, indicator)
             }
         }
 
-        private fun runScan(project: Project, basePath: String, indicator: ProgressIndicator) {
+        private fun runProjectScan(project: Project, basePath: String, indicator: ProgressIndicator) {
             try {
                 indicator.text = "Checking backend availability..."
                 val availability = APIClient().checkBackendAvailability()
@@ -294,7 +602,7 @@ class MyToolWindow(
                 )
 
                 if (collected.files.isEmpty()) {
-                    setStatus("Scan complete", STATUS_COMPLETE)
+                    setStatus("Project scan complete", STATUS_COMPLETE)
                     setEmptyText("No supported Java/Kotlin source files found", null, 0)
                     setSummary(readySummaryHtml())
                     return
@@ -302,10 +610,6 @@ class MyToolWindow(
 
                 val batches = ProjectFileCollector.chunk(collected.files)
                 val allFindings = mutableListOf<FindingEntry>()
-                // STEP 9/item 10 (of the UI task): a stable finding identity
-                // - normalized relative path + canonical CWE + line - so a
-                // detection that legitimately appears more than once (e.g.
-                // present in overlapping evidence) is never listed twice.
                 val seenFindingKeys = HashSet<String>()
                 var filesScanned = 0
                 var filesFailed = 0
@@ -319,20 +623,13 @@ class MyToolWindow(
 
                     val request = batch.map { BatchScanFileRequest(it.content, it.relativePath) }
                     val api = APIClient()
-                    // P0 Step 6: lets the IDE's own progress-bar Cancel
-                    // button actually abort a hung/in-flight batch request
-                    // immediately, instead of the button silently staying
-                    // disabled for up to scanProjectBatch's full read
-                    // timeout - see APIClient.scanProjectBatch's own
-                    // comment for the full investigation.
                     val response = api.scanProjectBatch(request) { indicator.isCanceled }
 
                     if (response == null) {
                         val message = api.lastBatchError ?: "Unknown error contacting backend."
                         println("[CodeSentinel] Batch ${batchIndex + 1} failed: $message")
-                        // UI task, item 8: preserve whatever earlier batches
-                        // already found rather than discarding it - only the
-                        // REMAINING (unscanned) files are lost to this failure.
+                        // Preserve whatever earlier batches already found -
+                        // only the remaining, unscanned files are lost.
                         allFindings.forEach { listModel.addElement(it) }
                         setStatus("Scan failed", STATUS_ERROR)
                         if (allFindings.isEmpty()) setEmptyText("Scan failed", message, null)
@@ -353,33 +650,13 @@ class MyToolWindow(
                         val result = fileResult.result ?: continue
                         filesScanned++
 
-                        // UI-presentation task, item 2: the SAME shared
-                        // classification rule the real-time annotator uses
-                        // (see FindingModel.kt's classify(DeveloperScanResult)
-                        // for the full rationale).
                         val classification = classify(result)
                         if (classification == FindingClassification.NONE) continue
 
-                        // Critical bug fix: a single response describes ONE
-                        // file's fused, file-level verdict, but predict_code()
-                        // always runs BOTH the SQL and certificate analyzers,
-                        // so `detections` can legitimately contain BOTH
-                        // types even though the response's own
-                        // vulnerabilityType/cwe names only one (confirmed
-                        // against a real live /developer/scan response - see
-                        // FindingModel.kt's groupDetectionsByType() comment).
-                        // Grouping by each DETECTION's own type - never the
-                        // response-level one - is what keeps a CWE-295
-                        // detection from ever being mislabeled CWE-89 (or
-                        // vice versa) merely because the OTHER type was also
-                        // present in the same file's response.
-                        //
-                        // One FindingEntry per (file, CWE type) - never per
-                        // individual evidentiary line - is what makes "Total
-                        // findings" mathematically equal to
-                        // sqlCount+certCount by construction: each type-group
-                        // increments exactly one of those two counts AND
-                        // adds exactly one entry.
+                        // Group by each DETECTION's own type (see
+                        // groupDetectionsByType) so a CWE-295 detection is
+                        // never mislabeled CWE-89 or vice versa; one entry
+                        // per (file, CWE type) keeps Total = SQL + Cert.
                         val typeGroups = groupDetectionsByType(result.detections, classification)
                         for (group in typeGroups) {
                             if (classification == FindingClassification.REVIEW) reviewCount++
@@ -402,9 +679,6 @@ class MyToolWindow(
                 }
 
                 println("[CodeSentinel] Receiving security results... done.")
-                // UI task, item 5: group findings by CWE type, then file,
-                // then line, so related findings read together rather than
-                // in arbitrary batch-arrival order.
                 allFindings
                     .sortedWith(
                         compareBy(
@@ -419,7 +693,7 @@ class MyToolWindow(
                     setEmptyText("No security findings detected", "Project scan completed successfully.", filesScanned)
                 }
 
-                setStatus("Scan complete", STATUS_COMPLETE)
+                setStatus("Project scan complete", STATUS_COMPLETE)
                 setSummary(
                     projectSummaryHtml(
                         filesScanned = filesScanned,
@@ -431,47 +705,32 @@ class MyToolWindow(
                     )
                 )
 
-                // Existing local network-security check (unrelated to the
-                // batch endpoint, preserved exactly as before) - technical
-                // detail, logged rather than shown in the compact status row.
+                // Existing local network-security check, preserved as before
+                // (logged, not shown in the compact status row).
                 val networkIssues = NetworkSecurityScanner.scan(basePath)
                 if (networkIssues.isNotEmpty()) {
                     val issue = networkIssues.first()
                     println("[CodeSentinel] Also found a network security issue in ${issue.file}: ${issue.message}")
                 }
-
             } catch (e: ProcessCanceledException) {
                 setStatus("Scan cancelled", STATUS_ERROR)
                 throw e
             } catch (e: Exception) {
                 setStatus("Scan failed", STATUS_ERROR)
-                println("[CodeSentinel] Scan failed: ${e.message}")
+                println("[CodeSentinel] Project scan failed: ${e.message}")
                 e.printStackTrace()
             } finally {
                 ApplicationManager.getApplication().invokeLater {
                     isScanning = false
-                    testButton.isEnabled = true
-                    testButton.text = "Scan Project"
+                    setScanButtonsEnabled(true)
+                    scanProjectButton.text = SCAN_PROJECT_LABEL
                 }
             }
         }
 
-        // Plugin-fix task, STEP 6: layered source-root discovery.
-        //   1. IntelliJ's own registered module content/source roots
-        //      (covers standard Gradle/Android/Maven-synced projects -
-        //      whatever layout the IDE itself already resolved).
-        //   2. If that yields nothing (e.g. a plain project with no
-        //      recognized build system, or a bare content root that
-        //      IntelliJ hasn't marked as a dedicated source folder - the
-        //      exact "untitled16/src/ss.java" case this task's live
-        //      verification target is built from), fall back to the whole
-        //      project base directory: ProjectFileCollector.collect()
-        //      already walks it recursively and excludes build/.gradle/
-        //      .idea/target/generated/out/node_modules/etc., so this is
-        //      safe even for a large, real Android checkout.
-        // Only ever reported as "no source files found" (see runScan
-        // above) if this actually finds zero matching files - never
-        // because one hardcoded path didn't exist.
+        // Layered source-root discovery (restored): IntelliJ's registered
+        // content source roots first; if none, the project base directory
+        // (ProjectFileCollector already excludes build/.gradle/.idea/etc.).
         private fun discoverSourceRoots(project: Project, basePath: String): List<File> {
             val ideRoots = try {
                 ReadAction.compute<List<File>, Exception> {
@@ -487,9 +746,8 @@ class MyToolWindow(
             return ideRoots.ifEmpty { listOf(File(basePath)) }
         }
 
-        // Collects from every discovered root and merges the results,
-        // de-duplicating by project-relative path (roots can legitimately
-        // overlap, e.g. a module root and one of its own subdirectories).
+        // Collects from every discovered root, de-duplicating by
+        // project-relative path (roots can legitimately overlap).
         private fun mergeCollect(basePath: String, roots: List<File>): ProjectFileCollector.CollectionResult {
             val seenRelativePaths = HashSet<String>()
             val files = mutableListOf<ProjectFileCollector.CollectedFile>()
@@ -513,6 +771,23 @@ class MyToolWindow(
             }
 
             return ProjectFileCollector.CollectionResult(files, skippedEmpty, skippedDuplicate, skippedOversized)
+        }
+
+        // Project-relative, forward-slash path for the currently selected
+        // file (e.g. "src/SqlInjectionVulnerable.kt") - mirrors
+        // ProjectFileCollector's own relativize() convention (section 6) so
+        // findings display a real project-relative path, never an absolute
+        // local filesystem path, falling back to the bare file name only
+        // when no project base directory is available.
+        private fun relativeFilePath(basePath: String?, absolutePath: String): String {
+            if (basePath == null) return File(absolutePath).name
+            return try {
+                val base = File(basePath).canonicalFile.toPath()
+                val file = File(absolutePath).canonicalFile.toPath()
+                base.relativize(file).toString().replace(File.separatorChar, '/')
+            } catch (e: Exception) {
+                File(absolutePath).name
+            }
         }
 
         // Item 1/7/8: ONE concise status string plus a JBColor-driven dot -

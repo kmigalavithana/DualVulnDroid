@@ -1,5 +1,5 @@
 name: dualvulndroid_flutter
-description: "A new Flutter project."
+description: "SmartApp - context-aware Android application discovery and recommendation."
 # The following line prevents the package from being accidentally published to
 # pub.dev using `flutter pub publish`. This is preferred for private packages.
 publish_to: 'none' # Remove this line if you wish to publish to pub.dev
@@ -34,11 +34,25 @@ dependencies:
   # The following adds the Cupertino Icons font to your application.
   # Use with the CupertinoIcons class for iOS style icons.
   cupertino_icons: ^1.0.8
-  http: ^1.2.0
-  flutter_secure_storage: ^10.3.1
   provider: ^6.1.5+1
+  # Real Android device info (RAM, storage, Android version, ABIs) - see
+  # DeviceInfoService. No backend/network dependency: SmartApp is a fully
+  # standalone recommendation app.
   device_info_plus: ^12.4.0
-  file_picker: ^10.3.5
+  # Real battery level (BatteryService) and real network reachability
+  # (ConnectivityService) for the context-aware recommendation engine -
+  # both read on-device OS state only; neither makes a network request.
+  battery_plus: ^7.1.0
+  connectivity_plus: ^7.0.0
+  # Local-only persistence for user preferences and recommendation history
+  # (Part 4/14) - no account/login, no server round-trip.
+  shared_preferences: ^2.5.3
+  # Opens a Play Store / app listing URL from the "View on Google Play"
+  # action (Part 15) via a safe platform mechanism.
+  url_launcher: ^6.3.1
+  # Talks ONLY to SmartApp's own backend (never any third-party provider
+  # directly) for real Google Play app data - see AppRepository.
+  http: ^1.2.2
 
 
 dev_dependencies:

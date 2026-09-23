@@ -5,10 +5,15 @@ import com.intellij.lang.annotation.AnnotationHolder
 import com.intellij.lang.annotation.ExternalAnnotator
 import com.intellij.lang.annotation.HighlightSeverity
 import com.intellij.openapi.editor.Document
+import com.intellij.openapi.editor.markup.EffectType
+import com.intellij.openapi.editor.markup.TextAttributes
 import com.intellij.openapi.fileEditor.FileDocumentManager
 import com.intellij.openapi.project.ProjectManager
 import com.intellij.openapi.util.TextRange
 import com.intellij.psi.PsiFile
+import com.intellij.ui.JBColor
+import java.awt.Color
+import java.awt.Font
 import java.util.concurrent.ConcurrentHashMap
 
 // Tooltips are rendered as HTML - code/explanation text can contain
@@ -25,6 +30,35 @@ private fun String.escapeHtml(): String =
 // REAL message-building logic instead of a separately-maintained
 // duplicate of the format, which is exactly how that duplicate silently
 // went stale once before (see FindingModelTest's "stays short" test).
+// Editor visualization: a finding is drawn as a wavy UNDERLINE under the
+// vulnerable statement only. The attributes are enforced on the annotation
+// so the color scheme's default WARNING style (a yellow background fill in
+// the light theme) is never applied, and no foreground/background is set,
+// so normal syntax highlighting underneath stays exactly as it was.
+internal object VulnerabilityUnderline {
+    val ERROR_COLOR = JBColor(Color(0xD6, 0x2D, 0x2D), Color(0xF7, 0x54, 0x64))
+    val REVIEW_COLOR = JBColor(Color(0xD9, 0x7A, 0x00), Color(0xF2, 0xB1, 0x3C))
+
+    fun attributesFor(isReviewLevel: Boolean): TextAttributes {
+        val color = if (isReviewLevel) REVIEW_COLOR else ERROR_COLOR
+        return TextAttributes(null, null, color, EffectType.WAVE_UNDERSCORE, Font.PLAIN).apply {
+            errorStripeColor = color
+        }
+    }
+
+    // The finding's own line range with leading indentation and trailing
+    // whitespace trimmed - i.e. exactly the statement on the line the
+    // backend reported, never the whole editor row. Null if nothing but
+    // whitespace remains (nothing real to underline).
+    fun rangeFor(text: CharSequence, startOffset: Int, endOffset: Int): TextRange? {
+        var start = startOffset
+        var end = endOffset
+        while (start < end && text[start].isWhitespace()) start++
+        while (end > start && text[end - 1].isWhitespace()) end--
+        return if (start < end) TextRange(start, end) else null
+    }
+}
+
 fun buildAnnotationMessage(result: LineScanResult): String {
     val cwe = canonicalVulnerability(result.vulnerabilityType)?.second
     val cwePrefix = cwe?.let { "$it " } ?: ""
@@ -420,9 +454,13 @@ class CodeSentinelAnnotator : ExternalAnnotator<FileScanData, List<LineScanResul
 
             val tooltip = buildTooltip(result, hasAutomaticFix = safeFix != null)
             val highlightSeverity = if (result.isReviewLevel) HighlightSeverity.WARNING else HighlightSeverity.ERROR
+            // Underline only the statement itself (indentation trimmed); the
+            // locators above still get the finding's original line offsets.
+            val underlineRange = VulnerabilityUnderline.rangeFor(file.text, result.startOffset, result.endOffset) ?: continue
 
             val builder = holder.newAnnotation(highlightSeverity, buildAnnotationMessage(result))
-                .range(TextRange(result.startOffset, result.endOffset))
+                .range(underlineRange)
+                .enforcedTextAttributes(VulnerabilityUnderline.attributesFor(result.isReviewLevel))
                 .tooltip(tooltip)
                 // Phase 5B, section 7: Alt+Enter opens the full detail
                 // view in the existing tool window (same renderer project

@@ -1,10 +1,11 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
-    <!-- Phase 10C: required for any network call at all on real Android -
-         missing entirely before this phase, since it was never exercised
-         outside flutter test's mocked HTTP client. -->
-    <uses-permission android:name="android.permission.INTERNET" />
+    <!-- SmartApp is fully standalone (no backend, no login, no APK
+         upload) - it makes no network requests of its own, so no
+         INTERNET permission is declared. "View on Google Play" hands off
+         to an external app (Play Store/browser) via an implicit intent,
+         which does not require this app to hold INTERNET itself. -->
     <application
-        android:label="dualvulndroid_flutter"
+        android:label="SmartApp"
         android:name="${applicationName}"
         android:icon="@mipmap/ic_launcher"
         android:networkSecurityConfig="@xml/network_security_config">
@@ -45,6 +46,14 @@
         <intent>
             <action android:name="android.intent.action.PROCESS_TEXT"/>
             <data android:mimeType="text/plain"/>
+        </intent>
+        <!-- Installed Apps screen (Part 12): makes other launcher-visible
+             apps' name/package legitimately visible via PackageManager
+             (see MainActivity.kt's getLauncherApps()) without requesting
+             the restricted QUERY_ALL_PACKAGES permission. -->
+        <intent>
+            <action android:name="android.intent.action.MAIN"/>
+            <category android:name="android.intent.category.LAUNCHER"/>
         </intent>
     </queries>
 </manifest>

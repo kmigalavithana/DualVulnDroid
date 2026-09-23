@@ -1,90 +1,100 @@
 import 'package:flutter/material.dart';
 
-import '../models/application_summary.dart';
-import '../models/vulnerability_model.dart';
-import '../screens/apk_scan_screen.dart';
-import '../screens/application_details_screen.dart';
-import '../screens/assessment_history_screen.dart';
-import '../screens/login_screen.dart';
-import '../screens/not_available_screen.dart';
-import '../screens/search_application_screen.dart';
-import '../screens/security_chat_screen.dart';
-import '../screens/settings_screen.dart';
-import '../screens/vulnerability_detail_screen.dart';
+import '../models/app_info_model.dart';
+import '../models/user_preferences_model.dart';
+import '../screens/alternative_finder_screen.dart';
+import '../screens/app_detail_screen.dart';
+import '../screens/category_selection_screen.dart';
+import '../screens/device_profile_screen.dart';
+import '../screens/discover_screen.dart';
+import '../screens/evaluation_screen.dart';
+import '../screens/favorites_screen.dart';
+import '../screens/history_screen.dart';
+import '../screens/installed_apps_screen.dart';
+import '../screens/onboarding_preferences_screen.dart';
+import '../screens/recommendation_results_screen.dart';
+import '../screens/what_if_simulator_screen.dart';
 import '../widgets/app_shell.dart';
 
-/// Centralizes navigation (Part 1: routing/ layer). Kept as plain
-/// MaterialPageRoute pushes rather than a full named-route table or a
-/// third-party router package - this app's navigation graph is a
-/// straightforward stack (login -> dashboard -> search -> details ->
-/// sub-screens), so a router package would add complexity without a
-/// matching benefit; the point of this class is just to keep every
-/// `Navigator.push(...)` call written in one place instead of scattered
-/// across screens.
+/// Centralizes navigation (plain MaterialPageRoute pushes - the theme's
+/// PageTransitionsTheme supplies the subtle fade transition). Top-level
+/// destinations (Discover, History, Profile) are tabs: going "to" one
+/// returns to the shell and switches tab instead of stacking a copy.
 class AppRouter {
   AppRouter._();
 
-  static void toLogin(BuildContext context) {
+  static void toOnboarding(BuildContext context) {
     Navigator.of(context).pushAndRemoveUntil(
-      MaterialPageRoute(builder: (_) => const LoginScreen()),
+      MaterialPageRoute(builder: (_) => const OnboardingPreferencesScreen(isFirstRun: true)),
       (route) => false,
     );
   }
 
-  static void toDashboard(BuildContext context) {
+  static void toHome(BuildContext context) {
     Navigator.of(context).pushAndRemoveUntil(
       MaterialPageRoute(builder: (_) => const AppShell()),
       (route) => false,
     );
   }
 
-  static void toSearch(BuildContext context) {
-    Navigator.of(context).push(MaterialPageRoute(builder: (_) => const SearchApplicationScreen()));
+  /// Back to the bottom-navigation shell on [tab]; falls back to [fallback]
+  /// when no shell is on screen.
+  static void _toTab(BuildContext context, ShellTab tab, Widget Function() fallback) {
+    final navigator = Navigator.of(context);
+    if (AppShell.select(tab)) {
+      navigator.popUntil((route) => route.isFirst);
+    } else {
+      navigator.push(MaterialPageRoute(builder: (_) => fallback()));
+    }
   }
 
-  static void toApplicationDetails(BuildContext context, ApplicationSummary application) {
-    Navigator.of(context).push(MaterialPageRoute(builder: (_) => ApplicationDetailsScreen(application: application)));
+  static void toDiscover(BuildContext context) => _toTab(context, ShellTab.discover, () => const DiscoverScreen());
+
+  static void toHistory(BuildContext context) => _toTab(context, ShellTab.history, () => const HistoryScreen());
+
+  static void toPreferences(BuildContext context) {
+    Navigator.of(context).push(MaterialPageRoute(builder: (_) => const OnboardingPreferencesScreen()));
   }
 
-  static void toApplicationDetailsById(BuildContext context, int applicationId) {
-    Navigator.of(context).push(MaterialPageRoute(builder: (_) => ApplicationDetailsScreen.byId(applicationId: applicationId)));
+  static void toCategorySelection(BuildContext context) {
+    Navigator.of(context).push(MaterialPageRoute(builder: (_) => const CategorySelectionScreen()));
   }
 
-  static void toHistory(BuildContext context) {
-    Navigator.of(context).push(MaterialPageRoute(builder: (_) => const AssessmentHistoryScreen()));
+  static void toResultsForCategory(BuildContext context, AppCategory category) {
+    Navigator.of(context).push(MaterialPageRoute(builder: (_) => RecommendationResultsScreen(category: category)));
   }
 
-  static void toChat(BuildContext context, {ApplicationSummary? selectedApplication}) {
-    Navigator.of(context).push(MaterialPageRoute(builder: (_) => SecurityChatScreen(selectedApplication: selectedApplication)));
+  static void toResultsForCandidates(BuildContext context, List<AppInfo> candidates, {String? searchLabel}) {
+    Navigator.of(context).push(MaterialPageRoute(builder: (_) => RecommendationResultsScreen(candidates: candidates, searchLabel: searchLabel)));
   }
 
-  static void toSettings(BuildContext context) {
-    Navigator.of(context).push(MaterialPageRoute(builder: (_) => const SettingsScreen()));
+  static void toAppDetail(BuildContext context, AppInfo app) {
+    Navigator.of(context).push(MaterialPageRoute(builder: (_) => AppDetailScreen(app: app)));
   }
 
-  static void toVulnerabilityDetail(BuildContext context, VulnerabilityModel vulnerability) {
-    Navigator.of(context).push(MaterialPageRoute(builder: (_) => VulnerabilityDetailScreen(vulnerability: vulnerability)));
-  }
-
-  // Both target a design concept with no real backend/data support behind
-  // it (Part: "do not fabricate an installed-app list or an upload/scan
-  // result") - each pushes the same honest NotAvailableScreen with
-  // different, centralized copy rather than duplicating the message at
-  // every call site.
-  static void toInstalledApps(BuildContext context) {
+  static void toAlternativeFinder(BuildContext context, {AppInfo? initialApp, String? initialAppName}) {
     Navigator.of(context).push(MaterialPageRoute(
-      builder: (_) => const NotAvailableScreen(
-        title: 'Installed Apps',
-        message: 'On-device app scanning is not available in this version. Use Search to look up an application instead.',
-      ),
+      builder: (_) => AlternativeFinderScreen(initialApp: initialApp, initialAppName: initialAppName),
     ));
   }
 
-  // Flutter APK Scan implementation phase: the backend now genuinely
-  // performs CWE-89/CWE-295 analysis on an uploaded APK
-  // (backend/apk_code_scanner.py), so this no longer routes to the
-  // honest "not available" stub - see ApkScanScreen.
-  static void toUploadApk(BuildContext context) {
-    Navigator.of(context).push(MaterialPageRoute(builder: (_) => const ApkScanScreen()));
+  static void toDeviceProfile(BuildContext context) {
+    Navigator.of(context).push(MaterialPageRoute(builder: (_) => const DeviceProfileScreen()));
+  }
+
+  static void toInstalledApps(BuildContext context) {
+    Navigator.of(context).push(MaterialPageRoute(builder: (_) => const InstalledAppsScreen()));
+  }
+
+  static void toWhatIfSimulator(BuildContext context) {
+    Navigator.of(context).push(MaterialPageRoute(builder: (_) => const WhatIfSimulatorScreen()));
+  }
+
+  static void toFavorites(BuildContext context) {
+    Navigator.of(context).push(MaterialPageRoute(builder: (_) => const FavoritesScreen()));
+  }
+
+  static void toEvaluation(BuildContext context) {
+    Navigator.of(context).push(MaterialPageRoute(builder: (_) => const EvaluationScreen()));
   }
 }

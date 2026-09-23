@@ -24,6 +24,11 @@ from db import crud, models
 from db.security import create_access_token, decode_access_token
 import jwt as pyjwt
 
+# SmartApp (separate product/module, isolated in backend/smartapp/ - see
+# that package's __init__.py) - its own router, its own provider, its own
+# normalization. Does not touch any security detection code below.
+from smartapp.router import router as smartapp_router
+
 logger = logging.getLogger("dualvulndroid")
 logging.basicConfig(level=logging.INFO)
 
@@ -39,6 +44,11 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+# SmartApp routes - isolated under /smartapp/*, implemented entirely in
+# backend/smartapp/. See that package's __init__.py/router.py for why
+# this is the only place SmartApp is wired into the security backend.
+app.include_router(smartapp_router, prefix="/smartapp", tags=["smartapp"])
 
 # ==========================================
 # Centralized error handling (section 12)
