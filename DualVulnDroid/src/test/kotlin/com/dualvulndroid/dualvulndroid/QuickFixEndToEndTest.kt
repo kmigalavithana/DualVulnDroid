@@ -406,4 +406,172 @@ class QuickFixEndToEndTest : BasePlatformTestCase() {
         )
     }
 
+    // ---- execSQL(sql): the fix adds the bind-args argument ----
+    fun testKotlinExecSqlQuickFixAddsBindArgs() {
+        checkBackendReachable()
+        val fileName = "NotesDao.kt"
+        val code = """
+            import android.database.sqlite.SQLiteDatabase
+
+            class NotesDao(private val db: SQLiteDatabase) {
+                fun deleteNote(noteId: String) {
+                    db.execSQL("DELETE FROM notes WHERE id=" + noteId)
+                }
+            }
+        """.trimIndent()
+        val (file, results) = scanRealFile(fileName, code)
+        val finding = results.first { it.vulnerabilityType == "SQL Injection" }
+        val fix = SqlFixLocator.tryBuildFix(file, finding, fileName)
+        assertNotNull("expected a Quick Fix for execSQL", fix)
+        assertEquals("DualVulnDroid: Use parameterized query (execSQL)", fix!!.text)
+
+        val call = PsiTreeUtil.findChildrenOfType(file, KtCallExpression::class.java).first { it.text.startsWith("execSQL") }
+        WriteCommandAction.runWriteCommandAction(project) { fix.invoke(project, file, myFixture.editor, call, call) }
+        val after = file.text
+
+        assertTrue(after, after.contains("db.execSQL(\"DELETE FROM notes WHERE id=?\", arrayOf(noteId))"))
+        assertNoSyntaxErrors(file)
+        assertFalse("applied fix must no longer be offered", fix.isAvailable(project, file, call, call))
+
+        val rescan = APIClient().scanCode(after, fileName)
+        assertNotNull(rescan)
+        assertFalse("real backend must confirm the SQL Injection finding is gone", rescan!!.vulnerable)
+    }
+
+    fun testJavaExecSqlQuickFixAddsObjectBindArgs() {
+        checkBackendReachable()
+        val fileName = "NotesActivity.java"
+        val code = """
+            public class NotesActivity {
+                public void onCreate() {
+                    String noteId = getIntent().getStringExtra("noteId");
+                    db.execSQL("DELETE FROM notes WHERE id=" + noteId);
+                }
+            }
+        """.trimIndent()
+        val (file, results) = scanRealFile(fileName, code)
+        val finding = results.first { it.vulnerabilityType == "SQL Injection" && it.lineText.contains("execSQL") }
+        val fix = SqlFixLocator.tryBuildFix(file, finding, fileName)
+        assertNotNull("expected a Quick Fix for execSQL", fix)
+
+        val call = PsiTreeUtil.findChildrenOfType(file, PsiMethodCallExpression::class.java).first { it.text.contains("execSQL") }
+        WriteCommandAction.runWriteCommandAction(project) { fix!!.invoke(project, file, myFixture.editor, call, call) }
+        val after = file.text
+
+        assertTrue(after, after.contains("db.execSQL(\"DELETE FROM notes WHERE id=?\", new Object[]{noteId});"))
+        assertNoSyntaxErrors(file)
+
+        val rescan = APIClient().scanCode(after, fileName)
+        assertNotNull(rescan)
+        assertFalse("real backend must confirm the SQL Injection finding is gone", rescan!!.vulnerable)
+    }
+
+    // ---- Trust-all X509TrustManager: init() gets null (platform default
+    // trust managers) and the unused trust-all local is removed ----
+    private val kotlinTrustAllCode = """
+        import java.security.cert.X509Certificate
+        import javax.net.ssl.SSLContext
+        import javax.net.ssl.TrustManager
+        import javax.net.ssl.X509TrustManager
+
+        class TrustAllManager {
+            fun unrelated() = "do not touch"
+
+            fun insecureContext(): SSLContext {
+                val trustAllCerts = arrayOf<TrustManager>(
+                    object : X509TrustManager {
+                        override fun checkClientTrusted(chain: Array<X509Certificate>, authType: String) {}
+                        override fun checkServerTrusted(chain: Array<X509Certificate>, authType: String) {}
+                        override fun getAcceptedIssuers(): Array<X509Certificate> = arrayOf()
+                    }
+                )
+                val context = SSLContext.getInstance("TLS")
+                context.init(null, trustAllCerts, null)
+                return context
+            }
+        }
+    """.trimIndent()
+
+    fun testKotlinTrustAllQuickFixUsesDefaultTrustManagers() {
+        checkBackendReachable()
+        val fileName = "TrustAllManager.kt"
+        val (file, results) = scanRealFile(fileName, kotlinTrustAllCode)
+        val finding = results.first { it.vulnerabilityType == "Certificate Validation" }
+        val fix = CertificateFixLocator.tryBuildFix(file, finding, fileName)
+        assertNotNull("expected a Quick Fix for the trust-all TrustManager", fix)
+        assertEquals("DualVulnDroid: Use default certificate validation", fix!!.text)
+
+        val call = PsiTreeUtil.findChildrenOfType(file, KtCallExpression::class.java).first { it.text.startsWith("init(") }
+        WriteCommandAction.runWriteCommandAction(project) { fix.invoke(project, file, myFixture.editor, call, call) }
+        val after = file.text
+
+        assertTrue(after, after.contains("context.init(null, null, null)"))
+        assertFalse("the trust-all local must be removed", after.contains("trustAllCerts"))
+        assertFalse(after.contains("checkServerTrusted"))
+        assertTrue("unrelated code must be untouched", after.contains("fun unrelated() = \"do not touch\""))
+        assertNoSyntaxErrors(file)
+        assertFalse("applied fix must no longer be offered", fix.isAvailable(project, file, call, call))
+
+        val rescan = APIClient().scanCode(after, fileName)
+        assertNotNull(rescan)
+        assertFalse("real backend must no longer confirm a Certificate Validation vulnerability", rescan!!.vulnerable)
+    }
+
+    fun testJavaInlineTrustAllQuickFixUsesDefaultTrustManagers() {
+        checkBackendReachable()
+        val fileName = "ApiClient.java"
+        val code = """
+            import java.security.cert.X509Certificate;
+            import javax.net.ssl.SSLContext;
+            import javax.net.ssl.TrustManager;
+            import javax.net.ssl.X509TrustManager;
+
+            public class ApiClient {
+                public SSLContext context() throws Exception {
+                    SSLContext ctx = SSLContext.getInstance("TLS");
+                    ctx.init(null, new TrustManager[]{
+                        new X509TrustManager() {
+                            public void checkClientTrusted(X509Certificate[] chain, String authType) {}
+                            public void checkServerTrusted(X509Certificate[] chain, String authType) {}
+                            public X509Certificate[] getAcceptedIssuers() { return new X509Certificate[0]; }
+                        }
+                    }, null);
+                    return ctx;
+                }
+            }
+        """.trimIndent()
+        val (file, results) = scanRealFile(fileName, code)
+        val finding = results.first { it.vulnerabilityType == "Certificate Validation" }
+        val fix = CertificateFixLocator.tryBuildFix(file, finding, fileName)
+        assertNotNull("expected a Quick Fix for the inline trust-all array", fix)
+
+        val call = PsiTreeUtil.findChildrenOfType(file, PsiMethodCallExpression::class.java).first { it.methodExpression.referenceName == "init" }
+        WriteCommandAction.runWriteCommandAction(project) { fix!!.invoke(project, file, myFixture.editor, call, call) }
+        val after = file.text
+
+        assertTrue(after, after.contains("ctx.init(null, null, null);"))
+        assertFalse(after.contains("checkServerTrusted"))
+        assertNoSyntaxErrors(file)
+
+        val rescan = APIClient().scanCode(after, fileName)
+        assertNotNull(rescan)
+        assertFalse("real backend must no longer confirm a Certificate Validation vulnerability", rescan!!.vulnerable)
+    }
+
+    fun testNoTrustManagerFixWhenTheArrayIsUsedElsewhere() {
+        val code = kotlinTrustAllCode.replace("return context", "println(trustAllCerts.size)\n        return context")
+        val file = myFixture.configureByText("SharedTrustAll.kt", code)
+        val call = PsiTreeUtil.findChildrenOfType(file, KtCallExpression::class.java).first { it.text.startsWith("init(") }
+        val syntheticResult = LineScanResult(
+            lineText = call.text,
+            vulnerabilityType = "Certificate Validation",
+            confidence = 0.0,
+            startOffset = call.textRange.startOffset,
+            endOffset = call.textRange.endOffset
+        )
+        assertNull(
+            "Deleting a trust-all local that other code still uses would break it - no automatic fix",
+            CertificateFixLocator.tryBuildFix(file, syntheticResult, "SharedTrustAll.kt")
+        )
+    }
 }

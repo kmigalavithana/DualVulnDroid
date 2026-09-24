@@ -47,11 +47,17 @@ class AppRequestException extends AppRepositoryException {
 /// Part 17).
 class AppRepository {
   final http.Client _client;
-  final String baseUrl;
 
-  AppRepository({http.Client? client, String? baseUrl})
+  /// Addresses to try in order; the first one that answers is moved to the
+  /// front and used from then on. An explicit [baseUrl] means exactly one.
+  final List<String> _baseUrls;
+
+  AppRepository({http.Client? client, String? baseUrl, List<String>? baseUrls})
       : _client = client ?? http.Client(),
-        baseUrl = baseUrl ?? ApiConfig.baseUrl;
+        _baseUrls = baseUrl != null ? [baseUrl] : List.of(baseUrls ?? ApiConfig.candidateBaseUrls);
+
+  /// The address currently in use.
+  String get baseUrl => _baseUrls.first;
 
   Future<List<AppInfo>> searchApps({String? query, String? category, int limit = 20}) async {
     final trimmedQuery = query?.trim();
@@ -60,8 +66,7 @@ class AppRepository {
       if (category != null && category.isNotEmpty) 'category': category,
       'limit': '$limit',
     };
-    final uri = Uri.parse('$baseUrl/smartapp/apps/search').replace(queryParameters: params);
-    final body = await _get(uri);
+    final body = await _get((base) => Uri.parse('$base/smartapp/apps/search').replace(queryParameters: params));
     final rawApps = (body['apps'] as List?) ?? const [];
     return rawApps.whereType<Map<String, dynamic>>().map(AppInfo.fromSmartAppJson).toList();
   }
@@ -71,9 +76,8 @@ class AppRepository {
   /// backend down, upstream provider error) throws instead, so the
   /// caller can distinguish "confirmed not found" from "couldn't check".
   Future<AppInfo?> getAppDetails(String packageName) async {
-    final uri = Uri.parse('$baseUrl/smartapp/apps/details/${Uri.encodeComponent(packageName)}');
     try {
-      final body = await _get(uri);
+      final body = await _get((base) => Uri.parse('$base/smartapp/apps/details/${Uri.encodeComponent(packageName)}'));
       final raw = body['app'] as Map<String, dynamic>?;
       return raw == null ? null : AppInfo.fromSmartAppJson(raw);
     } on AppNotFoundException {
@@ -81,14 +85,25 @@ class AppRepository {
     }
   }
 
-  Future<Map<String, dynamic>> _get(Uri uri) async {
-    final http.Response response;
-    try {
-      response = await _client.get(uri).timeout(ApiConfig.requestTimeout);
-    } on TimeoutException {
-      throw const AppServiceUnavailableException();
-    } catch (e) {
-      throw AppServiceUnavailableException('Could not reach SmartApp service: $e');
+  Future<Map<String, dynamic>> _get(Uri Function(String base) uriFor) async {
+    http.Response? response;
+    Object? lastError;
+    for (final base in List.of(_baseUrls)) {
+      try {
+        response = await _client.get(uriFor(base)).timeout(ApiConfig.requestTimeout);
+        if (base != _baseUrls.first) {
+          _baseUrls
+            ..remove(base)
+            ..insert(0, base);
+        }
+        break;
+      } catch (e) {
+        lastError = e; // unreachable address: try the next one
+      }
+    }
+    if (response == null) {
+      if (lastError is TimeoutException) throw const AppServiceUnavailableException();
+      throw AppServiceUnavailableException('Could not reach SmartApp service: $lastError');
     }
 
     if (response.statusCode == 404) {

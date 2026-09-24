@@ -1,8 +1,10 @@
 package com.dualvulndroid.dualvulndroid
 
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertNull
+import org.junit.Assert.assertTrue
 import org.junit.Test
 
 /**
@@ -91,5 +93,50 @@ class CertificateFixAnalyzerTest {
             listOf("throw new CertificateException()"), "chain", "authType", FixLanguage.JAVA
         )
         assertNull(match)
+    }
+
+    // ---- 7. Trust-all array passed to SSLContext.init() ----
+    private val kotlinTrustAll = """
+        arrayOf<TrustManager>(
+            object : X509TrustManager {
+                override fun checkClientTrusted(chain: Array<X509Certificate>, authType: String) {}
+                override fun checkServerTrusted(chain: Array<X509Certificate>, authType: String) {}
+                override fun getAcceptedIssuers(): Array<X509Certificate> = arrayOf()
+            }
+        )
+    """.trimIndent()
+
+    @Test
+    fun `kotlin trust-all array is recognised`() {
+        assertTrue(CertificateFixAnalyzer.isTrustAllArray(kotlinTrustAll, FixLanguage.KOTLIN))
+    }
+
+    @Test
+    fun `java trust-all array is recognised, including a comment-only body`() {
+        val java = """
+            new TrustManager[]{
+                new X509TrustManager() {
+                    public void checkClientTrusted(X509Certificate[] chain, String authType) {}
+                    public void checkServerTrusted(X509Certificate[] chain, String authType) throws CertificateException { /* trust all */ }
+                    public X509Certificate[] getAcceptedIssuers() { return new X509Certificate[0]; }
+                }
+            }
+        """.trimIndent()
+        assertTrue(CertificateFixAnalyzer.isTrustAllArray(java, FixLanguage.JAVA))
+    }
+
+    @Test
+    fun `a trust manager that really checks the server is never matched`() {
+        val validating = kotlinTrustAll.replace(
+            "override fun checkServerTrusted(chain: Array<X509Certificate>, authType: String) {}",
+            "override fun checkServerTrusted(chain: Array<X509Certificate>, authType: String) { delegate.checkServerTrusted(chain, authType) }"
+        )
+        assertFalse(CertificateFixAnalyzer.isTrustAllArray(validating, FixLanguage.KOTLIN))
+    }
+
+    @Test
+    fun `an expression that only contains a trust-all array is never matched`() {
+        assertFalse(CertificateFixAnalyzer.isTrustAllArray("wrap($kotlinTrustAll)", FixLanguage.KOTLIN))
+        assertFalse(CertificateFixAnalyzer.isTrustAllArray("trustManagers", FixLanguage.KOTLIN))
     }
 }

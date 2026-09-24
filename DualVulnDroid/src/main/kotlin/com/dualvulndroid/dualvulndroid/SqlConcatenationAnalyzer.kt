@@ -39,11 +39,19 @@ object SqlConcatenationAnalyzer {
             return "\"$body\""
         }
 
-        fun argsArrayExpression(): String = when (language) {
-            FixLanguage.JAVA -> "new String[]{$identifier}"
+        /** rawQuery() binds String[] selectionArgs; execSQL() binds Object[] bindArgs. */
+        fun argsArrayExpression(sink: SqlSink = SqlSink.RAW_QUERY): String = when (language) {
+            FixLanguage.JAVA -> if (sink == SqlSink.EXEC_SQL) "new Object[]{$identifier}" else "new String[]{$identifier}"
             FixLanguage.KOTLIN -> "arrayOf($identifier)"
         }
     }
+
+    /**
+     * The SQLiteDatabase calls a fix can rewrite:
+     *   rawQuery(query, null)  -> rawQuery("...?...", args)   (second argument replaced)
+     *   execSQL(sql)           -> execSQL("...?...", args)    (bind-args argument added)
+     */
+    enum class SqlSink(val methodName: String) { RAW_QUERY("rawQuery"), EXEC_SQL("execSQL") }
 
     // Written with regular (non-raw) escaping, not a triple-quoted raw
     // string - counting consecutive quote characters at the boundary of
@@ -146,16 +154,33 @@ object SqlConcatenationAnalyzer {
         return SQL_KEYWORDS.containsMatchIn(combined) && !combined.contains('?')
     }
 
-    // ---- Sink validation (section 4.D): only rawQuery(query, null) is
-    // supported in this phase - execSQL and other sinks are intentionally
-    // left to manual remediation (a documented, deliberate scope limit). ----
+    // ---- Sink validation (section 4.D): rawQuery(query, null) and the
+    // single-argument execSQL(sql). Every other sink (query(), a
+    // compileStatement(), execSQL that already has bind args) is left to
+    // manual remediation - a documented, deliberate scope limit. ----
 
-    private val RAW_QUERY_CALL = Regex("""\brawQuery\s*\(""")
+    private val SINK_CALLS = SqlSink.values().associateWith { Regex("""\b${it.methodName}\s*\(""") }
 
-    fun isSupportedSink(sinkCallText: String): Boolean = RAW_QUERY_CALL.containsMatchIn(sinkCallText)
+    fun sinkOf(sinkCallText: String): SqlSink? =
+        SINK_CALLS.entries.firstOrNull { it.value.containsMatchIn(sinkCallText) }?.key
+
+    fun isSupportedSink(sinkCallText: String): Boolean = sinkOf(sinkCallText) != null
+
+    /** The sink for a call's bare method name ("rawQuery", "execSQL"), or null. */
+    fun sinkNamed(methodName: String?): SqlSink? = SqlSink.values().firstOrNull { it.methodName == methodName }
 
     /** The second argument of the sink call must currently be exactly
      * `null` - if real args are already present, the pattern is too
      * ambiguous to safely overwrite. */
     fun isSecondArgumentReplaceable(secondArgText: String): Boolean = secondArgText.trim() == "null"
+
+    /**
+     * Whether the call's CURRENT arguments are in the one shape the fix
+     * rewrites: rawQuery(query, null), or execSQL(sql) with no bind args
+     * yet (an execSQL that already passes args is too ambiguous to touch).
+     */
+    fun argumentsFitSink(sink: SqlSink, argTexts: List<String>): Boolean = when (sink) {
+        SqlSink.RAW_QUERY -> argTexts.size >= 2 && isSecondArgumentReplaceable(argTexts[1])
+        SqlSink.EXEC_SQL -> argTexts.size == 1
+    }
 }

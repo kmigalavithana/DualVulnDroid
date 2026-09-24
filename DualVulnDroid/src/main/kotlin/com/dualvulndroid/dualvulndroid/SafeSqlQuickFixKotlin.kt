@@ -19,13 +19,14 @@ import org.jetbrains.kotlin.psi.KtValueArgument
  */
 class SafeSqlQuickFixKotlin(
     element: KtCallExpression,
+    private val sink: SqlConcatenationAnalyzer.SqlSink,
     private val declaration: KtProperty?,
     private val match: SqlConcatenationAnalyzer.Match,
     private val fileName: String,
     private val originalFinding: LineScanResult
 ) : LocalQuickFixAndIntentionActionOnPsiElement(element) {
 
-    override fun getText(): String = "DualVulnDroid: Use parameterized query (rawQuery)"
+    override fun getText(): String = "DualVulnDroid: Use parameterized query (${sink.methodName})"
     override fun getFamilyName(): String = text
     override fun startInWriteAction(): Boolean = true
 
@@ -61,9 +62,12 @@ class SafeSqlQuickFixKotlin(
             }
 
             val refreshedArgs = call.valueArgumentList?.arguments ?: emptyList()
-            if (refreshedArgs.size >= 2) {
-                val newArgsExpr: KtExpression = factory.createExpression(match.argsArrayExpression())
-                refreshedArgs[1].getArgumentExpression()?.replace(newArgsExpr)
+            val newArgsExpr: KtExpression = factory.createExpression(match.argsArrayExpression(sink))
+            when (sink) {
+                SqlConcatenationAnalyzer.SqlSink.RAW_QUERY ->
+                    if (refreshedArgs.size >= 2) refreshedArgs[1].getArgumentExpression()?.replace(newArgsExpr)
+                SqlConcatenationAnalyzer.SqlSink.EXEC_SQL ->
+                    call.valueArgumentList?.addArgument(factory.createArgument(newArgsExpr))
             }
         } catch (e: Exception) {
             Messages.showWarningDialog(project, "Could not apply fix: ${e.message}", "DualVulnDroid")
@@ -76,19 +80,17 @@ class SafeSqlQuickFixKotlin(
     }
 
     private fun revalidate(call: KtCallExpression): Boolean {
-        if (!SqlConcatenationAnalyzer.isSupportedSink(call.text)) return false
+        if (SqlConcatenationAnalyzer.sinkNamed(call.calleeExpression?.text) != sink) return false
         val arguments: List<KtValueArgument> = call.valueArgumentList?.arguments ?: return false
-        if (arguments.size < 2) return false
+        val argTexts = arguments.map { it.getArgumentExpression()?.text ?: return false }
+        if (!SqlConcatenationAnalyzer.argumentsFitSink(sink, argTexts)) return false
 
         val queryExprText = if (declaration != null) {
             declaration.takeIf { it.isValid }?.initializer?.text ?: return false
         } else {
-            arguments[0].getArgumentExpression()?.text ?: return false
+            argTexts[0]
         }
         val currentMatch = SqlConcatenationAnalyzer.analyzeQueryExpression(queryExprText, FixLanguage.KOTLIN) ?: return false
-        if (currentMatch.identifier != match.identifier) return false
-
-        val secondArgText = arguments[1].getArgumentExpression()?.text ?: return false
-        return SqlConcatenationAnalyzer.isSecondArgumentReplaceable(secondArgText)
+        return currentMatch.identifier == match.identifier
     }
 }

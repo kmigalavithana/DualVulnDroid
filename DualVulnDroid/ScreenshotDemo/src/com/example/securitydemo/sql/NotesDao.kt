@@ -2,9 +2,8 @@ package com.example.securitydemo.sql
 
 import android.database.sqlite.SQLiteDatabase
 
-// DEMO 3 - SQL Injection (CWE-89), Kotlin - detected, manual remediation.
-// execSQL() is not covered by the automatic Quick Fix, so the tooltip explains
-// the finding and the fix has to be applied by hand.
+// DEMO 3 - SQL Injection (CWE-89) through execSQL(), Kotlin.
+// Quick Fix: "Use parameterized query (execSQL)" adds the bind-args argument.
 class NotesDao(private val db: SQLiteDatabase) {
 
     fun deleteNote(noteId: String) {

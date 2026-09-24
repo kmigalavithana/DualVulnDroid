@@ -273,6 +273,7 @@ void main() {
   testWidgets('Evaluation shows "No evaluation data available." instead of fake metrics', (tester) async {
     await tester.pumpWidget(_wrap(const EvaluationScreen()));
     await _settle(tester);
+    await tester.scrollUntilVisible(find.text('No evaluation data available.'), 150, scrollable: find.byType(Scrollable).first);
     expect(find.text('No evaluation data available.'), findsWidgets);
     expect(find.textContaining('Precision@'), findsNothing);
   });

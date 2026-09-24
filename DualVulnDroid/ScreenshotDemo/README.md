@@ -15,10 +15,10 @@ Every file below was checked against the real backend and the real plugin code
 |---|---|---|---|
 | `src/.../sql/UserRepository.kt` | CWE-89 (Kotlin) | Red underline on `db.rawQuery(query, null)` | **Use parameterized query (rawQuery)** |
 | `src/.../sql/LoginActivity.java` | CWE-89 (Java), tainted data flow | Red underline; tooltip shows `Intent.getStringExtra() → username → query → rawQuery()` | **Use parameterized query (rawQuery)** |
-| `src/.../sql/NotesDao.kt` | CWE-89 via `execSQL` | Red underline | None - manual remediation (explained in the tooltip) |
+| `src/.../sql/NotesDao.kt` | CWE-89 via `execSQL` | Red underline | **Use parameterized query (execSQL)** |
 | `src/.../cert/InsecureHttpsClient.kt` | CWE-295 (Kotlin) | Red underline | **Use default hostname verifier** |
 | `src/.../cert/ApiConnection.java` | CWE-295 (Java) | Red underline | **Use default hostname verifier** |
-| `src/.../cert/TrustAllManager.kt` | CWE-295 via empty `X509TrustManager` | Red underline | None - manual remediation |
+| `src/.../cert/TrustAllManager.kt` | CWE-295 via empty `X509TrustManager` | Red underline | **Use default certificate validation**. Afterwards an amber "Needs review" underline can remain: the backend's keyword rule reacts to any `SSLContext` code (same as `SafeHttpsClient.java`) |
 | `src/.../safe/SafeUserRepository.kt` | Safe (parameterized query) | No findings | - |
 | `src/.../safe/SafeHttpsClient.java` | Safe code | **Amber "Needs Review"** underline - the model's keyword rule reacts to HTTPS connection code. Use it to show the review tier. | - |
 | `src/Main.kt` | - | No findings | - |
@@ -42,7 +42,7 @@ not a source folder, so the plugin never scans it. Its source is in `libs/androi
 3. **Quick Fix menu** - caret on the underline in `UserRepository.kt`, press **Alt+Enter**.
 4. **Quick Fix result** - apply it; the fix-verification dialog shows before/after and the underline disappears.
 5. **Certificate Quick Fix** - same in `InsecureHttpsClient.kt` (**Use default hostname verifier**).
-6. **Manual remediation** - hover `NotesDao.kt` or `TrustAllManager.kt` (detected, no automatic fix).
+6. **More Quick Fixes** - Alt+Enter in `NotesDao.kt` (**execSQL**) and `TrustAllManager.kt` (**Use default certificate validation**).
 7. **Needs Review tier** - `SafeHttpsClient.java` (amber underline).
 8. **No false positive** - `SafeUserRepository.kt` (clean).
 9. **Scan Project** - tool window → **Scan Project**: findings for both CWEs, grouped, with the summary cards.

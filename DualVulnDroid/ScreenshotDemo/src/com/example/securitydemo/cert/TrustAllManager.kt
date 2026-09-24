@@ -5,9 +5,10 @@ import javax.net.ssl.SSLContext
 import javax.net.ssl.TrustManager
 import javax.net.ssl.X509TrustManager
 
-// DEMO 6 - Certificate Validation (CWE-295), Kotlin - detected, manual remediation.
+// DEMO 6 - Certificate Validation (CWE-295), Kotlin.
 // An X509TrustManager with empty checks accepts every certificate chain.
-// This pattern is not covered by the automatic Quick Fix.
+// Quick Fix: "Use default certificate validation" passes null to init()
+// (the platform's real trust managers) and removes the trust-all array.
 class TrustAllManager {
 
     fun insecureContext(): SSLContext {

@@ -13,6 +13,31 @@ import 'package:dualvulndroid_flutter/repositories/app_repository.dart';
 AppRepository _repoWith(http.Client client) => AppRepository(client: client, baseUrl: 'http://test.invalid');
 
 void main() {
+  group('0. Backend address fallback', () {
+    test('an unreachable first address falls through to the next, which is then kept', () async {
+      final hosts = <String>[];
+      final client = MockClient((request) async {
+        hosts.add(request.url.host);
+        if (request.url.host == '127.0.0.1') throw http.ClientException('Connection refused');
+        return http.Response(jsonEncode({'apps': []}), 200);
+      });
+      final repo = AppRepository(client: client, baseUrls: ['http://127.0.0.1:8000', 'http://10.0.2.2:8000']);
+
+      await repo.searchApps(query: 'notes');
+      expect(hosts, ['127.0.0.1', '10.0.2.2']);
+      expect(repo.baseUrl, 'http://10.0.2.2:8000');
+
+      await repo.searchApps(query: 'notes');
+      expect(hosts.last, '10.0.2.2', reason: 'the working address is tried first from then on');
+    });
+
+    test('when no address answers, the error is still a service-unavailable error', () async {
+      final client = MockClient((_) async => throw http.ClientException('Connection refused'));
+      final repo = AppRepository(client: client, baseUrls: ['http://127.0.0.1:8000', 'http://10.0.2.2:8000']);
+      expect(repo.searchApps(query: 'notes'), throwsA(isA<AppServiceUnavailableException>()));
+    });
+  });
+
   group('1. Search response parsing', () {
     test('parses the real normalized shape into AppInfo with isLiveData/dataSource set', () async {
       final client = MockClient((request) async {

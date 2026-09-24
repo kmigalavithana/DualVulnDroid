@@ -48,5 +48,21 @@ class ApiConfig {
     return 'http://127.0.0.1:$_port';
   }
 
+  /// Backend addresses to try, in order, when no host was set at build
+  /// time. On Android the same build then works on both targets without
+  /// rebuilding: a USB-connected phone reaches the laptop through
+  /// `adb reverse tcp:8000 tcp:8000` on 127.0.0.1 (on the emulator that
+  /// address is refused immediately), and the emulator reaches it on
+  /// 10.0.2.2.
+  static List<String> get candidateBaseUrls {
+    if (physicalDeviceHost != null && physicalDeviceHost!.isNotEmpty) {
+      return ['http://$physicalDeviceHost:$_port'];
+    }
+    if (!kIsWeb && Platform.isAndroid) {
+      return ['http://127.0.0.1:$_port', 'http://10.0.2.2:$_port'];
+    }
+    return [baseUrl];
+  }
+
   static const Duration requestTimeout = Duration(seconds: 20);
 }

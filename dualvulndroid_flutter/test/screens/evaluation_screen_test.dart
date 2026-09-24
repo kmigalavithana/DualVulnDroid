@@ -41,15 +41,17 @@ void main() {
     await tester.pumpWidget(_wrap(repo));
     await tester.pumpAndSettle();
 
-    expect(find.text('Evaluation Dataset'), findsOneWidget);
-    expect(find.text('No evaluation data available.'), findsWidgets);
-    expect(find.text('0 of 0 tasks fully labeled'), findsOneWidget);
-    expect(find.textContaining('NDCG'), findsNothing, reason: 'no metric table without data');
-    final runButton = tester.widget<OutlinedButton>(find.ancestor(of: find.text('Run A / B / C'), matching: find.byWidgetPredicate((w) => w is OutlinedButton)));
+    expect(find.text('How it works'), findsOneWidget);
+    expect(find.text('0 test(s) created'), findsOneWidget);
+    expect(find.text('0 of 0 tests fully rated'), findsOneWidget);
+    final runButton = tester.widget<OutlinedButton>(find.ancestor(of: find.text('Compare methods'), matching: find.byWidgetPredicate((w) => w is OutlinedButton)));
     expect(runButton.onPressed, isNull, reason: 'nothing to run without tasks');
+    await tester.scrollUntilVisible(find.text('No evaluation data available.'), 150, scrollable: find.byType(Scrollable).first);
+    expect(find.text('No evaluation data available.'), findsWidgets);
+    expect(find.textContaining('NDCG'), findsNothing, reason: 'no metric table without data');
   });
 
-  testWidgets('a partly labeled task keeps Run A / B / C disabled and says why', (tester) async {
+  testWidgets('a partly rated test keeps Compare methods disabled and says why', (tester) async {
     final repo = await _loadedRepo(tester);
     final snapshot = CandidateSnapshot(
       snapshotId: 's',
@@ -80,10 +82,11 @@ void main() {
     await tester.pumpWidget(_wrap(repo));
     await tester.pumpAndSettle();
 
-    expect(find.text('0 of 1 tasks fully labeled'), findsOneWidget);
-    expect(find.text('Rate every app in a task (tap it below) to enable Run A / B / C.'), findsOneWidget);
-    final runButton = tester.widget<OutlinedButton>(find.ancestor(of: find.text('Run A / B / C'), matching: find.byWidgetPredicate((w) => w is OutlinedButton)));
+    expect(find.text('0 of 1 tests fully rated'), findsOneWidget);
+    final runButton = tester.widget<OutlinedButton>(find.ancestor(of: find.text('Compare methods'), matching: find.byWidgetPredicate((w) => w is OutlinedButton)));
     expect(runButton.onPressed, isNull, reason: 'running would only report "no data"');
+    await tester.scrollUntilVisible(find.text('Rate every app in a test (tap it below) to enable Compare methods.'), 100, scrollable: find.byType(Scrollable).first);
+    expect(find.text('Rate every app in a test (tap it below) to enable Compare methods.'), findsOneWidget);
   });
 
   testWidgets('with real labels + runs the screen shows the measured A/B/C values side by side', (tester) async {
@@ -122,14 +125,27 @@ void main() {
     await tester.pumpWidget(_wrap(repo));
     await tester.pumpAndSettle();
 
-    expect(find.text('1 of 1 tasks fully labeled'), findsOneWidget);
-    await tester.scrollUntilVisible(find.text('NDCG@3'), 150, scrollable: find.byType(Scrollable).first);
+    expect(find.text('1 of 1 tests fully rated'), findsOneWidget);
     final analysis = repo.analyse();
+
+    // Plain-language result: one agreement percentage per method and a verdict.
+    await tester.scrollUntilVisible(find.text('Result'), 150, scrollable: find.byType(Scrollable).first);
+    for (final c in EvaluationConfig.values) {
+      final v = analysis.means[c]!['ndcg@5'];
+      if (v != null) expect(find.text('${(v * 100).round()}%'), findsWidgets, reason: c.code);
+    }
+    expect(find.textContaining('At least 10 are needed'), findsOneWidget, reason: 'one test is never called reliable');
+
+    // Full numbers live under "Detailed numbers".
+    await tester.scrollUntilVisible(find.text('Detailed numbers'), 150, scrollable: find.byType(Scrollable).first);
+    await tester.tap(find.text('Detailed numbers'));
+    await tester.pumpAndSettle();
+    await tester.scrollUntilVisible(find.text('Order quality of the top 3 (NDCG@3)'), 150, scrollable: find.byType(Scrollable).first);
     for (final c in EvaluationConfig.values) {
       expect(find.text(formatMetric(analysis.means[c]!['ndcg@3'])), findsWidgets, reason: c.code);
     }
-    expect(find.text('Precision@3'), findsOneWidget);
-    expect(find.text('Recall@5'), findsOneWidget);
+    expect(find.text('Good apps in the top 3 (Precision@3)'), findsOneWidget);
+    expect(find.text('Share of good apps found in the top 5 (Recall@5)'), findsOneWidget);
     expect(TaskMetrics.names, hasLength(6));
   });
 }

@@ -161,10 +161,30 @@ class SqlConcatenationAnalyzerTest {
 
     // ---- Sink / argument validation ----
     @Test
-    fun `only rawQuery is treated as a supported sink`() {
+    fun `rawQuery and execSQL are the supported sinks`() {
         assertTrue(SqlConcatenationAnalyzer.isSupportedSink("db.rawQuery(query, null)"))
-        assertFalse(SqlConcatenationAnalyzer.isSupportedSink("db.execSQL(query)"))
+        assertTrue(SqlConcatenationAnalyzer.isSupportedSink("db.execSQL(query)"))
         assertFalse(SqlConcatenationAnalyzer.isSupportedSink("db.query(table, null, null, null, null, null, null)"))
+        assertEquals(SqlConcatenationAnalyzer.SqlSink.EXEC_SQL, SqlConcatenationAnalyzer.sinkNamed("execSQL"))
+        assertNull(SqlConcatenationAnalyzer.sinkNamed("compileStatement"))
+    }
+
+    @Test
+    fun `execSQL is fixable only while it has no bind args yet`() {
+        val execSql = SqlConcatenationAnalyzer.SqlSink.EXEC_SQL
+        assertTrue(SqlConcatenationAnalyzer.argumentsFitSink(execSql, listOf("\"DELETE FROM notes WHERE id=\" + noteId")))
+        assertFalse(SqlConcatenationAnalyzer.argumentsFitSink(execSql, listOf("sql", "args")))
+        val rawQuery = SqlConcatenationAnalyzer.SqlSink.RAW_QUERY
+        assertTrue(SqlConcatenationAnalyzer.argumentsFitSink(rawQuery, listOf("query", "null")))
+        assertFalse(SqlConcatenationAnalyzer.argumentsFitSink(rawQuery, listOf("query")))
+    }
+
+    @Test
+    fun `execSQL binds an Object array in Java and arrayOf in Kotlin`() {
+        val java = SqlConcatenationAnalyzer.analyzeQueryExpression("\"DELETE FROM notes WHERE id=\" + noteId", FixLanguage.JAVA)!!
+        assertEquals("new Object[]{noteId}", java.argsArrayExpression(SqlConcatenationAnalyzer.SqlSink.EXEC_SQL))
+        val kotlin = SqlConcatenationAnalyzer.analyzeQueryExpression("\"DELETE FROM notes WHERE id=\" + noteId", FixLanguage.KOTLIN)!!
+        assertEquals("arrayOf(noteId)", kotlin.argsArrayExpression(SqlConcatenationAnalyzer.SqlSink.EXEC_SQL))
     }
 
     @Test

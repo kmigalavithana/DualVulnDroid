@@ -99,7 +99,7 @@ class _EvaluationTaskScreenState extends State<EvaluationTaskScreen> {
     final snapshots = context.watch<EvaluationRepository>().data.snapshots.where((s) => s.category == _category.label).toList();
 
     return Scaffold(
-      appBar: AppBar(title: const Text('New evaluation task')),
+      appBar: AppBar(title: const Text('New test')),
       body: ListView(
         padding: AppSpacing.pagePadding,
         children: [
@@ -173,7 +173,7 @@ class _EvaluationTaskScreenState extends State<EvaluationTaskScreen> {
             Text(_error!, style: theme.textTheme.bodySmall?.copyWith(color: AppColors.error)),
           ],
           const SizedBox(height: AppSpacing.xxl),
-          PrimaryButton(label: _busy ? 'Creating…' : 'Create task & start judging', onPressed: _busy ? null : _create),
+          PrimaryButton(label: _busy ? 'Creating…' : 'Create test & start rating', onPressed: _busy ? null : _create),
         ],
       ),
     );
@@ -227,7 +227,7 @@ class _RelevanceJudgingScreenState extends State<RelevanceJudgingScreen> {
     final complete = task.candidateAppIds.every(_grades.containsKey);
 
     return Scaffold(
-      appBar: AppBar(title: Text('Judge · ${task.participantId}')),
+      appBar: AppBar(title: Text('Rate apps · ${task.participantId}')),
       body: ListView(
         padding: AppSpacing.pagePadding,
         children: [
