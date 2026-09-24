@@ -1,13 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
-import '../repositories/auth_repository.dart';
+import '../repositories/preferences_repository.dart';
 import '../routing/app_router.dart';
-import '../theme/app_colors.dart';
+import '../widgets/smartapp_logo.dart';
 
-/// Restores any existing session (Part 3: a real stored JWT, if one
-/// exists) then routes to the dashboard or login accordingly - never a
-/// fixed timer pretending to "load" something real isn't happening.
+/// Branded launch screen. Waits only for local preferences to finish
+/// loading from disk (fast, no network) then routes straight to
+/// onboarding (first run) or the main app shell - no login, no backend
+/// health check.
 class SplashScreen extends StatefulWidget {
   const SplashScreen({super.key});
 
@@ -17,65 +18,44 @@ class SplashScreen extends StatefulWidget {
 
 class _SplashScreenState extends State<SplashScreen> {
   @override
-  void initState() {
-    super.initState();
-    WidgetsBinding.instance.addPostFrameCallback((_) => _resolve());
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    _proceedWhenReady();
   }
 
-  Future<void> _resolve() async {
-    final auth = context.read<AuthRepository>();
-    await auth.restoreSession();
+  Future<void> _proceedWhenReady() async {
+    final repo = context.read<PreferencesRepository>();
+    // A short, deliberate minimum so the brand is actually visible even
+    // when local prefs load instantly - never blocked on anything remote.
+    final minimumDelay = Future.delayed(const Duration(milliseconds: 600));
+    while (repo.isLoading) {
+      await Future.delayed(const Duration(milliseconds: 30));
+      if (!mounted) return;
+    }
+    await minimumDelay;
     if (!mounted) return;
-    if (auth.isAuthenticated) {
-      AppRouter.toDashboard(context);
+    if (repo.hasCompletedOnboarding) {
+      AppRouter.toHome(context);
     } else {
-      AppRouter.toLogin(context);
+      AppRouter.toOnboarding(context);
     }
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body: DecoratedBox(
-        decoration: const BoxDecoration(
-          gradient: RadialGradient(
-            center: Alignment(0, -0.2),
-            radius: 1.1,
-            colors: [AppColors.surface, AppColors.background],
-          ),
-        ),
-        child: Center(
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Container(
-                width: 112,
-                height: 112,
-                padding: const EdgeInsets.all(3),
-                decoration: const BoxDecoration(
-                  shape: BoxShape.circle,
-                  gradient: AppColors.heroGradient,
-                ),
-                child: Container(
-                  decoration: const BoxDecoration(
-                    shape: BoxShape.circle,
-                    color: AppColors.accentSoft,
-                  ),
-                  child: const Icon(Icons.security, size: 54, color: AppColors.accent),
-                ),
-              ),
-              const SizedBox(height: 20),
-              Text('DualVulnDroid', style: Theme.of(context).textTheme.headlineMedium?.copyWith(letterSpacing: 0.2)),
-              const SizedBox(height: 6),
-              Text(
-                'Real-time SQL injection & certificate\nvalidation detection for Android',
-                textAlign: TextAlign.center,
-                style: Theme.of(context).textTheme.bodySmall?.copyWith(color: AppColors.textSecondary, height: 1.4),
-              ),
-              const SizedBox(height: 28),
-              const SizedBox(width: 28, height: 28, child: CircularProgressIndicator(strokeWidth: 2.5)),
-            ],
-          ),
+      body: Center(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const SmartAppLogo(size: 88),
+            const SizedBox(height: 20),
+            Text('SmartApp', style: Theme.of(context).textTheme.displaySmall),
+            const SizedBox(height: 6),
+            Text('Find apps that fit your preferences and your device.', style: Theme.of(context).textTheme.bodySmall),
+            const SizedBox(height: 32),
+            const SizedBox(width: 22, height: 22, child: CircularProgressIndicator(strokeWidth: 2.5)),
+          ],
         ),
       ),
     );

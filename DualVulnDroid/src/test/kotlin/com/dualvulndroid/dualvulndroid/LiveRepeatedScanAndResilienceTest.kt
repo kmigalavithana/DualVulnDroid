@@ -185,17 +185,20 @@ class LiveRepeatedScanAndResilienceTest : BasePlatformTestCase() {
     fun testToolWindowScanButtonCanBeClickedRepeatedlyAfterEachScanCompletes() {
         checkBackendReachable()
 
-        // MyToolWindow.startScan() requires <basePath>/app/src/main/java to
-        // exist with at least one supported source file.
+        // "Scan Current File" now scans ONLY the active editor file, so it
+        // must be opened for startScan() to find it via
+        // FileEditorManager.selectedFiles - never a hard-required Android
+        // source layout.
         val basePath = project.basePath!!
         val srcDir = java.io.File(basePath, "app/src/main/java")
         srcDir.mkdirs()
         val srcFile = java.io.File(srcDir, "LoginActivity.java")
         srcFile.writeText(vulnerableSqlCode)
-        com.intellij.openapi.vfs.LocalFileSystem.getInstance().refreshAndFindFileByIoFile(srcDir)
+        val virtualFile = com.intellij.openapi.vfs.LocalFileSystem.getInstance().refreshAndFindFileByIoFile(srcFile)!!
+        myFixture.openFileInEditor(virtualFile)
 
         val toolWindow = MyToolWindow(project)
-        val startScan = MyToolWindow::class.java.getDeclaredMethod("startScan", com.intellij.openapi.project.Project::class.java)
+        val startScan = MyToolWindow::class.java.getDeclaredMethod("startScanOfFile", com.intellij.openapi.project.Project::class.java, com.intellij.openapi.vfs.VirtualFile::class.java)
         startScan.isAccessible = true
         val isScanningField = MyToolWindow::class.java.getDeclaredField("isScanning")
         isScanningField.isAccessible = true
@@ -215,7 +218,7 @@ class LiveRepeatedScanAndResilienceTest : BasePlatformTestCase() {
                         "if this is ever true here, that IS the reported 'second click does nothing' bug",
                     isScanningField.getBoolean(toolWindow)
                 )
-                startScan.invoke(toolWindow, project)
+                startScan.invoke(toolWindow, project, com.intellij.openapi.fileEditor.FileEditorManager.getInstance(project).selectedFiles.firstOrNull())
                 waitForScanToFinish()
                 assertFalse(
                     "Scan #${i + 1}: isScanning must return to false once the scan completes",

@@ -73,16 +73,28 @@ class ToolWindowFindingsPresentationTest : BasePlatformTestCase() {
         }
     """.trimIndent()
 
-    private fun runScanProjectAndGetFindings(): List<FindingEntry> {
+    // Opens fileName (under src/) in the editor - making it
+    // FileEditorManager's active selection - then invokes the real
+    // production startScan(), which now scans ONLY that active file (never
+    // ProjectFileCollector's project-wide walk).
+    private fun runScanCurrentFileAndGetFindings(fileName: String, content: String): List<FindingEntry> {
+        val basePath = project.basePath!!
+        val srcDir = File(basePath, "src")
+        srcDir.mkdirs()
+        val file = File(srcDir, fileName)
+        file.writeText(content)
+        val virtualFile = com.intellij.openapi.vfs.LocalFileSystem.getInstance().refreshAndFindFileByIoFile(file)!!
+        myFixture.openFileInEditor(virtualFile)
+
         val toolWindow = MyToolWindow(project)
-        val startScan = MyToolWindow::class.java.getDeclaredMethod("startScan", com.intellij.openapi.project.Project::class.java)
+        val startScan = MyToolWindow::class.java.getDeclaredMethod("startScanOfFile", com.intellij.openapi.project.Project::class.java, com.intellij.openapi.vfs.VirtualFile::class.java)
         startScan.isAccessible = true
         val isScanningField = MyToolWindow::class.java.getDeclaredField("isScanning")
         isScanningField.isAccessible = true
         val listModelField = MyToolWindow::class.java.getDeclaredField("listModel")
         listModelField.isAccessible = true
 
-        startScan.invoke(toolWindow, project)
+        startScan.invoke(toolWindow, project, com.intellij.openapi.fileEditor.FileEditorManager.getInstance(project).selectedFiles.firstOrNull())
         val deadline = System.currentTimeMillis() + 30_000
         while (isScanningField.getBoolean(toolWindow) && System.currentTimeMillis() < deadline) {
             PlatformTestUtil.dispatchAllInvocationEventsInIdeEventQueue()
@@ -94,19 +106,24 @@ class ToolWindowFindingsPresentationTest : BasePlatformTestCase() {
         return (0 until listModel.size()).map { listModel.getElementAt(it) }
     }
 
-    // ---- 8/9: SQL and CWE-295 both collected, grouped by CWE (SQL before Cert) ----
-    fun testScanProjectCollectsBothSqlAndCertFindingsGroupedByCwe() {
+    // ---- 8/9: SQL and CWE-295 both collected from ONE currently-open file
+    // (a real file can legitimately contain both families at once - two
+    // SEPARATE files can no longer both be scanned in one click now that
+    // "Scan Current File" only ever scans the single active editor file),
+    // grouped by CWE (SQL before Cert) ----
+    fun testScanCurrentFileCollectsBothSqlAndCertFindingsGroupedByCwe() {
         checkBackendReachable()
         val basePath = project.basePath!!
         val srcDir = File(basePath, "src")
-        srcDir.mkdirs()
-        File(srcDir, "LoginActivity.java").writeText(tracedVulnerableSql)
-        File(srcDir, "NetworkConfig.java").writeText(vulnerableCert)
-        com.intellij.openapi.vfs.LocalFileSystem.getInstance().refreshAndFindFileByIoFile(srcDir)
 
         try {
-            val findings = runScanProjectAndGetFindings()
-            println("[TOOLWINDOW-VERIFY] mixed SQL+Cert project -> ${findings.size} findings")
+            // A filename unique to this test - "ss.java" is reused as a
+            // real disk path by several other test classes in this suite;
+            // now that MyToolWindow's scan reads the live Document rather
+            // than disk, reusing that exact path risks picking up a stale
+            // Document from an earlier test.
+            val findings = runScanCurrentFileAndGetFindings("FindingsGroupedMixed.java", mixedSqlAndCertInOneFile)
+            println("[TOOLWINDOW-VERIFY] mixed SQL+Cert file -> ${findings.size} findings")
             findings.forEach { println("  - ${it.view.cwe} ${it.view.vulnerabilityType} @ ${it.view.location}") }
 
             assertTrue("Expected at least one SQL Injection finding", findings.any { it.view.cwe == "CWE-89" })
@@ -129,19 +146,16 @@ class ToolWindowFindingsPresentationTest : BasePlatformTestCase() {
         }
     }
 
-    // ---- 13: an all-safe project scans cleanly to zero findings ----
-    fun testScanProjectOnAllSafeFilesShowsZeroFindingsNotAnError() {
+    // ---- 13: an all-safe current file scans cleanly to zero findings ----
+    fun testScanCurrentFileOnASafeFileShowsZeroFindingsNotAnError() {
         checkBackendReachable()
         val basePath = project.basePath!!
         val srcDir = File(basePath, "src")
-        srcDir.mkdirs()
-        File(srcDir, "SafeLogin.java").writeText(safeSql)
-        com.intellij.openapi.vfs.LocalFileSystem.getInstance().refreshAndFindFileByIoFile(srcDir)
 
         try {
-            val findings = runScanProjectAndGetFindings()
-            println("[TOOLWINDOW-VERIFY] all-safe project -> ${findings.size} findings")
-            assertEquals("An all-safe project must show exactly zero findings, not an error or a fabricated one", 0, findings.size)
+            val findings = runScanCurrentFileAndGetFindings("SafeLogin.java", safeSql)
+            println("[TOOLWINDOW-VERIFY] safe file -> ${findings.size} findings")
+            assertEquals("An all-safe file must show exactly zero findings, not an error or a fabricated one", 0, findings.size)
         } finally {
             srcDir.deleteRecursively()
         }
@@ -212,7 +226,7 @@ class ToolWindowFindingsPresentationTest : BasePlatformTestCase() {
     // ---- Critical bug fix regression test: ONE file with BOTH CWE-89
     // and CWE-295 code must never cross-contaminate - this is the exact
     // scenario the reported bug was found in (two separate files, as in
-    // testScanProjectCollectsBothSqlAndCertFindingsGroupedByCwe above,
+    // testScanCurrentFileCollectsBothSqlAndCertFindingsGroupedByCwe above,
     // does NOT reproduce it, since each file's own single-type content
     // happens to match its own response-level vulnerabilityType; only a
     // single MIXED file exposes the response-level-vs-per-detection gap). ----
@@ -221,12 +235,16 @@ class ToolWindowFindingsPresentationTest : BasePlatformTestCase() {
         val basePath = project.basePath!!
         val srcDir = File(basePath, "src")
         srcDir.mkdirs()
-        File(srcDir, "ss.java").writeText(mixedSqlAndCertInOneFile)
-        com.intellij.openapi.vfs.LocalFileSystem.getInstance().refreshAndFindFileByIoFile(srcDir)
+        // A filename unique to this test - see the comment on
+        // testScanCurrentFileCollectsBothSqlAndCertFindingsGroupedByCwe above.
+        val file = File(srcDir, "FindingsCrossContamMixed.java")
+        file.writeText(mixedSqlAndCertInOneFile)
+        val virtualFile = com.intellij.openapi.vfs.LocalFileSystem.getInstance().refreshAndFindFileByIoFile(file)!!
+        myFixture.openFileInEditor(virtualFile)
 
         try {
             val toolWindow = MyToolWindow(project)
-            val startScan = MyToolWindow::class.java.getDeclaredMethod("startScan", com.intellij.openapi.project.Project::class.java)
+            val startScan = MyToolWindow::class.java.getDeclaredMethod("startScanOfFile", com.intellij.openapi.project.Project::class.java, com.intellij.openapi.vfs.VirtualFile::class.java)
             startScan.isAccessible = true
             val isScanningField = MyToolWindow::class.java.getDeclaredField("isScanning")
             isScanningField.isAccessible = true
@@ -235,7 +253,7 @@ class ToolWindowFindingsPresentationTest : BasePlatformTestCase() {
             val summaryLabelField = MyToolWindow::class.java.getDeclaredField("summaryLabel")
             summaryLabelField.isAccessible = true
 
-            startScan.invoke(toolWindow, project)
+            startScan.invoke(toolWindow, project, com.intellij.openapi.fileEditor.FileEditorManager.getInstance(project).selectedFiles.firstOrNull())
             val deadline = System.currentTimeMillis() + 30_000
             while (isScanningField.getBoolean(toolWindow) && System.currentTimeMillis() < deadline) {
                 PlatformTestUtil.dispatchAllInvocationEventsInIdeEventQueue()
@@ -317,15 +335,15 @@ class ToolWindowFindingsPresentationTest : BasePlatformTestCase() {
             navigate.invoke(null, project, sqlEntry)
             PlatformTestUtil.dispatchAllInvocationEventsInIdeEventQueue()
             assertTrue(
-                "Navigating to the CWE-89 finding must open ss.java without crashing",
-                FileEditorManager.getInstance(project).openFiles.any { it.name == "ss.java" }
+                "Navigating to the CWE-89 finding must open FindingsCrossContamMixed.java without crashing",
+                FileEditorManager.getInstance(project).openFiles.any { it.name == "FindingsCrossContamMixed.java" }
             )
 
             navigate.invoke(null, project, certEntry)
             PlatformTestUtil.dispatchAllInvocationEventsInIdeEventQueue()
             assertTrue(
-                "Navigating to the CWE-295 finding must open ss.java without crashing",
-                FileEditorManager.getInstance(project).openFiles.any { it.name == "ss.java" }
+                "Navigating to the CWE-295 finding must open FindingsCrossContamMixed.java without crashing",
+                FileEditorManager.getInstance(project).openFiles.any { it.name == "FindingsCrossContamMixed.java" }
             )
         } finally {
             srcDir.deleteRecursively()

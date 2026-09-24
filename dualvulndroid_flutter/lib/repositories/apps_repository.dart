@@ -1,31 +1,77 @@
-import '../models/alternative_app_model.dart';
-import '../models/apk_scan_result_model.dart';
-import '../models/application_summary.dart';
-import '../models/compatibility_model.dart';
-import '../models/device_profile_model.dart';
-import '../models/security_assessment_model.dart';
-import '../services/apps_api_service.dart';
+import '../data/sample_apps_data.dart';
+import '../models/app_info_model.dart';
+import '../models/user_preferences_model.dart';
 
-/// Repository layer over AppsApiService (Part 1). Today this is a thin
-/// pass-through - there's no local caching/derived state yet - but it's
-/// kept as its own layer (rather than screens calling AppsApiService
-/// directly) so that can be added later without moving call sites in
-/// every screen, and so tests can mock this one seam.
+/// Read-only access to the app catalog (Part 7). Backed by the curated
+/// demo dataset today; every method signature is dataset-agnostic so a
+/// future verified/live data source can replace [kSampleApps] without
+/// changing any caller (screens only ever go through this repository,
+/// never import sample_apps_data.dart directly).
 class AppsRepository {
-  final AppsApiService _api;
+  List<AppInfo> get all => kSampleApps;
 
-  AppsRepository(this._api);
+  List<AppInfo> byCategory(AppCategory category) => kSampleApps.where((a) => a.category == category).toList();
 
-  Future<List<ApplicationSummary>> search(String query) => _api.search(query);
+  AppInfo? byId(String id) {
+    for (final app in kSampleApps) {
+      if (app.id == id) return app;
+    }
+    return null;
+  }
 
-  Future<ApplicationSummary> getApplication(int id) => _api.getApplication(id);
+  /// Resolves by whichever identifier the caller actually has: this
+  /// catalog's own short `id`, OR the app's `packageName` - a real Google
+  /// Play package name (which is what Favorites/AppInteraction now key
+  /// on, since it's the only stable id a live app has) can still match a
+  /// curated demo entry whose id and packageName happen to differ.
+  AppInfo? byIdOrPackageName(String identifier) {
+    for (final app in kSampleApps) {
+      if (app.id == identifier || app.packageName == identifier) return app;
+    }
+    return null;
+  }
 
-  Future<SecurityAssessment> getSecurity(int id) => _api.getSecurity(id);
+  /// Free-text search across name/description/category label (Part 13's
+  /// "Search apps or describe what you need…"). Deliberately simple
+  /// substring matching, not an LLM (Part 13: "Do not implement an LLM
+  /// unless actually necessary").
+  List<AppInfo> search(String query) {
+    final q = query.trim().toLowerCase();
+    if (q.isEmpty) return const [];
+    return kSampleApps.where((a) {
+      return a.name.toLowerCase().contains(q) ||
+          (a.description ?? '').toLowerCase().contains(q) ||
+          a.category.label.toLowerCase().contains(q);
+    }).toList();
+  }
 
-  Future<CompatibilityResponse> checkCompatibility(int id, DeviceProfileModel device) =>
-      _api.checkCompatibility(id, device);
+  List<AppInfo> lightweight() => kSampleApps.where((a) => a.satisfies(AppPreference.lightweight)).toList();
 
-  Future<(bool, List<AlternativeApp>)> getAlternatives(int id) => _api.getAlternatives(id);
+  List<AppInfo> privacyFriendly() => kSampleApps.where((a) => a.satisfies(AppPreference.privacyFriendly)).toList();
 
-  Future<ApkScanResult> uploadApk(List<int> bytes, String filename) => _api.uploadApk(bytes, filename);
+  List<AppInfo> offlineCapable() => kSampleApps.where((a) => a.satisfies(AppPreference.offlineSupport)).toList();
+
+  List<AppInfo> openSource() => kSampleApps.where((a) => a.satisfies(AppPreference.openSource)).toList();
+
+  List<AppInfo> lowStorage() => kSampleApps.where((a) => a.satisfies(AppPreference.lowStorageUsage)).toList();
+
+  /// Other apps in the same category as [app] (for the Alternative
+  /// Finder, Part 11), excluding [app] itself.
+  List<AppInfo> alternativesTo(AppInfo app) => kSampleApps.where((a) => a.category == app.category && a.id != app.id).toList();
+
+  /// Best-effort lookup by a free-typed "current app" name (Alternative
+  /// Finder without a real installed-apps match) - case-insensitive
+  /// exact or substring match against the catalog; `null` if nothing
+  /// resembles it closely enough to be useful.
+  AppInfo? findByName(String name) {
+    final q = name.trim().toLowerCase();
+    if (q.isEmpty) return null;
+    for (final app in kSampleApps) {
+      if (app.name.toLowerCase() == q) return app;
+    }
+    for (final app in kSampleApps) {
+      if (app.name.toLowerCase().contains(q) || q.contains(app.name.toLowerCase())) return app;
+    }
+    return null;
+  }
 }

@@ -78,7 +78,7 @@ class FinalUIStateVerificationTest : BasePlatformTestCase() {
 
     // ---- Reflection helpers into MyToolWindow's real private production state ----
     private fun startScanMethod() = MyToolWindow::class.java.getDeclaredMethod(
-        "startScan", com.intellij.openapi.project.Project::class.java
+        "startScanOfFile", com.intellij.openapi.project.Project::class.java, com.intellij.openapi.vfs.VirtualFile::class.java
     ).apply { isAccessible = true }
 
     private fun isScanningField() = MyToolWindow::class.java.getDeclaredField("isScanning").apply { isAccessible = true }
@@ -88,7 +88,7 @@ class FinalUIStateVerificationTest : BasePlatformTestCase() {
     private fun runScanProjectOnRealToolWindow(toolWindow: MyToolWindow) {
         val startScan = startScanMethod()
         val isScanning = isScanningField()
-        startScan.invoke(toolWindow, project)
+        startScan.invoke(toolWindow, project, com.intellij.openapi.fileEditor.FileEditorManager.getInstance(project).selectedFiles.firstOrNull())
         val deadline = System.currentTimeMillis() + 30_000
         while (isScanning.getBoolean(toolWindow) && System.currentTimeMillis() < deadline) {
             PlatformTestUtil.dispatchAllInvocationEventsInIdeEventQueue()
@@ -114,13 +114,18 @@ class FinalUIStateVerificationTest : BasePlatformTestCase() {
         val basePath = project.basePath!!
         val srcDir = File(basePath, "src")
         srcDir.mkdirs()
-        val ssFile = File(srcDir, "ss.java")
+        // A filename unique to this test (several other test CLASSES in
+        // this suite also write a real disk "src/ss.java" - reusing that
+        // exact relative path risks a stale FileDocumentManager Document
+        // from an earlier test's use of the same path, now that
+        // MyToolWindow's scan reads the live Document rather than disk).
+        val ssFile = File(srcDir, "FinalUiState1235.java")
         ssFile.writeText(realSsJavaContent)
         val vFile = LocalFileSystem.getInstance().refreshAndFindFileByIoFile(ssFile)
-        assertNotNull("src/ss.java must exist as a real VirtualFile", vFile)
+        assertNotNull("src/FinalUiState1235.java must exist as a real VirtualFile", vFile)
 
         try {
-            val psiFile = myFixture.configureByText("ss.java", realSsJavaContent)
+            val psiFile = myFixture.configureByText("FinalUiState1235.java", realSsJavaContent)
             val annotator = CodeSentinelAnnotator()
             val collected = annotator.collectInformation(psiFile, myFixture.editor, false)
             assertNotNull(collected)
@@ -217,8 +222,15 @@ class FinalUIStateVerificationTest : BasePlatformTestCase() {
         val basePath = project.basePath!!
         val srcDir = File(basePath, "src")
         srcDir.mkdirs()
-        File(srcDir, "ss.java").writeText(realSsJavaContent)
-        LocalFileSystem.getInstance().refreshAndFindFileByIoFile(srcDir)
+        // A filename unique to this test - see test1_2_3_5's comment above
+        // for why "ss.java" is avoided (several test classes in this suite
+        // share the real disk path "src/ss.java").
+        val ssFile = File(srcDir, "FinalUiState789.java")
+        ssFile.writeText(realSsJavaContent)
+        val vFile = LocalFileSystem.getInstance().refreshAndFindFileByIoFile(ssFile)!!
+        // "Scan Current File" now scans ONLY the active editor file (never
+        // a project-wide walk) - this file must be the open/selected one.
+        myFixture.openFileInEditor(vFile)
 
         try {
             val toolWindow = MyToolWindow(project)
@@ -247,7 +259,7 @@ class FinalUIStateVerificationTest : BasePlatformTestCase() {
             // ProjectFileCollectorTest) - "src/ss.java" here, not the bare
             // file name, matching the fallback source root being the
             // project base directory itself.
-            assertEquals("src/ss.java", entry.view.fileName)
+            assertEquals("src/FinalUiState789.java", entry.view.fileName)
             assertEquals("Finding must anchor on the deepest (sink) strongest-evidence line", 8, entry.view.line)
             assertTrue("Finding must be presented as REVIEW status (real response is SUSPICIOUS_REVIEW, not VULNERABLE)", entry.view.reviewLevel)
             assertTrue("Finding must carry a real, positive confidence value", entry.view.confidence > 0.0)
@@ -265,9 +277,10 @@ class FinalUIStateVerificationTest : BasePlatformTestCase() {
         val basePath = project.basePath!!
         val srcDir = File(basePath, "src")
         srcDir.mkdirs()
-        val ssFile = File(srcDir, "ss.java")
+        val ssFile = File(srcDir, "FinalUiState10Nav.java")
         ssFile.writeText(realSsJavaContent)
-        LocalFileSystem.getInstance().refreshAndFindFileByIoFile(srcDir)
+        val vFile = LocalFileSystem.getInstance().refreshAndFindFileByIoFile(ssFile)!!
+        myFixture.openFileInEditor(vFile)
 
         try {
             val toolWindow = MyToolWindow(project)
@@ -284,7 +297,7 @@ class FinalUIStateVerificationTest : BasePlatformTestCase() {
 
             val openFiles = FileEditorManager.getInstance(project).openFiles
             println("[FINAL-UI-STATE][10] open files after navigation: ${openFiles.map { it.name }}")
-            assertTrue("navigateToFinding must open ss.java", openFiles.any { it.name == "ss.java" })
+            assertTrue("navigateToFinding must open FinalUiState10Nav.java", openFiles.any { it.name == "FinalUiState10Nav.java" })
         } finally {
             srcDir.deleteRecursively()
         }
@@ -298,8 +311,10 @@ class FinalUIStateVerificationTest : BasePlatformTestCase() {
         val basePath = project.basePath!!
         val srcDir = File(basePath, "src")
         srcDir.mkdirs()
-        File(srcDir, "ss.java").writeText(realSsJavaContent)
-        LocalFileSystem.getInstance().refreshAndFindFileByIoFile(srcDir)
+        val ssFile = File(srcDir, "FinalUiState11Repeat.java")
+        ssFile.writeText(realSsJavaContent)
+        val vFile = LocalFileSystem.getInstance().refreshAndFindFileByIoFile(ssFile)!!
+        myFixture.openFileInEditor(vFile)
 
         try {
             val toolWindow = MyToolWindow(project)

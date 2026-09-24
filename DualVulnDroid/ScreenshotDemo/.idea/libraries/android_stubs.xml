@@ -1,0 +1,11 @@
+<component name="libraryTable">
+  <library name="android-stubs">
+    <CLASSES>
+      <root url="jar://$PROJECT_DIR$/libs/android-stubs.jar!/" />
+    </CLASSES>
+    <JAVADOC />
+    <SOURCES>
+      <root url="file://$PROJECT_DIR$/libs/android-stubs-src" />
+    </SOURCES>
+  </library>
+</component>

@@ -1,38 +1,55 @@
 import 'package:flutter/material.dart';
 
-/// Semantic colors for risk/compatibility states. These are always
-/// paired with an icon and a text label in the UI (Part 20:
-/// "Do not communicate risk using color alone") - this file only defines
-/// the color half of that pairing; see widgets/risk_badge.dart for the
-/// icon pairing.
+/// SmartApp's light palette. Semantic colors are always paired with an
+/// icon and a text label in the UI (never color alone).
+///
+/// Usage rules:
+///   indigo [accent]      - primary actions, active navigation, match indicators
+///   cyan [accentCyan]    - secondary highlights, device/context accents
+///   green [success]      - success only
+///   orange [warning]     - warnings only
+///   red [error]          - errors only
 class AppColors {
   AppColors._();
 
-  static const Color background = Color(0xFF0B0E14);
-  static const Color surface = Color(0xFF161A23);
-  static const Color surfaceAlt = Color(0xFF1E2430);
-  static const Color accent = Color(0xFF4C8DFF);
-  static const Color accentSoft = Color(0xFF1B2740);
+  static const Color background = Color(0xFFF7F9FC);
+  static const Color surface = Color(0xFFFFFFFF);
+  static const Color surfaceAlt = Color(0xFFF1F4F9);
 
-  /// Secondary accent (design brief: "cyan secondary accent"), paired with
-  /// [accent] the same way [accentSoft] pairs with it - used sparingly for
-  /// hero/gradient treatments, never as a second semantic color.
-  static const Color accentCyan = Color(0xFF22D3EE);
-  static const Color accentCyanSoft = Color(0xFF10303A);
+  static const Color accent = Color(0xFF4F6BFF);
 
-  static const Color textPrimary = Color(0xFFF2F4F8);
-  static const Color textSecondary = Color(0xFFA6ADBB);
+  /// A soft indigo tint for selected chips and gentle highlights.
+  static const Color accentSoft = Color(0xFFEEF1FF);
 
-  /// A hairline separator/card border - flat (elevation 0) cards and app
-  /// bars otherwise have no depth cue against the near-identical
-  /// background, so this gives every surface a subtle, consistent edge.
-  static const Color border = Color(0xFF262D3B);
+  static const Color accentCyan = Color(0xFF22B8CF);
+  static const Color accentCyanSoft = Color(0xFFE7F7FA);
 
-  static const Color riskLow = Color(0xFF3DDC84);
-  static const Color riskMedium = Color(0xFFFFB020);
-  static const Color riskHigh = Color(0xFFFF5A5F);
-  static const Color riskCritical = Color(0xFFD32F2F);
-  static const Color riskUnknown = Color(0xFF8A93A6);
+  static const Color textPrimary = Color(0xFF182033);
+  static const Color textSecondary = Color(0xFF667085);
+
+  /// Captions, timestamps and other text that should recede further.
+  static const Color textMuted = Color(0xFF98A2B3);
+
+  /// Hairline separator / card border.
+  static const Color border = Color(0xFFE4E7EC);
+
+  /// Very subtle card shadow color.
+  static const Color shadow = Color(0x14101828);
+
+  static const Color riskLow = Color(0xFF12B76A);
+  static const Color riskMedium = Color(0xFFF79009);
+  static const Color riskHigh = Color(0xFFF04438);
+  static const Color riskCritical = Color(0xFFD92D20);
+  static const Color riskUnknown = textMuted;
+
+  static const Color success = riskLow;
+  static const Color warning = riskMedium;
+  static const Color error = riskHigh;
+
+  /// Color for a 0-100 match percentage. A match is a fit for THIS user,
+  /// not a verdict on the app, so it is always the brand indigo - never
+  /// the success/warning/error colors. The ring's fill shows the amount.
+  static Color forMatchPercent(int percent) => accent;
 
   static Color forRiskLevel(String? riskLevel) {
     switch (riskLevel?.toUpperCase()) {
@@ -49,22 +66,17 @@ class AppColors {
     }
   }
 
-  /// Subtle diagonal wash for splash/hero surfaces - the design brief's
-  /// "subtle gradients", kept to the existing accent/cyan pair rather than
-  /// introducing new colors.
-  static const LinearGradient heroGradient = LinearGradient(
-    colors: [accent, accentCyan],
+  /// A barely-there indigo wash for the Home hero card.
+  static const LinearGradient heroSurfaceGradient = LinearGradient(
+    colors: [Color(0xFFF0F3FF), Color(0xFFFFFFFF)],
     begin: Alignment.topLeft,
     end: Alignment.bottomRight,
   );
 
-  /// A two-stop wash of the real risk color for a given assessment, used
-  /// as a large status-card background. Always derived from the same
-  /// [forRiskLevel] color used everywhere else - never a separate palette.
   static LinearGradient riskGradient(String? riskLevel) {
     final color = forRiskLevel(riskLevel);
     return LinearGradient(
-      colors: [color.withValues(alpha: 0.28), color.withValues(alpha: 0.04)],
+      colors: [color.withValues(alpha: 0.16), color.withValues(alpha: 0.02)],
       begin: Alignment.topLeft,
       end: Alignment.bottomRight,
     );

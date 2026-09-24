@@ -15,7 +15,8 @@ import com.intellij.psi.PsiMethodCallExpression
  * Phase 6: SAFE, targeted replacement of ONLY
  *   - the query-string initializer expression (if a separate
  *     `String query = "..." + x;` declaration exists), and
- *   - the rawQuery() call's arguments
+ *   - the rawQuery()/execSQL() call's bind-arguments (replacing
+ *     rawQuery's `null`, or adding execSQL's missing second argument)
  * Unlike the old (never-connected) JavaSQLQuickFix, this class never
  * touches a PsiMethod, PsiClass, or anything above expression scope -
  * see SqlFixModel.kt's FixProposal, which has no field capable of
@@ -27,13 +28,14 @@ import com.intellij.psi.PsiMethodCallExpression
  */
 class SafeSqlQuickFixJava(
     element: PsiMethodCallExpression,
+    private val sink: SqlConcatenationAnalyzer.SqlSink,
     private val declaration: PsiLocalVariable?,
     private val match: SqlConcatenationAnalyzer.Match,
     private val fileName: String,
     private val originalFinding: LineScanResult
 ) : LocalQuickFixAndIntentionActionOnPsiElement(element) {
 
-    override fun getText(): String = "DualVulnDroid: Use parameterized query (rawQuery)"
+    override fun getText(): String = "DualVulnDroid: Use parameterized query (${sink.methodName})"
     override fun getFamilyName(): String = text
     override fun startInWriteAction(): Boolean = true
 
@@ -75,9 +77,10 @@ class SafeSqlQuickFixJava(
             // call's own arg list, but re-reading is cheap and avoids
             // relying on a stale reference after any replace() above.
             val refreshedArgs = call.argumentList.expressions
-            if (refreshedArgs.size >= 2) {
-                val newArgsExpr: PsiExpression = factory.createExpressionFromText(match.argsArrayExpression(), call)
-                refreshedArgs[1].replace(newArgsExpr)
+            val newArgsExpr: PsiExpression = factory.createExpressionFromText(match.argsArrayExpression(sink), call)
+            when (sink) {
+                SqlConcatenationAnalyzer.SqlSink.RAW_QUERY -> if (refreshedArgs.size >= 2) refreshedArgs[1].replace(newArgsExpr)
+                SqlConcatenationAnalyzer.SqlSink.EXEC_SQL -> call.argumentList.add(newArgsExpr)
             }
         } catch (e: Exception) {
             Messages.showWarningDialog(project, "Could not apply fix: ${e.message}", "DualVulnDroid")
@@ -93,9 +96,9 @@ class SafeSqlQuickFixJava(
     }
 
     private fun revalidate(call: PsiMethodCallExpression): Boolean {
-        if (!SqlConcatenationAnalyzer.isSupportedSink(call.text)) return false
+        if (SqlConcatenationAnalyzer.sinkNamed(call.methodExpression.referenceName) != sink) return false
         val args = call.argumentList.expressions
-        if (args.size < 2) return false
+        if (!SqlConcatenationAnalyzer.argumentsFitSink(sink, args.map { it.text })) return false
 
         val queryExprText = if (declaration != null) {
             declaration.takeIf { it.isValid }?.initializer?.text ?: return false
@@ -103,8 +106,6 @@ class SafeSqlQuickFixJava(
             args[0].text
         }
         val currentMatch = SqlConcatenationAnalyzer.analyzeQueryExpression(queryExprText, FixLanguage.JAVA) ?: return false
-        if (currentMatch.identifier != match.identifier) return false
-
-        return SqlConcatenationAnalyzer.isSecondArgumentReplaceable(args[1].text)
+        return currentMatch.identifier == match.identifier
     }
 }

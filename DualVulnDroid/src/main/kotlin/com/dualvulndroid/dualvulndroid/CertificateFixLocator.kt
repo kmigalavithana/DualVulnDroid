@@ -3,19 +3,22 @@ package com.dualvulndroid.dualvulndroid
 import com.intellij.codeInspection.LocalQuickFixAndIntentionActionOnPsiElement
 import com.intellij.psi.PsiFile
 import com.intellij.psi.PsiMethod
+import com.intellij.psi.PsiMethodCallExpression
 import com.intellij.psi.PsiReturnStatement
 import com.intellij.psi.util.PsiTreeUtil
+import org.jetbrains.kotlin.psi.KtCallExpression
 import org.jetbrains.kotlin.psi.KtClassOrObject
 import org.jetbrains.kotlin.psi.KtNamedFunction
 import org.jetbrains.kotlin.psi.KtReturnExpression
 
 /**
- * Phase 6, section 14: locates the single supported certificate-fix
- * pattern (HostnameVerifier.verify() { return true }) and builds a fix
- * ONLY when the whole method body is confidently just that one
- * statement. Everything else - WebView, TrustManager, any verify() body
- * with more than the one statement - returns null, which
- * CodeSentinelAnnotator turns into the manual-remediation message.
+ * Phase 6, section 14: locates the two supported certificate-fix patterns
+ * - HostnameVerifier.verify() { return true }, and SSLContext.init() fed a
+ * trust-all X509TrustManager array (see CertificateFixAnalyzer) - and
+ * builds a fix ONLY when the shape is confidently exactly that. Everything
+ * else - WebView, a TrustManager with real logic, any verify() body with
+ * more than the one statement - returns null, which CodeSentinelAnnotator
+ * turns into the manual-remediation message.
  *
  * dataflow.py reports the finding's line at the HostnameVerifier
  * declaration, not the return statement, so this searches the whole
@@ -28,7 +31,33 @@ object CertificateFixLocator {
     fun tryBuildFix(file: PsiFile, result: LineScanResult, fileName: String): LocalQuickFixAndIntentionActionOnPsiElement? {
         if (result.vulnerabilityType != "Certificate Validation") return null
         val isKotlin = file.language.id.equals("kotlin", ignoreCase = true)
-        return if (isKotlin) buildKotlinFix(file, result, fileName) else buildJavaFix(file, result, fileName)
+        return if (isKotlin) {
+            buildKotlinFix(file, result, fileName) ?: buildKotlinTrustManagerFix(file, result, fileName)
+        } else {
+            buildJavaFix(file, result, fileName) ?: buildJavaTrustManagerFix(file, result, fileName)
+        }
+    }
+
+    // ---- SSLContext.init(km, <trust-all array>, random) ----
+
+    private fun buildJavaTrustManagerFix(file: PsiFile, result: LineScanResult, fileName: String): SafeTrustManagerQuickFixJava? {
+        val candidates = PsiTreeUtil.findChildrenOfType(file, PsiMethodCallExpression::class.java).mapNotNull { call ->
+            if (SafeTrustManagerQuickFixJava.isStillTrustAll(call, null)) return@mapNotNull call to null
+            val decl = SafeTrustManagerQuickFixJava.findTrustAllDeclaration(call) ?: return@mapNotNull null
+            if (SafeTrustManagerQuickFixJava.isStillTrustAll(call, decl)) call to decl else null
+        }
+        val (call, decl) = closestTo(candidates, result.startOffset) { it.first.textRange.startOffset } ?: return null
+        return SafeTrustManagerQuickFixJava(call, decl, fileName, result)
+    }
+
+    private fun buildKotlinTrustManagerFix(file: PsiFile, result: LineScanResult, fileName: String): SafeTrustManagerQuickFixKotlin? {
+        val candidates = PsiTreeUtil.findChildrenOfType(file, KtCallExpression::class.java).mapNotNull { call ->
+            if (SafeTrustManagerQuickFixKotlin.isStillTrustAll(call, null)) return@mapNotNull call to null
+            val decl = SafeTrustManagerQuickFixKotlin.findTrustAllDeclaration(call) ?: return@mapNotNull null
+            if (SafeTrustManagerQuickFixKotlin.isStillTrustAll(call, decl)) call to decl else null
+        }
+        val (call, decl) = closestTo(candidates, result.startOffset) { it.first.textRange.startOffset } ?: return null
+        return SafeTrustManagerQuickFixKotlin(call, decl, fileName, result)
     }
 
     private fun buildJavaFix(file: PsiFile, result: LineScanResult, fileName: String): SafeHostnameVerifierQuickFixJava? {

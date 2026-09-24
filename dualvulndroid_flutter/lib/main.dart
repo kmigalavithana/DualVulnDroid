@@ -1,50 +1,57 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
-import 'core/api_client.dart';
-import 'core/secure_token_storage.dart';
+import 'engines/recommendation_engine.dart';
+import 'repositories/app_interaction_repository.dart';
+import 'repositories/app_repository.dart';
 import 'repositories/apps_repository.dart';
-import 'repositories/auth_repository.dart';
-import 'repositories/chat_repository.dart';
 import 'repositories/device_profile_repository.dart';
+import 'repositories/evaluation_repository.dart';
+import 'repositories/favorites_repository.dart';
+import 'repositories/feedback_repository.dart';
 import 'repositories/history_repository.dart';
+import 'repositories/preferences_repository.dart';
 import 'screens/splash_screen.dart';
-import 'services/apps_api_service.dart';
-import 'services/auth_api_service.dart';
-import 'services/chat_api_service.dart';
-import 'services/history_api_service.dart';
+import 'services/installed_apps_service.dart';
+import 'services/play_store_launcher.dart';
 import 'theme/app_theme.dart';
 
 void main() {
-  runApp(const DualVulnDroidApp());
+  runApp(const SmartAppApp());
 }
 
-class DualVulnDroidApp extends StatelessWidget {
-  const DualVulnDroidApp({super.key});
+/// SmartApp: a standalone, offline-first Android app-discovery and
+/// recommendation experience (see README.md). No backend, no login, no
+/// APK upload/scan - every provider here is either pure local state
+/// (preferences/history, persisted via shared_preferences) or a thin
+/// wrapper around a real platform API (device info, installed apps,
+/// launching a Play Store URL).
+class SmartAppApp extends StatelessWidget {
+  const SmartAppApp({super.key});
 
   @override
   Widget build(BuildContext context) {
-    // ApiClient reads the JWT directly from SecureTokenStorage (Part 3/4)
-    // rather than from AuthRepository, so there's no circular dependency
-    // between "the client that needs a token" and "the repository that
-    // needs a client" - both simply share the same underlying storage.
-    final tokenStorage = SecureTokenStorage();
-    final apiClient = ApiClient(tokenProvider: tokenStorage.readToken);
-
     return MultiProvider(
       providers: [
-        ChangeNotifierProvider(
-          create: (_) => AuthRepository(api: AuthApiService(apiClient), tokenStorage: tokenStorage),
-        ),
-        Provider(create: (_) => AppsRepository(AppsApiService(apiClient))),
-        Provider(create: (_) => HistoryRepository(HistoryApiService(apiClient))),
-        Provider(create: (context) => ChatRepository(ChatApiService(apiClient))),
+        Provider(create: (_) => AppsRepository()),
+        Provider(create: (_) => AppRepository()),
+        Provider(create: (_) => const RecommendationEngine()),
+        Provider(create: (_) => InstalledAppsService()),
+        Provider(create: (_) => PlayStoreLauncher()),
+        ChangeNotifierProvider(create: (_) => PreferencesRepository()),
         ChangeNotifierProvider(create: (_) => DeviceProfileRepository()),
+        ChangeNotifierProvider(create: (_) => HistoryRepository()),
+        ChangeNotifierProvider(create: (_) => FavoritesRepository()),
+        ChangeNotifierProvider(create: (_) => FeedbackRepository()),
+        ChangeNotifierProvider(create: (_) => AppInteractionRepository()),
+        // Research Evaluation Mode - separate storage, never read by the
+        // production recommendation flow.
+        ChangeNotifierProvider(create: (_) => EvaluationRepository()),
       ],
       child: MaterialApp(
-        title: 'DualVulnDroid',
+        title: 'SmartApp',
         debugShowCheckedModeBanner: false,
-        theme: AppTheme.dark,
+        theme: AppTheme.light,
         home: const SplashScreen(),
       ),
     );

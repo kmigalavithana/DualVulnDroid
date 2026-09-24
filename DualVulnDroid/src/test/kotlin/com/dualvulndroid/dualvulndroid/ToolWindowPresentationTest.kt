@@ -1,11 +1,11 @@
 package com.dualvulndroid.dualvulndroid
 
 import com.intellij.openapi.command.WriteCommandAction
-import com.intellij.openapi.fileEditor.FileDocumentManager
 import com.intellij.openapi.fileEditor.FileEditorManager
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.ui.TestDialog
 import com.intellij.openapi.ui.TestDialogManager
+import com.intellij.openapi.vfs.LocalFileSystem
 import com.intellij.testFramework.PlatformTestUtil
 import com.intellij.testFramework.fixtures.BasePlatformTestCase
 import com.intellij.ui.JBColor
@@ -24,6 +24,14 @@ import javax.swing.JLabel
  * elsewhere (FindingClassificationTest, ToolWindowFindingsPresentationTest,
  * FinalUIStateVerificationTest) and are unchanged by this redesign -
  * these tests are purely about what MyToolWindow now shows and how.
+ *
+ * Scan-scope task: "Scan Project" was renamed "Scan Current File" and now
+ * scans ONLY the file currently open/selected in the editor - every
+ * fixture below opens its file in the editor first (myFixture.openFileInEditor)
+ * so it becomes the active selection startScan() reads. See
+ * ScanCurrentFileScopeTest for the dedicated single-file-scope test suite
+ * (multiple files present, only the active one scanned; Quick-Fix rescan;
+ * no-selection/unsupported-file messages).
  *
  * REQUIRES the real backend running and reachable at APIClient.BACKEND_URL.
  */
@@ -84,6 +92,36 @@ class ToolWindowPresentationTest : BasePlatformTestCase() {
         }
     """.trimIndent()
 
+    // A single file containing BOTH an unsafe concatenated SQL query AND an
+    // unsafe HostnameVerifier - exercises the mixed-CWE grouping/summary
+    // behavior within the scope of ONE currently-open file (a real project
+    // file can legitimately contain both families at once; scanning two
+    // SEPARATE files at once is no longer possible now that "Scan Current
+    // File" only ever scans the single active editor file - see
+    // ToolWindowFindingsPresentationTest's mixedSqlAndCertInOneFile for the
+    // same established pattern).
+    private val mixedSqlAndCert = """
+        import java.awt.*;
+
+        public Cursor findUser(SQLiteDatabase db, String username) {
+
+            // UNSAFE: user input is directly concatenated
+            String query =
+                    "SELECT * FROM users WHERE username = '" + username + "'";
+
+            return db.rawQuery(query, null);
+        }
+
+        public HostnameVerifier getVerifier() {
+            return new HostnameVerifier() {
+                @Override
+                public boolean verify(String hostname, SSLSession session) {
+                    return true;
+                }
+            };
+        }
+    """.trimIndent()
+
     // ---- reflection into the redesigned private fields (no test-only fields added to production code) ----
     private fun testButtonOf(toolWindow: MyToolWindow) =
         MyToolWindow::class.java.getDeclaredField("testButton").apply { isAccessible = true }.get(toolWindow) as JButton
@@ -109,9 +147,9 @@ class ToolWindowPresentationTest : BasePlatformTestCase() {
         MyToolWindow::class.java.getDeclaredField("isScanning").apply { isAccessible = true }.getBoolean(toolWindow)
 
     private fun startScan(toolWindow: MyToolWindow, project: Project) {
-        MyToolWindow::class.java.getDeclaredMethod("startScan", Project::class.java)
+        MyToolWindow::class.java.getDeclaredMethod("startScanOfFile", Project::class.java, com.intellij.openapi.vfs.VirtualFile::class.java)
             .apply { isAccessible = true }
-            .invoke(toolWindow, project)
+            .invoke(toolWindow, project, com.intellij.openapi.fileEditor.FileEditorManager.getInstance(project).selectedFiles.firstOrNull())
     }
 
     private fun waitForScanToFinish(toolWindow: MyToolWindow) {
@@ -122,14 +160,20 @@ class ToolWindowPresentationTest : BasePlatformTestCase() {
         }
     }
 
-    private fun withScannedProject(vararg files: Pair<String, String>, block: (MyToolWindow) -> Unit) {
+    // Creates ONE file on disk under src/ and opens it in the editor, so it
+    // becomes FileEditorManager's active selection - exactly what
+    // "Scan Current File" reads (never ProjectFileCollector's project-wide
+    // walk).
+    private fun withScannedFile(fileName: String, content: String, block: (MyToolWindow) -> Unit) {
         checkBackendReachable()
         val basePath = project.basePath!!
         val srcDir = File(basePath, "src")
         srcDir.mkdirs()
-        files.forEach { (name, content) -> File(srcDir, name).writeText(content) }
-        com.intellij.openapi.vfs.LocalFileSystem.getInstance().refreshAndFindFileByIoFile(srcDir)
+        val file = File(srcDir, fileName)
+        file.writeText(content)
+        val virtualFile = LocalFileSystem.getInstance().refreshAndFindFileByIoFile(file)!!
         try {
+            myFixture.openFileInEditor(virtualFile)
             val toolWindow = MyToolWindow(project)
             startScan(toolWindow, project)
             waitForScanToFinish(toolWindow)
@@ -141,7 +185,7 @@ class ToolWindowPresentationTest : BasePlatformTestCase() {
 
     // ---- 1. Zero findings -> proper empty state (never "Nothing to show") ----
     fun testZeroFindingsShowsCleanEmptyStateNotNothingToShow() {
-        withScannedProject("SafeLogin.java" to safeSql) { toolWindow ->
+        withScannedFile("SafeLogin.java", safeSql) { toolWindow ->
             val findingsList = findingsListOf(toolWindow)
             val emptyText = findingsList.emptyText.text
             println("[PRESENTATION] empty state text = $emptyText")
@@ -152,7 +196,7 @@ class ToolWindowPresentationTest : BasePlatformTestCase() {
 
     // ---- 2. One CWE-89 finding -> correct summary and finding row ----
     fun testOneCwe89FindingShowsCorrectSummaryAndRow() {
-        withScannedProject("LoginActivity.java" to vulnerableSql) { toolWindow ->
+        withScannedFile("LoginActivity.java", vulnerableSql) { toolWindow ->
             val findings = findingsOf(toolWindow)
             assertEquals(1, findings.size)
             assertEquals("CWE-89", findings[0].view.cwe)
@@ -167,7 +211,7 @@ class ToolWindowPresentationTest : BasePlatformTestCase() {
 
     // ---- 3. One CWE-295 finding -> correct summary and finding row ----
     fun testOneCwe295FindingShowsCorrectSummaryAndRow() {
-        withScannedProject("NetworkConfig.java" to vulnerableCert) { toolWindow ->
+        withScannedFile("NetworkConfig.java", vulnerableCert) { toolWindow ->
             val findings = findingsOf(toolWindow)
             assertEquals(1, findings.size)
             assertEquals("CWE-295", findings[0].view.cwe)
@@ -180,9 +224,15 @@ class ToolWindowPresentationTest : BasePlatformTestCase() {
         }
     }
 
-    // ---- 4/5. Mixed CWE-89 + CWE-295 -> correct grouped display, total == sum ----
+    // ---- 4/5. Mixed CWE-89 + CWE-295 (both within the ONE currently-open
+    // file) -> correct grouped display, total == sum ----
     fun testMixedFindingsGroupCorrectlyAndTotalsAreConsistent() {
-        withScannedProject("LoginActivity.java" to vulnerableSql, "NetworkConfig.java" to vulnerableCert) { toolWindow ->
+        // A filename unique to this test - "ss.java" is reused as a real
+        // disk path by several other test classes in this suite; now that
+        // MyToolWindow's scan reads the live Document rather than disk,
+        // reusing that exact path risks picking up a stale Document from
+        // an earlier test's use of the same path.
+        withScannedFile("PresentationMixedGrouping.java", mixedSqlAndCert) { toolWindow ->
             val findings = findingsOf(toolWindow)
             val sql = findings.filter { it.view.cwe == "CWE-89" }
             val cert = findings.filter { it.view.cwe == "CWE-295" }
@@ -217,7 +267,7 @@ class ToolWindowPresentationTest : BasePlatformTestCase() {
 
     // ---- 6. Finding click (the NEW single-click-to-navigate row behavior) still navigates correctly ----
     fun testClickingAFindingRowNavigatesToTheCorrectFile() {
-        withScannedProject("LoginActivity.java" to vulnerableSql) { toolWindow ->
+        withScannedFile("LoginActivity.java", vulnerableSql) { toolWindow ->
             val findingsList = findingsListOf(toolWindow)
             assertEquals(1, findingsList.model.size)
 
@@ -233,19 +283,21 @@ class ToolWindowPresentationTest : BasePlatformTestCase() {
         }
     }
 
-    // ---- 7. Scan button disabled during scan, re-enabled (and re-labeled) afterward ----
+    // ---- 7. Scan button disabled during scan, re-enabled (and re-labeled "Scan File") afterward ----
     fun testScanButtonDisabledDuringScanAndReEnabledAfter() {
         checkBackendReachable()
         val basePath = project.basePath!!
         val srcDir = File(basePath, "src")
         srcDir.mkdirs()
-        File(srcDir, "LoginActivity.java").writeText(vulnerableSql)
-        com.intellij.openapi.vfs.LocalFileSystem.getInstance().refreshAndFindFileByIoFile(srcDir)
+        val file = File(srcDir, "LoginActivity.java")
+        file.writeText(vulnerableSql)
+        val virtualFile = LocalFileSystem.getInstance().refreshAndFindFileByIoFile(file)!!
 
         try {
+            myFixture.openFileInEditor(virtualFile)
             val toolWindow = MyToolWindow(project)
             val button = testButtonOf(toolWindow)
-            assertEquals("Scan Project", button.text)
+            assertEquals("Scan File", button.text)
             assertTrue(button.isEnabled)
 
             startScan(toolWindow, project)
@@ -256,22 +308,24 @@ class ToolWindowPresentationTest : BasePlatformTestCase() {
 
             waitForScanToFinish(toolWindow)
             assertTrue("Button must be re-enabled once the scan completes", button.isEnabled)
-            assertEquals("Scan Project", button.text)
+            assertEquals("Scan File", button.text)
         } finally {
             srcDir.deleteRecursively()
         }
     }
 
-    // ---- 8. Repeated Scan Project still works (button re-clickable, fresh results both times) ----
-    fun testRepeatedScanProjectStillWorksAfterRedesign() {
+    // ---- 8. Repeated Scan Current File still works (button re-clickable, fresh results both times) ----
+    fun testRepeatedScanCurrentFileStillWorksAfterRedesign() {
         checkBackendReachable()
         val basePath = project.basePath!!
         val srcDir = File(basePath, "src")
         srcDir.mkdirs()
-        File(srcDir, "LoginActivity.java").writeText(vulnerableSql)
-        com.intellij.openapi.vfs.LocalFileSystem.getInstance().refreshAndFindFileByIoFile(srcDir)
+        val file = File(srcDir, "LoginActivity.java")
+        file.writeText(vulnerableSql)
+        val virtualFile = LocalFileSystem.getInstance().refreshAndFindFileByIoFile(file)!!
 
         try {
+            myFixture.openFileInEditor(virtualFile)
             val toolWindow = MyToolWindow(project)
             startScan(toolWindow, project)
             waitForScanToFinish(toolWindow)
@@ -288,21 +342,36 @@ class ToolWindowPresentationTest : BasePlatformTestCase() {
         }
     }
 
-    // ---- 10. "Scan Project" always performs a FRESH re-scan: clicking it
-    // again must clear the previous findings/counts and reflect the
-    // CURRENT project state, not accumulate or reuse stale results. ----
-    fun testScanProjectClearsPreviousFindingsOnRepeatedClicks() {
-        withScannedProject("LoginActivity.java" to vulnerableSql) { toolWindow ->
+    // ---- 10. "Scan Current File" always performs a FRESH re-scan: clicking
+    // it again must clear the previous findings/counts and reflect the
+    // CURRENT editor content, not accumulate or reuse stale results. The
+    // edit is made via the in-memory Document (exactly the Quick Fix
+    // workflow - MyToolWindow reads the live Document, never disk). ----
+    fun testScanCurrentFileClearsPreviousFindingsOnRepeatedClicks() {
+        checkBackendReachable()
+        val basePath = project.basePath!!
+        val srcDir = File(basePath, "src")
+        srcDir.mkdirs()
+        val file = File(srcDir, "LoginActivity.java")
+        file.writeText(vulnerableSql)
+        val virtualFile = LocalFileSystem.getInstance().refreshAndFindFileByIoFile(file)!!
+
+        try {
+            myFixture.openFileInEditor(virtualFile)
+            val toolWindow = MyToolWindow(project)
+            startScan(toolWindow, project)
+            waitForScanToFinish(toolWindow)
             assertEquals(1, findingsOf(toolWindow).size)
             assertTrue(summaryTextOf(toolWindow).contains("SQL Injection (CWE-89): 1"))
 
-            // Overwrite the SAME file on disk with safe content and refresh
-            // the VFS - a fresh click must see the NEW state, never the
-            // previous scan's leftover findings/counts.
-            val srcDir = File(project.basePath!!, "src")
-            val file = File(srcDir, "LoginActivity.java")
-            file.writeText(safeSql)
-            com.intellij.openapi.vfs.LocalFileSystem.getInstance().refreshAndFindFileByIoFile(file)
+            // Edit the SAME file's live Document to safe content (never
+            // saved to disk) - a fresh click must see the NEW in-editor
+            // state, never the previous scan's leftover findings/counts.
+            val document = myFixture.editor.document
+            WriteCommandAction.runWriteCommandAction(project) {
+                document.setText(safeSql)
+            }
+            com.intellij.psi.PsiDocumentManager.getInstance(project).commitDocument(document)
 
             startScan(toolWindow, project)
             waitForScanToFinish(toolWindow)
@@ -315,15 +384,17 @@ class ToolWindowPresentationTest : BasePlatformTestCase() {
                 "The summary must reflect the fresh scan, not stale counts from the first click",
                 summaryTextOf(toolWindow).contains("SQL Injection (CWE-89): 0")
             )
+        } finally {
+            srcDir.deleteRecursively()
         }
     }
 
     // ---- 11. The exact Quick-Fix-then-rescan flow (requirement 4): a fix
     // applied via an in-memory PSI/Document edit - NOT yet saved to disk,
     // exactly what SafeSqlQuickFixKotlin.invoke() does - must still be
-    // picked up by the very next "Scan Project" click. Before the
-    // saveAllDocuments() fix, ProjectFileCollector's disk read would see
-    // the OLD bytes and still report the finding. ----
+    // picked up by the very next "Scan Current File" click. MyToolWindow now
+    // reads the file's live Document directly (never disk), so this is the
+    // primary, expected path rather than a special case. ----
     fun testRescanAfterUnsavedInMemoryEditPicksUpTheFix() {
         checkBackendReachable()
         val basePath = project.basePath!!
@@ -338,6 +409,7 @@ class ToolWindowPresentationTest : BasePlatformTestCase() {
         val virtualFile = com.intellij.openapi.vfs.LocalFileSystem.getInstance().refreshAndFindFileByIoFile(file)!!
 
         try {
+            myFixture.openFileInEditor(virtualFile)
             val toolWindow = MyToolWindow(project)
             startScan(toolWindow, project)
             waitForScanToFinish(toolWindow)
@@ -345,12 +417,7 @@ class ToolWindowPresentationTest : BasePlatformTestCase() {
 
             // Simulate a Quick Fix: mutate the in-memory Document only -
             // exactly what SafeSqlQuickFixKotlin.invoke()'s PSI replace()
-            // calls do - WITHOUT saving to disk. Opened via the fixture's
-            // own editor-lifecycle API (openFileInEditor) rather than a
-            // raw FileDocumentManager lookup, so the test framework's
-            // document/VFS bookkeeping tracks this edit the same way a
-            // real open editor's edit would be tracked.
-            myFixture.openFileInEditor(virtualFile)
+            // calls do - WITHOUT saving to disk.
             val document = myFixture.editor.document
             WriteCommandAction.runWriteCommandAction(project) {
                 document.setText(safeSql)
@@ -366,7 +433,7 @@ class ToolWindowPresentationTest : BasePlatformTestCase() {
             waitForScanToFinish(toolWindow)
 
             assertEquals(
-                "Scan Project must flush unsaved documents before collecting files, so an applied-but-" +
+                "Scan Current File must read the CURRENT Document content directly, so an applied-but-" +
                     "unsaved Quick Fix is reflected on the very next click - not just after a manual save",
                 0, findingsOf(toolWindow).size
             )
@@ -377,11 +444,12 @@ class ToolWindowPresentationTest : BasePlatformTestCase() {
 
     // ---- 9. Colors used for status/rows are JBColor (theme-aware), never a raw hardcoded Color ----
     fun testStatusAndFindingColorsAreThemeAwareJBColor() {
-        withScannedProject("LoginActivity.java" to vulnerableSql, "NetworkConfig.java" to vulnerableCert) { toolWindow ->
+        withScannedFile("PresentationMixedColors.java", mixedSqlAndCert) { toolWindow ->
             val dot = statusDotOf(toolWindow)
             assertTrue("The status dot's color must be a theme-aware JBColor, not a hardcoded Color", dot.foreground is JBColor)
 
             val findings = findingsOf(toolWindow).sortedWith(compareBy({ it.view.cwe }, { it.view.line ?: -1 }))
+            assertTrue("Expected findings from the mixed SQL+Cert file to render", findings.isNotEmpty())
             // The status colors (CONFIRMED=red-ish, NEEDS REVIEW=orange-ish)
             // are declared as JBColor at compile time (see
             // FindingListCellRenderer) - everything else in a row's

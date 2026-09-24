@@ -35,14 +35,14 @@ object SqlFixLocator {
     // ---- Java ----
 
     private fun buildJavaFix(file: PsiFile, result: LineScanResult, fileName: String, language: FixLanguage): SafeSqlQuickFixJava? {
-        val call = findJavaRawQueryCallInRange(file, result.startOffset, result.endOffset) ?: return null
-        if (!SqlConcatenationAnalyzer.isSupportedSink(call.text)) return null
+        val call = findJavaSinkCallInRange(file, result.startOffset, result.endOffset) ?: return null
+        val sink = SqlConcatenationAnalyzer.sinkNamed(call.methodExpression.referenceName) ?: return null
 
         val args = call.argumentList.expressions
-        if (args.size < 2 || !SqlConcatenationAnalyzer.isSecondArgumentReplaceable(args[1].text)) return null
+        if (!SqlConcatenationAnalyzer.argumentsFitSink(sink, args.map { it.text })) return null
 
         SqlConcatenationAnalyzer.analyzeQueryExpression(args[0].text, language)?.let { inlineMatch ->
-            return SafeSqlQuickFixJava(call, null, inlineMatch, fileName, result)
+            return SafeSqlQuickFixJava(call, sink, null, inlineMatch, fileName, result)
         }
 
         val varName = args[0].text.trim()
@@ -51,12 +51,12 @@ object SqlFixLocator {
         val declText = decl.initializer?.text ?: return null
         val declMatch = SqlConcatenationAnalyzer.analyzeQueryExpression(declText, language) ?: return null
 
-        return SafeSqlQuickFixJava(call, decl, declMatch, fileName, result)
+        return SafeSqlQuickFixJava(call, sink, decl, declMatch, fileName, result)
     }
 
-    private fun findJavaRawQueryCallInRange(file: PsiFile, start: Int, end: Int): PsiMethodCallExpression? {
+    private fun findJavaSinkCallInRange(file: PsiFile, start: Int, end: Int): PsiMethodCallExpression? {
         return PsiTreeUtil.findChildrenOfType(file, PsiMethodCallExpression::class.java)
-            .firstOrNull { it.textRange.startOffset in start until end && it.text.contains("rawQuery") }
+            .firstOrNull { it.textRange.startOffset in start until end && SqlConcatenationAnalyzer.sinkNamed(it.methodExpression.referenceName) != null }
     }
 
     private fun findPrecedingJavaDeclaration(call: PsiMethodCallExpression, varName: String): PsiLocalVariable? {
@@ -76,17 +76,16 @@ object SqlFixLocator {
     // ---- Kotlin ----
 
     private fun buildKotlinFix(file: PsiFile, result: LineScanResult, fileName: String, language: FixLanguage): SafeSqlQuickFixKotlin? {
-        val call = findKotlinRawQueryCallInRange(file, result.startOffset, result.endOffset) ?: return null
-        if (!SqlConcatenationAnalyzer.isSupportedSink(call.text)) return null
+        val call = findKotlinSinkCallInRange(file, result.startOffset, result.endOffset) ?: return null
+        val sink = SqlConcatenationAnalyzer.sinkNamed(call.calleeExpression?.text) ?: return null
 
         val arguments = call.valueArgumentList?.arguments ?: return null
-        if (arguments.size < 2) return null
-        val secondArgText = arguments[1].getArgumentExpression()?.text ?: return null
-        if (!SqlConcatenationAnalyzer.isSecondArgumentReplaceable(secondArgText)) return null
+        val argTexts = arguments.map { it.getArgumentExpression()?.text ?: return null }
+        if (!SqlConcatenationAnalyzer.argumentsFitSink(sink, argTexts)) return null
 
-        val firstArgText = arguments[0].getArgumentExpression()?.text ?: return null
+        val firstArgText = argTexts[0]
         SqlConcatenationAnalyzer.analyzeQueryExpression(firstArgText, language)?.let { inlineMatch ->
-            return SafeSqlQuickFixKotlin(call, null, inlineMatch, fileName, result)
+            return SafeSqlQuickFixKotlin(call, sink, null, inlineMatch, fileName, result)
         }
 
         val varName = firstArgText.trim()
@@ -95,12 +94,12 @@ object SqlFixLocator {
         val declText = decl.initializer?.text ?: return null
         val declMatch = SqlConcatenationAnalyzer.analyzeQueryExpression(declText, language) ?: return null
 
-        return SafeSqlQuickFixKotlin(call, decl, declMatch, fileName, result)
+        return SafeSqlQuickFixKotlin(call, sink, decl, declMatch, fileName, result)
     }
 
-    private fun findKotlinRawQueryCallInRange(file: PsiFile, start: Int, end: Int): KtCallExpression? {
+    private fun findKotlinSinkCallInRange(file: PsiFile, start: Int, end: Int): KtCallExpression? {
         return PsiTreeUtil.findChildrenOfType(file, KtCallExpression::class.java)
-            .firstOrNull { it.textRange.startOffset in start until end && it.text.contains("rawQuery") }
+            .firstOrNull { it.textRange.startOffset in start until end && SqlConcatenationAnalyzer.sinkNamed(it.calleeExpression?.text) != null }
     }
 
     private fun findPrecedingKotlinDeclaration(call: KtCallExpression, varName: String): KtProperty? {

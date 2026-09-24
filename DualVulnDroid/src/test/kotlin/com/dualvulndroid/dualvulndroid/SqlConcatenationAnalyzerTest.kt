@@ -28,13 +28,62 @@ class SqlConcatenationAnalyzerTest {
     }
 
     @Test
-    fun `concatenation with a literal suffix (quoted value) is matched`() {
+    fun `a quoted value loses its SQL quotes so the placeholder is a real parameter`() {
+        // name='?' would compare against the literal text "?" - the quotes
+        // must go when the value becomes a bound argument.
         val match = SqlConcatenationAnalyzer.analyzeQueryExpression(
             "\"SELECT * FROM users WHERE name='\" + username + \"'\"", FixLanguage.JAVA
         )
         assertNotNull(match)
         assertEquals("username", match!!.identifier)
-        assertEquals("\"SELECT * FROM users WHERE name='?'\"", match.parameterizedLiteral())
+        assertEquals("\"SELECT * FROM users WHERE name=?\"", match.parameterizedLiteral())
+        assertEquals("new String[]{username}", match.argsArrayExpression())
+    }
+
+    @Test
+    fun `a quoted value followed by more SQL keeps the rest of the statement`() {
+        val match = SqlConcatenationAnalyzer.analyzeQueryExpression(
+            "\"SELECT * FROM users WHERE name='\" + username + \"' AND active=1\"", FixLanguage.JAVA
+        )
+        assertEquals("\"SELECT * FROM users WHERE name=? AND active=1\"", match!!.parameterizedLiteral())
+    }
+
+    @Test
+    fun `kotlin template inside SQL quotes is parameterized without the quotes`() {
+        val match = SqlConcatenationAnalyzer.analyzeQueryExpression(
+            "\"SELECT * FROM users WHERE name='\$username'\"", FixLanguage.KOTLIN
+        )
+        assertEquals("\"SELECT * FROM users WHERE name=?\"", match!!.parameterizedLiteral())
+        assertEquals("arrayOf(username)", match.argsArrayExpression())
+    }
+
+    @Test
+    fun `unbalanced quote around the value gets no automatic fix`() {
+        assertNull(
+            SqlConcatenationAnalyzer.analyzeQueryExpression(
+                "\"SELECT * FROM users WHERE name='\" + username", FixLanguage.JAVA
+            )
+        )
+    }
+
+    @Test
+    fun `LIKE wildcard inside the quotes gets no automatic fix`() {
+        // Parameterizing '%x%' needs the bound VALUE changed to "%x%", which
+        // a text-only rewrite of the SQL can't do safely.
+        assertNull(
+            SqlConcatenationAnalyzer.analyzeQueryExpression(
+                "\"SELECT * FROM notes WHERE title LIKE '%\" + term + \"%'\"", FixLanguage.JAVA
+            )
+        )
+    }
+
+    @Test
+    fun `escaped quote next to the value gets no automatic fix`() {
+        assertNull(
+            SqlConcatenationAnalyzer.analyzeQueryExpression(
+                "\"SELECT * FROM users WHERE name=''\" + username + \"''\"", FixLanguage.JAVA
+            )
+        )
     }
 
     // ---- 2. Kotlin interpolation ----
@@ -112,10 +161,30 @@ class SqlConcatenationAnalyzerTest {
 
     // ---- Sink / argument validation ----
     @Test
-    fun `only rawQuery is treated as a supported sink`() {
+    fun `rawQuery and execSQL are the supported sinks`() {
         assertTrue(SqlConcatenationAnalyzer.isSupportedSink("db.rawQuery(query, null)"))
-        assertFalse(SqlConcatenationAnalyzer.isSupportedSink("db.execSQL(query)"))
+        assertTrue(SqlConcatenationAnalyzer.isSupportedSink("db.execSQL(query)"))
         assertFalse(SqlConcatenationAnalyzer.isSupportedSink("db.query(table, null, null, null, null, null, null)"))
+        assertEquals(SqlConcatenationAnalyzer.SqlSink.EXEC_SQL, SqlConcatenationAnalyzer.sinkNamed("execSQL"))
+        assertNull(SqlConcatenationAnalyzer.sinkNamed("compileStatement"))
+    }
+
+    @Test
+    fun `execSQL is fixable only while it has no bind args yet`() {
+        val execSql = SqlConcatenationAnalyzer.SqlSink.EXEC_SQL
+        assertTrue(SqlConcatenationAnalyzer.argumentsFitSink(execSql, listOf("\"DELETE FROM notes WHERE id=\" + noteId")))
+        assertFalse(SqlConcatenationAnalyzer.argumentsFitSink(execSql, listOf("sql", "args")))
+        val rawQuery = SqlConcatenationAnalyzer.SqlSink.RAW_QUERY
+        assertTrue(SqlConcatenationAnalyzer.argumentsFitSink(rawQuery, listOf("query", "null")))
+        assertFalse(SqlConcatenationAnalyzer.argumentsFitSink(rawQuery, listOf("query")))
+    }
+
+    @Test
+    fun `execSQL binds an Object array in Java and arrayOf in Kotlin`() {
+        val java = SqlConcatenationAnalyzer.analyzeQueryExpression("\"DELETE FROM notes WHERE id=\" + noteId", FixLanguage.JAVA)!!
+        assertEquals("new Object[]{noteId}", java.argsArrayExpression(SqlConcatenationAnalyzer.SqlSink.EXEC_SQL))
+        val kotlin = SqlConcatenationAnalyzer.analyzeQueryExpression("\"DELETE FROM notes WHERE id=\" + noteId", FixLanguage.KOTLIN)!!
+        assertEquals("arrayOf(noteId)", kotlin.argsArrayExpression(SqlConcatenationAnalyzer.SqlSink.EXEC_SQL))
     }
 
     @Test
