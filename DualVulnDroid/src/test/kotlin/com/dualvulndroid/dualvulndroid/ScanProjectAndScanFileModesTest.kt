@@ -235,6 +235,7 @@ class ScanProjectAndScanFileModesTest : BasePlatformTestCase() {
         val findings = findingsOf(toolWindow)
         assertTrue("Expected a real CWE-89 finding for the Kotlin file", findings.any { it.view.cwe == "CWE-89" })
         assertTrue(summaryOf(toolWindow).contains("Files scanned: 1"))
+        assertTrue("The summary must report how long the scan took", summaryOf(toolWindow).contains("Scan time: "))
     }
 
     // ==========================================================
@@ -295,6 +296,7 @@ class ScanProjectAndScanFileModesTest : BasePlatformTestCase() {
         scanProject(toolWindow)
 
         assertEquals("Project scan complete", statusOf(toolWindow))
+        assertTrue("Scan Project must report how long the scan took (UAT-03 feedback)", summaryOf(toolWindow).contains("Scan time: "))
         val files = fileNamesOf(findingsOf(toolWindow))
         println("[TWO-MODE][PROJECT] findings from files=$files summary-files-line=${Regex("Files scanned: \\d+").find(summaryOf(toolWindow))?.value}")
         assertTrue(
@@ -386,5 +388,11 @@ class ScanProjectAndScanFileModesTest : BasePlatformTestCase() {
             "Re-running Scan File after the Quick Fix must no longer report CWE-89",
             findingsOf(toolWindow).any { it.view.cwe == "CWE-89" }
         )
+    }
+
+    fun testScanDurationIsShownInMillisecondsOrSeconds() {
+        assertEquals("850 ms", formatScanDuration(850))
+        assertEquals("1.0 s", formatScanDuration(1000))
+        assertEquals("2.4 s", formatScanDuration(2412))
     }
 }

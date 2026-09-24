@@ -414,6 +414,7 @@ class MyToolWindow(
         // toDetailView()) - no second, parallel scanning architecture, and
         // no change to the backend contract itself.
         private fun runScan(project: Project, selection: CurrentFileSelection.Supported, indicator: ProgressIndicator) {
+            val startedAt = System.nanoTime()
             try {
                 indicator.text = "Checking backend availability..."
                 val availability = APIClient().checkBackendAvailability()
@@ -520,6 +521,7 @@ class MyToolWindow(
                     setEmptyText("No security findings detected", "${selection.relativePath} scanned successfully.", 1)
                 }
 
+                val durationMillis = (System.nanoTime() - startedAt) / 1_000_000
                 setStatus("Scan complete", STATUS_COMPLETE)
                 setSummary(
                     projectSummaryHtml(
@@ -528,7 +530,8 @@ class MyToolWindow(
                         sqlCount = sqlCount,
                         certCount = certCount,
                         reviewCount = reviewCount,
-                        totalFindings = findings.size
+                        totalFindings = findings.size,
+                        durationMillis = durationMillis
                     )
                 )
             } catch (e: ProcessCanceledException) {
@@ -582,6 +585,7 @@ class MyToolWindow(
         }
 
         private fun runProjectScan(project: Project, basePath: String, indicator: ProgressIndicator) {
+            val startedAt = System.nanoTime()
             try {
                 indicator.text = "Checking backend availability..."
                 val availability = APIClient().checkBackendAvailability()
@@ -693,6 +697,7 @@ class MyToolWindow(
                     setEmptyText("No security findings detected", "Project scan completed successfully.", filesScanned)
                 }
 
+                val durationMillis = (System.nanoTime() - startedAt) / 1_000_000
                 setStatus("Project scan complete", STATUS_COMPLETE)
                 setSummary(
                     projectSummaryHtml(
@@ -701,7 +706,8 @@ class MyToolWindow(
                         sqlCount = sqlCount,
                         certCount = certCount,
                         reviewCount = reviewCount,
-                        totalFindings = allFindings.size
+                        totalFindings = allFindings.size,
+                        durationMillis = durationMillis
                     )
                 )
 
@@ -992,10 +998,13 @@ private fun projectSummaryHtml(
     sqlCount: Int,
     certCount: Int,
     reviewCount: Int,
-    totalFindings: Int
+    totalFindings: Int,
+    durationMillis: Long? = null
 ): String {
     val base = summaryCardsHtml(sqlCount, certCount, totalFindings)
-    val filesLine = "Files scanned: $filesScanned" + if (filesFailed > 0) " ($filesFailed failed to scan)" else ""
+    val filesLine = "Files scanned: $filesScanned" +
+        (if (filesFailed > 0) " ($filesFailed failed to scan)" else "") +
+        (if (durationMillis != null) " · Scan time: ${formatScanDuration(durationMillis)}" else "")
     val reviewNote = if (reviewCount > 0) {
         "<p style='font-size:11px'><i>$reviewCount of $totalFindings finding(s) are SUSPICIOUS_REVIEW-level " +
             "(flagged for manual review, not auto-confirmed).</i></p>"
@@ -1005,6 +1014,10 @@ private fun projectSummaryHtml(
         "<p style='font-size:11px'>$filesLine</p>$reviewNote</body></html>"
     )
 }
+
+/** Scan duration for the tool window: "850 ms" below one second, "2.4 s" above. */
+internal fun formatScanDuration(millis: Long): String =
+    if (millis < 1000) "$millis ms" else String.format(java.util.Locale.ROOT, "%.1f s", millis / 1000.0)
 
 // UI-presentation task, item 8: "preserve any already-collected findings
 // where appropriate" on failure - if earlier batches already produced
